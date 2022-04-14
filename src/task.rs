@@ -1,5 +1,3 @@
-
-
 pub struct Task {
     pub progress: bool,
     pub content: String

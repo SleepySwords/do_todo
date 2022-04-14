@@ -16,14 +16,12 @@ pub struct App {
 
 impl Default for App {
     fn default() -> Self {
-        let mut messages = Vec::new();
-        messages.push(Task::new(String::from("aefmkafm")));
         App {
             add_mode: false,
             default_colour: Color::Rgb(255, 192, 203),
             selected_index: 0,
             words: String::new(),
-            tasks: messages,
+            tasks: Vec::new(),
             completed_tasks: Vec::new()
         }
     }
@@ -92,6 +90,7 @@ impl App {
         loop {
             terminal.draw(|mut f| self.ui(&mut f))?;
 
+            // This function blocks
             if let Event::Key(key) = event::read()? {
                 if self.add_mode {
                     match key.code {
