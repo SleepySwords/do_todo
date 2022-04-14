@@ -50,5 +50,5 @@ jobs:
         with:
           upload_url: ${{ needs.create-release.outputs.upload-url }}
           asset_path: ./target/release/tododo${{ matrix.file_extension }}
-          asset_name: tododo${{ matrix.friendly_name }${{ matrix.file_extension }}
+          asset_name: tododo${{ matrix.friendly_name }}${{ matrix.file_extension }}
           asset_content_type: binary/octet-stream 
