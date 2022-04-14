@@ -1,5 +1,5 @@
 [package]
-name = "todo-or-not-to-do"
+name = "tododo"
 version = "0.1.0"
 edition = "2021"
 
