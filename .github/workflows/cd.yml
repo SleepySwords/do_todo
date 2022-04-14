@@ -39,16 +39,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: create-release
     name: Releases to ${{ matrix.friendly_name }}
-   steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose --release
-    - name: Upload
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload-url }}
-        asset_path: ./target/release/tododo${{ matrix.file_extension }}
-        asset_name: tododo${{ matrix.friendly_name }${{ matrix.file_extension }
-        asset_content_type: binary/octet-stream 
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --verbose --release
+      - name: Upload
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload-url }}
+          asset_path: ./target/release/tododo${{ matrix.file_extension }}
+          asset_name: tododo${{ matrix.friendly_name }${{ matrix.file_extension }
+          asset_content_type: binary/octet-stream 
