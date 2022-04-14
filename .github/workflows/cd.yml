@@ -27,7 +27,7 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
-            file_extension: "\\.exe"
+            file_extension: ".exe"
             friendly_name: windows
           - os: macos-latest
             file_extension: ""
