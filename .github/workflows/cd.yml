@@ -28,10 +28,13 @@ jobs:
         include:
           - os: windows-latest
             build: windows-x86_64
+            friendly_name: windows
           - os: macos-latest
             build: x86_64-apple-darwin
+            friendly_name: macos
           - os: ubuntu-latest
-            friendly_name: linux-x86_64
+            build: linux-x86_64
+            friendly_name: linux
     runs-on: ${{ matrix.os }}
     needs: create-release
     name: Releases to ${{ matrix.friendly_name }}
