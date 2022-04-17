@@ -2,6 +2,21 @@ change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
 
 name-template: "Release tododo v$NEXT_MAJOR_VERSION.$NEXT_MINOR_VERSION.$NEXT_PATCH_VERSION"
 tag-template: "v$NEXT_MAJOR_VERSION.$NEXT_MINOR_VERSION.$NEXT_PATCH_VERSION"
+exclude-contributors:
+  - 'SleepySwords'
+categories:
+  - title: 'CI/CD'
+    labels:
+      - 'ci/cd'
+  - title: 'Bug fixes'
+    labels:
+      - 'bug'
+  - title: 'Other features'
+    labels:
+      - 'feature'
 template: |
-  ## Changelog
+  # Changelog
   $CHANGES
+
+  # Contributors
+  $CONTRIBUTORS

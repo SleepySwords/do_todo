@@ -23,7 +23,7 @@ jobs:
           echo "TAG_NAME=${TAG_NAME#refs/tags/}" >> $GITHUB_ENV
       - if: github.event_name == 'workflow_dispatch'
         run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
-      - name: Create release draft for tags
+      - name: Create release draft
         id: create-release-draft
         uses: release-drafter/release-drafter@v5
         with:
