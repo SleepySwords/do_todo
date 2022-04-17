@@ -1,13 +1,20 @@
-pub mod app;
-pub mod task;
+mod app;
+mod task;
+mod theme;
+mod ui;
 
 use app::App;
+use ui::run_app;
 use std::{error::Error, io};
 
-use crossterm::{event::{DisableMouseCapture, EnableMouseCapture}, execute, terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode}};
-use tui::{Terminal, backend::CrosstermBackend};
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use tui::{backend::CrosstermBackend, Terminal};
 
-fn main() -> Result<(), Box<dyn Error>>{
+fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -15,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>>{
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::default();
-    let result = app.run_app(&mut terminal);
+    let result = run_app(&mut app, &mut terminal);
 
     if let Err(err) = result {
         println!("{:?}", err)
@@ -31,4 +38,3 @@ fn main() -> Result<(), Box<dyn Error>>{
     terminal.show_cursor()?;
     Ok(())
 }
-
