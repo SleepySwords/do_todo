@@ -1,4 +1,4 @@
-name: Continuous Deployment Tags
+name: Continuous Deployment
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
 jobs:
   create-release:
     runs-on: ubuntu-latest
-    outputs:
-      upload-url: ${{ steps.create-release-draft.outputs.upload_url }}
+    env:
+      UPLOAD_URL: ${{ steps.create-release-draft.outputs.upload_url }}
     steps:
       - name: Create release draft
         id: create-release-draft
@@ -60,7 +60,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create-release.outputs.upload-url }}
+          upload_url: ${{ env.UPLOAD_URL }}
           asset_path: ${{ env.ASSET }}
           asset_name: ${{ env.ASSET }}
           asset_content_type: application/octet-stream 
