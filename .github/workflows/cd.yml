@@ -5,6 +5,11 @@ on:
     tags:
     - "*"
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release'
+        required: false
+        default: nightly
 
 jobs:
   create-release:
@@ -12,12 +17,19 @@ jobs:
     outputs:
       upload-url: ${{ steps.create-release-draft.outputs.upload_url }}
     steps:
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" >> $GITHUB_ENV
+      - if: github.event_name == 'workflow_dispatch'
+        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
       - name: Create release draft
         id: create-release-draft
         uses: release-drafter/release-drafter@v5
         with:
           config-name: release-drafter.yml
           disable-autolabeler: true
+          tag: ${{ env.TAG_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -27,28 +39,40 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
-            file_extension: ".exe"
+            build: windows-x86_64
             friendly_name: windows
           - os: macos-latest
-            file_extension: ""
+            build: x86_64-apple-darwin
             friendly_name: macos
           - os: ubuntu-latest
-            file_extension: ""
+            build: linux-x86_64
             friendly_name: linux
-
     runs-on: ${{ matrix.os }}
     needs: create-release
     name: Releases to ${{ matrix.friendly_name }}
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: cargo build --verbose --release
+        shell: bash
+        run: |
+          staging="tododo_${{ matrix.build }}"
+          mkdir -p "$staging"
+          cargo build --verbose --release
+          if [ "${{matrix.os}}" = "windows-latest"]; then
+            cp target/release/tododo.exe "$staging/"
+            7z a "$staging.zip" "$staging"
+            echo "ASSET=$staging.zip" >> $GITHUB_ENV
+          else
+            cp target/release/tododo "$staging/"
+            tar czf "$staging.tar.gz" "$staging"
+            echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+          fi
       - name: Upload
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload-url }}
-          asset_path: ./target/release/tododo${{ matrix.file_extension }}
-          asset_name: tododo-${{ matrix.friendly_name }}${{ matrix.file_extension }}
-          asset_content_type: binary/octet-stream 
+          asset_path: ${{ env.ASSET }}
+          asset_name: ${{ env.ASSET }}
+          asset_content_type: application/octet-stream 
