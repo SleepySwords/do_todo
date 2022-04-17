@@ -45,7 +45,7 @@ pub fn ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
 
 pub fn run_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Result<()> {
     loop {
-        terminal.draw(|mut f| ui(app, &mut f))?;
+        terminal.draw(|f| ui(app, f))?;
 
         // This function blocks
         if let Event::Key(key) = event::read()? {
@@ -68,7 +68,7 @@ pub fn run_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Res
                 KeyCode::Char('a') => app.add_mode = !app.add_mode,
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Char('j') => {
-                    if app.tasks.len() == 0 {
+                    if app.tasks.is_empty() {
                         continue;
                     }
                     if app.selected_index == app.tasks.len() - 1 {
@@ -78,23 +78,23 @@ pub fn run_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Res
                     }
                 }
                 KeyCode::Char('d') => {
-                    if app.tasks.len() == 0 {
+                    if app.tasks.is_empty() {
                         continue;
                     }
                     app.tasks.remove(app.selected_index);
-                    if app.selected_index == app.tasks.len() && app.tasks.len() != 0 {
+                    if app.selected_index == app.tasks.len() && !app.tasks.is_empty() {
                         app.selected_index -= 1;
                     }
                 }
                 KeyCode::Char('h') => {
-                    if app.tasks.len() == 0 {
+                    if app.tasks.is_empty() {
                         continue;
                     }
                     app.tasks[app.selected_index].priority =
                         app.tasks[app.selected_index].priority.get_next();
                 }
                 KeyCode::Char('p') => {
-                    if app.tasks.len() == 0 {
+                    if app.tasks.is_empty() {
                         continue;
                     }
                     app.tasks[app.selected_index].progress =
@@ -103,18 +103,18 @@ pub fn run_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Res
                 KeyCode::Char('c') => {
                     let local = Local::now();
                     let time = local.time().format("%-I:%M:%S %p").to_string();
-                    if app.tasks.len() == 0 {
+                    if app.tasks.is_empty() {
                         continue;
                     }
                     let mut task = app.tasks.remove(app.selected_index);
                     task.content = format!("{} {}", time, task.content);
                     app.completed_tasks.push(task);
-                    if app.selected_index == app.tasks.len() && app.tasks.len() != 0 {
+                    if app.selected_index == app.tasks.len() && !app.tasks.is_empty() {
                         app.selected_index -= 1;
                     }
                 }
                 KeyCode::Char('k') => {
-                    if app.tasks.len() == 0 {
+                    if app.tasks.is_empty() {
                         continue;
                     }
                     if app.selected_index == 0 {
@@ -207,7 +207,7 @@ where
         .completed_tasks
         .iter()
         .map(|task| {
-            let content = Spans::from(Span::raw(format!("{}", task.content)));
+            let content = Spans::from(Span::raw(task.content.to_string()));
             ListItem::new(content)
         })
         .collect();
@@ -223,7 +223,7 @@ where
         .style(Style::default().fg(Color::White));
 
     let mut completed_state = ListState::default();
-    if app.completed_tasks.len() != 0 {
+    if !app.completed_tasks.is_empty() {
         completed_state.select(Some(app.completed_tasks.len() - 1));
     }
 
