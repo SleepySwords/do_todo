@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: windows
 
 on:
   push:
@@ -11,11 +11,17 @@ env:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    name: Tests windows
+    matrix:
+      strategy:
+        release_channel: [nightly,stable]
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install rustup
+      run: 
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y --default-toolchain ${{ matrix.release_channel }}
     - name: Build
       run: cargo build --verbose
     - name: Run tests
