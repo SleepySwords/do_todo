@@ -5,6 +5,9 @@ tag-template: "v$NEXT_MAJOR_VERSION.$NEXT_MINOR_VERSION.$NEXT_PATCH_VERSION"
 exclude-contributors:
   - 'SleepySwords'
 categories:
+  - title: 'Code Quality'
+    labels:
+      - 'code quality'
   - title: 'CI/CD'
     labels:
       - 'ci/cd'
