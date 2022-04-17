@@ -1,4 +1,4 @@
-name: Continuous Deployment
+name: Continuous Deployment Tags
 
 on:
   push:
@@ -27,28 +27,37 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
-            file_extension: ".exe"
-            friendly_name: windows
+            build: windows-x86_64
           - os: macos-latest
-            file_extension: ""
-            friendly_name: macos
+            build: x86_64-apple-darwin
           - os: ubuntu-latest
-            file_extension: ""
-            friendly_name: linux
-
+            friendly_name: linux-x86_64
     runs-on: ${{ matrix.os }}
     needs: create-release
     name: Releases to ${{ matrix.friendly_name }}
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: cargo build --verbose --release
+        shell: bash
+        run: |
+          staging="tododo_${{ matrix.build }}"
+          mkdir -p "$staging"
+          cargo build --verbose --release
+          if [ "${{matrix.os}}" = "windows-latest"]; then
+            cp target/release/tododo.exe "$staging/"
+            7z a "$staging.zip" "$staging"
+            echo "ASSET=$staging.zip" >> $GITHUB_ENV
+          else
+            cp target/release/tododo "$staging/"
+            tar czf "$staging.tar.gz" "$staging"
+            echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+          fi
       - name: Upload
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload-url }}
-          asset_path: ./target/release/tododo${{ matrix.file_extension }}
-          asset_name: tododo-${{ matrix.friendly_name }}${{ matrix.file_extension }}
-          asset_content_type: binary/octet-stream 
+          asset_path: ${{ env.ASSET }}
+          asset_name: ${{ env.ASSET }}
+          asset_content_type: application/octet-stream 
