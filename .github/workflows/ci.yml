@@ -20,7 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install rustup
-      run: 
+      run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
         sh rustup.sh -y --default-toolchain ${{ matrix.release_channel }}
     - name: Build
