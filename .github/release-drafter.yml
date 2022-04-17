@@ -1,5 +1,7 @@
 change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
 
+name-template: "Release tododo v$NEXT_MAJOR_VERSION.$NEXT_MINOR_VERSION.$NEXT_PATCH_VERSION"
+tag-template: "v$NEXT_MAJOR_VERSION.$NEXT_MINOR_VERSION.$NEXT_PATCH_VERSION"
 template: |
   ## Changelog
   $CHANGES
