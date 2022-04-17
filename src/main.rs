@@ -4,15 +4,14 @@ mod theme;
 mod ui;
 
 use app::App;
-use ui::run_app;
-use std::{error::Error, io};
-
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use std::{error::Error, io};
 use tui::{backend::CrosstermBackend, Terminal};
+use ui::run_app;
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;

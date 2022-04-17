@@ -7,7 +7,7 @@ pub struct App {
     pub selected_index: usize,
     pub words: String,
     pub tasks: Vec<Task>,
-    pub completed_tasks: Vec<Task>
+    pub completed_tasks: Vec<Task>,
 }
 
 impl Default for App {
@@ -18,8 +18,7 @@ impl Default for App {
             selected_index: 0,
             words: String::new(),
             tasks: Vec::new(),
-            completed_tasks: Vec::new()
+            completed_tasks: Vec::new(),
         }
     }
 }
-

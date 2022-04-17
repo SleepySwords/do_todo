@@ -3,7 +3,7 @@ use tui::style::Color;
 pub struct Task {
     pub progress: bool,
     pub content: String,
-    pub priority: Priority
+    pub priority: Priority,
 }
 
 impl Task {
@@ -11,7 +11,7 @@ impl Task {
         Task {
             progress: false,
             content,
-            priority: Priority::Normal
+            priority: Priority::Normal,
         }
     }
 }
@@ -19,7 +19,7 @@ impl Task {
 pub enum Priority {
     High,
     Normal,
-    Low
+    Low,
 }
 
 impl Priority {
