@@ -23,6 +23,14 @@ jobs:
           echo "TAG_NAME=${TAG_NAME#refs/tags/}" >> $GITHUB_ENV
       - if: github.event_name == 'workflow_dispatch'
         run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
+      - if: github.event.inputs.tag_name == 'nightly'
+        run: |
+          echo "PRERELEASE=true" >> $GITHUBENV
+          echo "SUBJECT=\"Prelease of tododo\"" >> $GITHUBENV
+      - if: github.event.inputs.tag_name != 'nightly'
+        run: |
+          echo "PRERELEASE=false" >> $GITHUBENV
+          echo "SUBJECT=\"Release of tododo $TAG_NAME\"" >> $GITHUBENV
       - name: Create release draft
         id: create-release-draft
         uses: release-drafter/release-drafter@v5
@@ -30,6 +38,8 @@ jobs:
           config-name: release-drafter.yml
           disable-autolabeler: true
           tag: ${{ env.TAG_NAME }}
+          name: ${{ env.SUBJECT }}
+          prerelease: ${{ env.PRERELEASE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
