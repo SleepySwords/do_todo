@@ -2,7 +2,7 @@ change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
 
 tag-template: "v$RESOLVED_VERSION"
 name-template: "Release tododo v$tag-template"
-category-template: "# $TITLE"
+category-template: "### $TITLE"
 
 exclude-contributors:
   - 'SleepySwords'
