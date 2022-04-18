@@ -1,7 +1,8 @@
 change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
 
-name-template: "Release tododo v$NEXT_MAJOR_VERSION.$NEXT_MINOR_VERSION.$NEXT_PATCH_VERSION"
-tag-template: "v$NEXT_MAJOR_VERSION.$NEXT_MINOR_VERSION.$NEXT_PATCH_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+name-template: "Release tododo v$tag-template"
+
 exclude-contributors:
   - 'SleepySwords'
 categories:
@@ -11,15 +12,33 @@ categories:
   - title: 'CI/CD'
     labels:
       - 'ci/cd'
+  - title: 'Documentation'
+    labels:
+      - 'docs'
   - title: 'Bug fixes'
     labels:
       - 'bug'
-  - title: 'Other features'
+  - title: 'Other changes'
+
+
+version-resolver:
+  major:
     labels:
-      - 'feature'
+      - 'type: breaking'
+  minor:
+    labels:
+      - 'type: feature'
+  patch:
+    labels:
+      - 'type: bug'
+      - 'type: maintenance'
+      - 'type: docs'
+      - 'type: dependencies'
+      - 'type: security'
+
 template: |
-  # Changelog
+  ## Changelog
   $CHANGES
 
-  # Contributors
+  ## Contributors
   $CONTRIBUTORS
