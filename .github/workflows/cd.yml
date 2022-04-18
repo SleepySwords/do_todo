@@ -26,11 +26,11 @@ jobs:
       - if: github.event.inputs.tag_name == 'nightly'
         run: |
           echo "PRERELEASE=true" >> $GITHUB_ENV
-          echo "SUBJECT=Prelease of tododo" >> $GITHUB_ENV
+          echo "SUBJECT=Prelease of DoTodo" >> $GITHUB_ENV
       - if: github.event.inputs.tag_name != 'nightly'
         run: |
           echo "PRERELEASE=false" >> $GITHUB_ENV
-          echo "SUBJECT=Release of tododo $TAG_NAME" >> $GITHUB_ENV
+          echo "SUBJECT=Release of DoTodo $TAG_NAME" >> $GITHUB_ENV
       - name: Create release draft
         id: create-release-draft
         uses: release-drafter/release-drafter@v5
@@ -65,15 +65,15 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          staging="tododo_${{ matrix.build }}"
+          staging="dotodo_${{ matrix.build }}"
           mkdir -p "$staging"
           cargo build --verbose --release
           if [ "${{matrix.os}}" = "windows-latest"]; then
-            cp target/release/tododo.exe "$staging/"
+            cp target/release/dotodo.exe "$staging/"
             7z a "$staging.zip" "$staging"
             echo "ASSET=$staging.zip" >> $GITHUB_ENV
           else
-            cp target/release/tododo "$staging/"
+            cp target/release/dotodo "$staging/"
             tar czf "$staging.tar.gz" "$staging"
             echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
           fi
