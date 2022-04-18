@@ -1,5 +1,6 @@
-# todo-or-not-to-do
+# DoTodo
 
+Do your todos!
 A todo list to organise your needs :)
 
 # Todo
