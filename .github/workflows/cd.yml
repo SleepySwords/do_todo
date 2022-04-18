@@ -26,11 +26,11 @@ jobs:
       - if: github.event.inputs.tag_name == 'nightly'
         run: |
           echo "PRERELEASE=true" >> $GITHUB_ENV
-          echo "SUBJECT=Prelease\ of\ tododo" >> $GITHUB_ENV
+          echo "SUBJECT=Prelease of tododo" >> $GITHUB_ENV
       - if: github.event.inputs.tag_name != 'nightly'
         run: |
           echo "PRERELEASE=false" >> $GITHUB_ENV
-          echo "SUBJECT=Release\ of\ tododo\ $TAG_NAME" >> $GITHUB_ENV
+          echo "SUBJECT=Release of tododo $TAG_NAME" >> $GITHUB_ENV
       - name: Create release draft
         id: create-release-draft
         uses: release-drafter/release-drafter@v5
