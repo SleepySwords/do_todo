@@ -11,7 +11,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use dirs;
+
 use std::fs;
 use std::{error::Error, io, path::Path};
 use task::{Task, CompletedTask};

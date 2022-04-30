@@ -145,7 +145,7 @@ where
                 Color::White
             };
             let content = Spans::from(Span::styled(
-                format!("{} {}", task.time_completed.format("%-I:%M:%S %p"), task.title.to_string()),
+                format!("{} {}", task.time_completed.format("%-I:%M:%S %p"), task.title),
                 Style::default().fg(colour),
             ));
             ListItem::new(content)
