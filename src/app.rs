@@ -1,4 +1,4 @@
-use crate::task::Task;
+use crate::task::{Task, CompletedTask};
 use crate::theme::Theme;
 
 #[derive(Default)]
@@ -8,7 +8,7 @@ pub struct App {
     pub selected_chunk: Selection,
     pub words: String,
     pub tasks: Vec<Task>,
-    pub completed_tasks: Vec<Task>,
+    pub completed_tasks: Vec<CompletedTask>,
 }
 
 impl App {

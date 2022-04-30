@@ -14,7 +14,7 @@ use crossterm::{
 use dirs;
 use std::fs;
 use std::{error::Error, io, path::Path};
-use task::Task;
+use task::{Task, CompletedTask};
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -96,7 +96,7 @@ pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::R
                         app.words.pop();
                     }
                     KeyCode::Enter => {
-                        app.tasks.push(Task::new(
+                        app.tasks.push(Task::from_string(
                             app.words.drain(..).collect::<String>().trim().to_string(),
                         ));
                         app.add_mode = !app.add_mode
@@ -176,10 +176,9 @@ fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut App) 
                 return;
             }
             let local = Local::now();
-            let time = local.time().format("%-I:%M:%S %p").to_string();
-            let mut task = app.tasks.remove(selected_index);
-            task.title = format!("{} {}", time, task.title);
-            app.completed_tasks.push(task);
+            let time_completed = local.time();
+            let task = app.tasks.remove(selected_index);
+            app.completed_tasks.push(CompletedTask::from_task(task, time_completed));
             if selected_index == app.tasks.len() && !app.tasks.is_empty() {
                 app.selected_chunk = Selection::CurrentTasks(selected_index - 1);
             }
@@ -207,6 +206,15 @@ fn handle_completed(key_code: KeyCode, selected_index: usize, app: &mut App) {
             if selected_index == 0 {
                 app.selected_chunk = Selection::CompletedTasks(app.completed_tasks.len() - 1);
             } else {
+                app.selected_chunk = Selection::CompletedTasks(selected_index - 1);
+            }
+        }
+        KeyCode::Char('r') => {
+            if app.completed_tasks.is_empty() {
+                return;
+            }
+            app.tasks.push(Task::from_completed_task(app.completed_tasks.remove(selected_index)));
+            if selected_index == app.tasks.len() && !app.tasks.is_empty() {
                 app.selected_chunk = Selection::CompletedTasks(selected_index - 1);
             }
         }

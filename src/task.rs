@@ -1,4 +1,5 @@
 use crate::theme::Theme;
+use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tui::style::Color;
@@ -11,10 +12,42 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new(content: String) -> Self {
+    pub fn from_string(content: String) -> Self {
         Task {
             progress: false,
             title: content,
+            priority: Priority::Normal,
+        }
+    }
+
+    pub fn from_completed_task(completed_task: CompletedTask) -> Self {
+        Task {
+            progress: false,
+            title: completed_task.title,
+            priority: completed_task.priority,
+        }
+    }
+}
+
+pub struct CompletedTask {
+    pub title: String,
+    pub time_completed: NaiveTime,
+    pub priority: Priority,
+}
+
+impl CompletedTask {
+    pub fn from_task(task: Task, time_completed: NaiveTime) -> Self {
+        CompletedTask {
+            title: task.title,
+            time_completed,
+            priority: task.priority
+        }
+    }
+
+    pub fn from_string(content: String, time_completed: NaiveTime) -> Self {
+        CompletedTask {
+            title: content,
+            time_completed,
             priority: Priority::Normal,
         }
     }
