@@ -1,31 +1,29 @@
-use crate::app::App;
-use crate::task::Task;
-use chrono::prelude::Local;
-use crossterm::event::{self, Event, KeyCode};
-use std::io;
+use crate::{app::{App, Selection}, task::Task, theme::Theme};
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph},
-    Frame, Terminal,
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    Frame,
 };
 
 pub fn ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
-        .split(f.size());
-    f.render_widget(Block::default().title("Todo!!!\n".to_string()), chunks[0]);
-
-    let task_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Percentage(80), Constraint::Percentage(20)])
-        .split(chunks[1]);
-
-    render_tasks(app, f, task_layout[0]);
-    render_completed_tasks(app, f, task_layout[1]);
+    match app.selected_chunk {
+        Selection::CurrentTasks(i) => {
+            if !app.tasks.is_empty() {
+                let chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints(vec![Constraint::Percentage(70), Constraint::Percentage(30)])
+                    .split(f.size());
+                render_tasks(app, f, chunks[0]);
+                render_selected_task(&app.tasks[i], &app.theme, f, chunks[1]);
+            } else {
+                render_tasks(app, f, f.size())
+            }
+        }
+        _ => render_tasks(app, f, f.size()),
+    }
 
     if app.add_mode {
         let text = Text::from(Spans::from(app.words.as_ref()));
@@ -43,90 +41,166 @@ pub fn ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
     }
 }
 
-pub fn run_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Result<()> {
-    loop {
-        terminal.draw(|f| ui(app, f))?;
+fn render_tasks<B>(app: &mut App, frame: &mut Frame<B>, layout_chunk: Rect)
+where
+    B: Backend,
+{
+    let task_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Percentage(80), Constraint::Percentage(20)])
+        .split(layout_chunk);
 
-        // This function blocks
-        if let Event::Key(key) = event::read()? {
-            if app.add_mode {
-                match key.code {
-                    KeyCode::Char(c) => app.words.push(c),
-                    KeyCode::Backspace => {
-                        app.words.pop();
-                    }
-                    KeyCode::Enter => {
-                        app.tasks.push(Task::new(app.words.drain(..).collect()));
-                        app.add_mode = !app.add_mode
-                    }
-                    KeyCode::Esc => app.add_mode = !app.add_mode,
-                    _ => {}
+    render_current_tasks(
+        app,
+        frame,
+        task_layout[0],
+        if let Selection::CurrentTasks(selected) = app.selected_chunk {
+            Some(selected)
+        } else {
+            None
+        },
+    );
+    render_completed_tasks(app, frame, task_layout[1]);
+}
+
+fn render_current_tasks<B>(
+    app: &mut App,
+    frame: &mut Frame<B>,
+    layout_chunk: Rect,
+    selected_index: Option<usize>,
+) where
+    B: Backend,
+{
+    let theme = &app.theme;
+    let tasks: Vec<ListItem> = app
+        .tasks
+        .iter()
+        .enumerate()
+        .map(|(i, task)| {
+            let progess = Span::styled(
+                if task.progress { "[-] " } else { "[ ] " },
+                Style::default().fg(if selected_index == Some(i) {
+                    theme.selected_task_colour
+                } else {
+                    Color::White
+                }),
+            );
+            let content = Span::styled(
+                task.title.as_str(),
+                Style::default().fg(task.priority.get_colour(theme)),
+            );
+            let content = Spans::from(vec![progess, content]);
+            ListItem::new(content)
+        })
+        .collect();
+
+    let border_colour = match app.selected_chunk {
+        Selection::CurrentTasks(_) => theme.selected_border_colour,
+        _ => theme.default_border_colour,
+    };
+
+    let current = List::new(tasks).block(
+        Block::default()
+            .title("Current List")
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(border_colour)),
+    );
+
+    let mut state = ListState::default();
+    state.select(
+        if let Selection::CurrentTasks(selected) = app.selected_chunk {
+            Some(selected)
+        } else {
+            None
+        },
+    );
+
+    frame.render_stateful_widget(current, layout_chunk, &mut state);
+}
+
+fn render_completed_tasks<B>(app: &mut App, frame: &mut Frame<B>, layout_chunk: Rect)
+where
+    B: Backend,
+{
+    let theme = &app.theme;
+
+    let border_colour = match app.selected_chunk {
+        Selection::CompletedTasks(_) => theme.selected_border_colour,
+        _ => theme.default_border_colour,
+    };
+
+    let completed_tasks: Vec<ListItem> = app
+        .completed_tasks
+        .iter()
+        .enumerate()
+        .map(|(ind, task)| {
+            let colour = if let Selection::CompletedTasks(i) = app.selected_chunk {
+                if i == ind {
+                    theme.selected_task_colour
+                } else {
+                    Color::White
                 }
-                continue;
-            }
-            match key.code {
-                KeyCode::Char('a') => app.add_mode = !app.add_mode,
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Char('j') => {
-                    if app.tasks.is_empty() {
-                        continue;
-                    }
-                    if app.selected_index == app.tasks.len() - 1 {
-                        app.selected_index = 0;
-                    } else {
-                        app.selected_index += 1;
-                    }
-                }
-                KeyCode::Char('d') => {
-                    if app.tasks.is_empty() {
-                        continue;
-                    }
-                    app.tasks.remove(app.selected_index);
-                    if app.selected_index == app.tasks.len() && !app.tasks.is_empty() {
-                        app.selected_index -= 1;
-                    }
-                }
-                KeyCode::Char('h') => {
-                    if app.tasks.is_empty() {
-                        continue;
-                    }
-                    app.tasks[app.selected_index].priority =
-                        app.tasks[app.selected_index].priority.get_next();
-                }
-                KeyCode::Char('p') => {
-                    if app.tasks.is_empty() {
-                        continue;
-                    }
-                    app.tasks[app.selected_index].progress =
-                        !app.tasks[app.selected_index].progress;
-                }
-                KeyCode::Char('c') => {
-                    let local = Local::now();
-                    let time = local.time().format("%-I:%M:%S %p").to_string();
-                    if app.tasks.is_empty() {
-                        continue;
-                    }
-                    let mut task = app.tasks.remove(app.selected_index);
-                    task.content = format!("{} {}", time, task.content);
-                    app.completed_tasks.push(task);
-                    if app.selected_index == app.tasks.len() && !app.tasks.is_empty() {
-                        app.selected_index -= 1;
-                    }
-                }
-                KeyCode::Char('k') => {
-                    if app.tasks.is_empty() {
-                        continue;
-                    }
-                    if app.selected_index == 0 {
-                        app.selected_index = app.tasks.len() - 1;
-                    } else {
-                        app.selected_index -= 1;
-                    }
-                }
-                _ => {}
-            }
-        }
+            } else {
+                Color::White
+            };
+            let content = Spans::from(Span::styled(
+                task.title.to_string(),
+                Style::default().fg(colour),
+            ));
+            ListItem::new(content)
+        })
+        .collect();
+
+    let recently_competed = List::new(completed_tasks)
+        .block(
+            Block::default()
+                .title("Completed")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(border_colour)),
+        )
+        .style(Style::default().fg(Color::White));
+
+    let mut completed_state = ListState::default();
+    if !app.completed_tasks.is_empty() {
+        let index = match app.selected_chunk {
+            Selection::CompletedTasks(i) => i,
+            _ => app.completed_tasks.len() - 1,
+        };
+        completed_state.select(Some(index));
     }
+
+    frame.render_stateful_widget(recently_competed, layout_chunk, &mut completed_state);
+}
+
+fn render_selected_task<B>(task: &Task, theme: &Theme, frame: &mut Frame<B>, layout_chunk: Rect)
+where
+    B: Backend,
+{
+    let text = vec![
+        Spans::default(),
+        Spans::from(vec![
+            Span::raw("Priority: "),
+            Span::styled(
+                task.priority.get_display_string(),
+                Style::default().fg(task.priority.get_colour(theme)),
+            ),
+            Span::raw("."),
+        ]),
+        Spans::from(Span::styled("Second line", Style::default().fg(Color::Red))),
+    ];
+    let paragraph = Paragraph::new(text)
+        .block(
+            Block::default()
+                .title(task.title.as_str())
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
+        )
+        // .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(paragraph, layout_chunk)
 }
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
@@ -154,78 +228,4 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             .as_ref(),
         )
         .split(popup_layout[1])[1]
-}
-
-fn render_tasks<B>(app: &mut App, frame: &mut Frame<B>, chunk: Rect)
-where
-    B: Backend,
-{
-    let theme = &app.theme;
-    let tasks: Vec<ListItem> = app
-        .tasks
-        .iter()
-        .enumerate()
-        .map(|(i, task)| {
-            let progess = Span::styled(
-                if task.progress { "[-] " } else { "[ ] " },
-                Style::default().fg(task.priority.get_colour()),
-            );
-            let content = Span::styled(
-                task.content.as_str(),
-                Style::default().fg(if i == app.selected_index {
-                    theme.selected_colour
-                } else {
-                    Color::White
-                }),
-            );
-            let content = Spans::from(vec![progess, content]);
-            ListItem::new(content)
-        })
-        .collect();
-
-    let current = List::new(tasks).block(
-        Block::default()
-            .title("Current List")
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(theme.default_colour)),
-    );
-
-    let mut state = ListState::default();
-    state.select(Some(app.selected_index));
-
-    frame.render_stateful_widget(current, chunk, &mut state);
-}
-
-fn render_completed_tasks<B>(app: &mut App, frame: &mut Frame<B>, layout: Rect)
-where
-    B: Backend,
-{
-    let theme = &app.theme;
-
-    let completed_tasks: Vec<ListItem> = app
-        .completed_tasks
-        .iter()
-        .map(|task| {
-            let content = Spans::from(Span::raw(task.content.to_string()));
-            ListItem::new(content)
-        })
-        .collect();
-
-    let recently_competed = List::new(completed_tasks)
-        .block(
-            Block::default()
-                .title("Completed")
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(theme.default_colour)),
-        )
-        .style(Style::default().fg(Color::White));
-
-    let mut completed_state = ListState::default();
-    if !app.completed_tasks.is_empty() {
-        completed_state.select(Some(app.completed_tasks.len() - 1));
-    }
-
-    frame.render_stateful_widget(recently_competed, layout, &mut completed_state);
 }
