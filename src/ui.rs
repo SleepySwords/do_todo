@@ -8,7 +8,7 @@ use tui::{
     Frame,
 };
 
-pub fn ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
+pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
     match app.selected_chunk {
         Selection::CurrentTasks(i) => {
             if !app.tasks.is_empty() {
