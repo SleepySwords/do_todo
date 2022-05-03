@@ -53,10 +53,8 @@ pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::R
 
         // This function blocks
         if let Event::Key(key) = event::read()? {
-            if key.modifiers.contains(KeyModifiers::CONTROL) {
-                if key.code == KeyCode::Char('c') {
-                    return Ok(());
-                }
+            if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+                return Ok(());
             }
             if input::handle_input(key.code, app).is_none() {
                 return Ok(());
