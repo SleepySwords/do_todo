@@ -1,9 +1,9 @@
 mod app;
+mod config;
+mod input;
 mod task;
 mod theme;
 mod ui;
-mod config;
-mod input;
 
 use app::App;
 use crossterm::{
@@ -12,8 +12,8 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use std::{fs, io};
 use std::error::Error;
+use std::{fs, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -34,7 +34,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{:?}", err)
     }
 
-    fs::write(dirs::home_dir().unwrap().join(".config/dtb/data.json"), serde_json::to_string(&app.tasks)?)?;
+    fs::write(
+        dirs::home_dir().unwrap().join(".config/dtb/data.json"),
+        serde_json::to_string(&app.tasks)?,
+    )?;
 
     // Cleanup
     disable_raw_mode()?;

@@ -19,7 +19,7 @@ impl Default for Theme {
             selected_task_colour: Color::Magenta,
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::White,
-            low_priority_colour: Color::Green
+            low_priority_colour: Color::Green,
         }
     }
 }

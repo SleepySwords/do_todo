@@ -40,7 +40,7 @@ impl CompletedTask {
         CompletedTask {
             title: task.title,
             time_completed,
-            priority: task.priority
+            priority: task.priority,
         }
     }
 
@@ -65,7 +65,7 @@ impl Priority {
         match *self {
             Priority::High => "High",
             Priority::Normal => "Normal",
-            Priority::Low => "Low"
+            Priority::Low => "Low",
         }
     }
 }

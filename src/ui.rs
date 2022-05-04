@@ -1,4 +1,8 @@
-use crate::{app::{App, Selection}, task::Task, theme::Theme};
+use crate::{
+    app::{App, Mode, Windows},
+    task::Task,
+    theme::Theme,
+};
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -9,8 +13,8 @@ use tui::{
 };
 
 pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
-    match app.selected_chunk {
-        Selection::CurrentTasks(i) => {
+    match app.selected_window {
+        Windows::CurrentTasks(i) => {
             if !app.tasks.is_empty() {
                 let chunks = Layout::default()
                     .direction(Direction::Horizontal)
@@ -25,7 +29,22 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         _ => render_tasks(app, f, f.size()),
     }
 
-    if app.add_mode {
+    if let Mode::Edit(task_index) = app.mode {
+        let text = Text::from(Spans::from(app.words.as_ref()));
+        let help_message = Paragraph::new(text);
+        let help_message = help_message.block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .title(format!("Edit the task {}", app.tasks[task_index].title)),
+        );
+        let area = centered_rect(70, 20, f.size());
+        f.render_widget(Clear, area);
+        f.render_widget(help_message, area);
+        f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
+    }
+
+    if let Mode::Input = app.mode {
         let text = Text::from(Spans::from(app.words.as_ref()));
         let help_message = Paragraph::new(text);
         let help_message = help_message.block(
@@ -54,7 +73,7 @@ where
         app,
         frame,
         task_layout[0],
-        if let Selection::CurrentTasks(selected) = app.selected_chunk {
+        if let Windows::CurrentTasks(selected) = app.selected_window {
             Some(selected)
         } else {
             None
@@ -94,8 +113,8 @@ fn render_current_tasks<B>(
         })
         .collect();
 
-    let border_colour = match app.selected_chunk {
-        Selection::CurrentTasks(_) => theme.selected_border_colour,
+    let border_colour = match app.selected_window {
+        Windows::CurrentTasks(_) => theme.selected_border_colour,
         _ => theme.default_border_colour,
     };
 
@@ -109,7 +128,7 @@ fn render_current_tasks<B>(
 
     let mut state = ListState::default();
     state.select(
-        if let Selection::CurrentTasks(selected) = app.selected_chunk {
+        if let Windows::CurrentTasks(selected) = app.selected_window {
             Some(selected)
         } else {
             None
@@ -125,8 +144,8 @@ where
 {
     let theme = &app.theme;
 
-    let border_colour = match app.selected_chunk {
-        Selection::CompletedTasks(_) => theme.selected_border_colour,
+    let border_colour = match app.selected_window {
+        Windows::CompletedTasks(_) => theme.selected_border_colour,
         _ => theme.default_border_colour,
     };
 
@@ -135,7 +154,7 @@ where
         .iter()
         .enumerate()
         .map(|(ind, task)| {
-            let colour = if let Selection::CompletedTasks(i) = app.selected_chunk {
+            let colour = if let Windows::CompletedTasks(i) = app.selected_window {
                 if i == ind {
                     theme.selected_task_colour
                 } else {
@@ -145,7 +164,11 @@ where
                 Color::White
             };
             let content = Spans::from(Span::styled(
-                format!("{} {}", task.time_completed.format("%-I:%M:%S %p"), task.title),
+                format!(
+                    "{} {}",
+                    task.time_completed.format("%-I:%M:%S %p"),
+                    task.title
+                ),
                 Style::default().fg(colour),
             ));
             ListItem::new(content)
@@ -164,8 +187,8 @@ where
 
     let mut completed_state = ListState::default();
     if !app.completed_tasks.is_empty() {
-        let index = match app.selected_chunk {
-            Selection::CompletedTasks(i) => i,
+        let index = match app.selected_window {
+            Windows::CompletedTasks(i) => i,
             _ => app.completed_tasks.len() - 1,
         };
         completed_state.select(Some(index));

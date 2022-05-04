@@ -1,4 +1,4 @@
-use std::{fs, error::Error, path::Path};
+use std::{error::Error, fs, path::Path};
 
 use crate::{task::Task, theme::Theme};
 
@@ -11,9 +11,7 @@ pub fn get_config() -> Result<(Theme, Vec<Task>), Box<dyn Error>> {
             let data_contents = fs::read_to_string(&data_path);
             Ok((
                 match config_contents {
-                    Ok(file) => {
-                        serde_yaml::from_str::<Theme>(&file)?
-                    },
+                    Ok(file) => serde_yaml::from_str::<Theme>(&file)?,
                     Err(_) => {
                         let theme = Theme::default();
                         fs::write(&config_path, serde_yaml::to_string(&theme)?)?;
@@ -21,15 +19,13 @@ pub fn get_config() -> Result<(Theme, Vec<Task>), Box<dyn Error>> {
                     }
                 },
                 match data_contents {
-                    Ok(file) => {
-                        serde_json::from_str::<Vec<Task>>(&file)?
-                    },
+                    Ok(file) => serde_json::from_str::<Vec<Task>>(&file)?,
                     Err(_) => {
                         let tasks: Vec<Task> = vec![];
                         fs::write(&data_path, serde_json::to_string(&tasks)?)?;
                         vec![]
                     }
-                }
+                },
             ))
         }
         None => {
