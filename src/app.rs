@@ -47,7 +47,7 @@ pub enum Mode {
     Add,
     // Perhaps replace with a referance for clarity.
     Edit(usize),
-    Delete(usize, usize)
+    Delete(usize, usize),
 }
 
 impl Default for Mode {

@@ -20,7 +20,9 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
 
     let help = Text::styled(
         "Press q to exit.",
-        Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
     );
 
     let paragraph = Paragraph::new(help);
@@ -74,18 +76,23 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
     }
 
     if let Mode::Delete(task_index, index) = app.mode {
-        let text = vec![ListItem::new(Spans::from("Delete")), ListItem::new(Spans::from("Cancel"))];
-        let help_message = List::new(text).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Green))
-                .border_type(BorderType::Rounded)
-                .title(format!("Delete the task {}", app.tasks[task_index].title)),
-        ).highlight_style(Style::default().add_modifier(Modifier::BOLD));
+        let text = vec![
+            ListItem::new(Spans::from("Delete")),
+            ListItem::new(Spans::from("Cancel")),
+        ];
+        let help_message = List::new(text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Green))
+                    .border_type(BorderType::Rounded)
+                    .title(format!("Delete the task {}", app.tasks[task_index].title)),
+            )
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
         let mut state = ListState::default();
         state.select(Some(index));
-        
+
         let area = centered_rect(70, 20, f.size());
         f.render_widget(Clear, area);
         f.render_stateful_widget(help_message, area, &mut state);

@@ -55,21 +55,21 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
                 } else {
                     app.mode = Mode::Normal;
                 }
-            },
+            }
             KeyCode::Char('j') => {
                 if index == 1 {
                     app.mode = Mode::Delete(task_index, 0);
                 } else {
                     app.mode = Mode::Delete(task_index, index + 1);
                 }
-            },
+            }
             KeyCode::Char('k') => {
                 if index == 0 {
                     app.mode = Mode::Delete(task_index, 1);
                 } else {
                     app.mode = Mode::Delete(task_index, index - 1);
                 }
-            },
+            }
             KeyCode::Char('q') => {
                 app.mode = Mode::Normal;
             }
