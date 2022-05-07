@@ -27,6 +27,15 @@ pub enum Windows {
     CompletedTasks(usize),
 }
 
+impl Windows {
+    pub fn get_selected(&self) -> &usize {
+        match self {
+            Windows::CurrentTasks(index) => return index,
+            Windows::CompletedTasks(index) => return index,
+        }
+    }
+}
+
 impl Default for Windows {
     fn default() -> Self {
         Self::CurrentTasks(0)
@@ -35,9 +44,10 @@ impl Default for Windows {
 
 pub enum Mode {
     Normal,
-    Input,
+    Add,
     // Perhaps replace with a referance for clarity.
     Edit(usize),
+    Delete(usize, usize)
 }
 
 impl Default for Mode {

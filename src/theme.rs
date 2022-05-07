@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tui::style::Color;
+use tui::style::{Color, Style, Modifier};
 
 #[derive(Deserialize, Serialize)]
 pub struct Theme {
@@ -9,6 +9,7 @@ pub struct Theme {
     pub high_priority_colour: Color,
     pub normal_priority_colour: Color,
     pub low_priority_colour: Color,
+    pub test_thing: Style,
 }
 
 impl Default for Theme {
@@ -16,10 +17,11 @@ impl Default for Theme {
         Theme {
             default_border_colour: Color::Rgb(255, 192, 203),
             selected_border_colour: Color::Green,
-            selected_task_colour: Color::Magenta,
+            selected_task_colour: Color::Red,
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::White,
             low_priority_colour: Color::Green,
+            test_thing: Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)
         }
     }
 }
