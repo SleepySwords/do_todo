@@ -30,8 +30,8 @@ pub enum Windows {
 impl Windows {
     pub fn get_selected(&self) -> &usize {
         match self {
-            Windows::CurrentTasks(index) => return index,
-            Windows::CompletedTasks(index) => return index,
+            Windows::CurrentTasks(index) => index,
+            Windows::CompletedTasks(index) => index,
         }
     }
 }
