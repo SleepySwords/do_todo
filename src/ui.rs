@@ -6,27 +6,43 @@ use crate::{
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
 
 pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
+    let menu = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Min(1), Constraint::Length(1)])
+        .split(f.size());
+
+    let help = Text::styled(
+        "Press q to exit.",
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
+    );
+
+    let paragraph = Paragraph::new(help);
+
+    f.render_widget(paragraph, menu[1]);
+
     match app.selected_window {
         Windows::CurrentTasks(i) => {
             if !app.tasks.is_empty() {
                 let chunks = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints(vec![Constraint::Percentage(70), Constraint::Percentage(30)])
-                    .split(f.size());
+                    .split(menu[0]);
                 render_tasks(app, f, chunks[0]);
                 render_selected_task(&app.tasks[i], &app.theme, f, chunks[1]);
             } else {
-                render_tasks(app, f, f.size())
+                render_tasks(app, f, menu[0]);
             }
         }
-        _ => render_tasks(app, f, f.size()),
+        _ => render_tasks(app, f, menu[0]),
     }
 
     if let Mode::Edit(task_index) = app.mode {
@@ -44,7 +60,7 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
     }
 
-    if let Mode::Input = app.mode {
+    if let Mode::Add = app.mode {
         let text = Text::from(Spans::from(app.words.as_ref()));
         let help_message = Paragraph::new(text);
         let help_message = help_message.block(
@@ -58,28 +74,52 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         f.render_widget(help_message, area);
         f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
     }
+
+    if let Mode::Delete(task_index, index) = app.mode {
+        let text = vec![
+            ListItem::new(Spans::from("Delete")),
+            ListItem::new(Spans::from("Cancel")),
+        ];
+        let help_message = List::new(text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Green))
+                    .border_type(BorderType::Rounded)
+                    .title(format!("Delete the task {}", app.tasks[task_index].title)),
+            )
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD));
+
+        let mut state = ListState::default();
+        state.select(Some(index));
+
+        let area = centered_rect(70, 20, f.size());
+        f.render_widget(Clear, area);
+        f.render_stateful_widget(help_message, area, &mut state);
+    }
 }
 
 fn render_tasks<B>(app: &mut App, frame: &mut Frame<B>, layout_chunk: Rect)
 where
     B: Backend,
 {
-    let task_layout = Layout::default()
+    let layout_chunk = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Percentage(80), Constraint::Percentage(20)])
+        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
         .split(layout_chunk);
 
     render_current_tasks(
         app,
         frame,
-        task_layout[0],
+        layout_chunk[0],
         if let Windows::CurrentTasks(selected) = app.selected_window {
             Some(selected)
         } else {
             None
         },
     );
-    render_completed_tasks(app, frame, task_layout[1]);
+
+    render_completed_tasks(app, frame, layout_chunk[1])
 }
 
 fn render_current_tasks<B>(
@@ -96,9 +136,14 @@ fn render_current_tasks<B>(
         .iter()
         .enumerate()
         .map(|(i, task)| {
-            let progess = Span::styled(
+            let style = if selected_index == Some(i) {
+                Style::default().add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+            let progress = Span::styled(
                 if task.progress { "[-] " } else { "[ ] " },
-                Style::default().fg(if selected_index == Some(i) {
+                style.fg(if selected_index == Some(i) {
                     theme.selected_task_colour
                 } else {
                     Color::White
@@ -106,9 +151,9 @@ fn render_current_tasks<B>(
             );
             let content = Span::styled(
                 task.title.as_str(),
-                Style::default().fg(task.priority.get_colour(theme)),
+                style.fg(task.priority.get_colour(theme)),
             );
-            let content = Spans::from(vec![progess, content]);
+            let content = Spans::from(vec![progress, content]);
             ListItem::new(content)
         })
         .collect();

@@ -8,7 +8,7 @@ use crate::{
 
 // Returning an option is pretty lazy, ill refactor this once again at some point.
 pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
-    if let Mode::Input = app.mode {
+    if let Mode::Add = app.mode {
         match key_code {
             KeyCode::Char(c) => app.words.push(c),
             KeyCode::Backspace => {
@@ -43,9 +43,44 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
         return Some(());
     }
 
+    if let Mode::Delete(task_index, index) = app.mode {
+        match key_code {
+            KeyCode::Enter => {
+                if index == 0 {
+                    app.tasks.remove(task_index);
+                    if task_index == app.tasks.len() && !app.tasks.is_empty() {
+                        app.selected_window = Windows::CurrentTasks(task_index - 1);
+                    }
+                    app.mode = Mode::Normal;
+                } else {
+                    app.mode = Mode::Normal;
+                }
+            }
+            KeyCode::Char('j') => {
+                if index == 1 {
+                    app.mode = Mode::Delete(task_index, 0);
+                } else {
+                    app.mode = Mode::Delete(task_index, index + 1);
+                }
+            }
+            KeyCode::Char('k') => {
+                if index == 0 {
+                    app.mode = Mode::Delete(task_index, 1);
+                } else {
+                    app.mode = Mode::Delete(task_index, index - 1);
+                }
+            }
+            KeyCode::Char('q') => {
+                app.mode = Mode::Normal;
+            }
+            _ => {}
+        }
+        return Some(());
+    }
+
     // Universal keyboard shortcuts (should also be customisable)
     match key_code {
-        KeyCode::Char('a') => app.mode = Mode::Input,
+        KeyCode::Char('a') => app.mode = Mode::Add,
         KeyCode::Char('1') => app.selected_window = Windows::CurrentTasks(0),
         KeyCode::Char('2') => app.selected_window = Windows::CompletedTasks(0),
         KeyCode::Char('q') => return None,
@@ -90,10 +125,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
             if app.tasks.is_empty() {
                 return;
             }
-            app.tasks.remove(selected_index);
-            if selected_index == app.tasks.len() && !app.tasks.is_empty() {
-                app.selected_window = Windows::CurrentTasks(selected_index - 1);
-            }
+            app.mode = Mode::Delete(selected_index, 0)
         }
         KeyCode::Char('h') => {
             if app.tasks.is_empty() {
