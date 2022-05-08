@@ -28,7 +28,7 @@ pub enum Windows {
 }
 
 impl Windows {
-    pub fn get_selected(&self) -> &usize {
+    pub fn get_selected(&mut self) -> &mut usize {
         match self {
             Windows::CurrentTasks(index) => index,
             Windows::CompletedTasks(index) => index,
