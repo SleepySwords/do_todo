@@ -167,6 +167,8 @@ fn handle_movement(key_code: KeyCode, app: &mut App) {
     };
 
     let index = app.selected_window.get_selected();
+    if index.is_none() { return; }
+    let /* ref */ index = index.unwrap();
 
     match key_code {
         KeyCode::Char('j') => {
