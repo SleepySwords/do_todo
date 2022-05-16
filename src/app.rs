@@ -25,13 +25,17 @@ impl App {
 pub enum Windows {
     CurrentTasks(usize),
     CompletedTasks(usize),
+    // OptionPopUp(usize),
+    // InputBox
 }
 
 impl Windows {
-    pub fn get_selected(&self) -> &usize {
+    pub fn get_selected(&mut self) -> Option<&mut usize> {
         match self {
-            Windows::CurrentTasks(index) => index,
-            Windows::CompletedTasks(index) => index,
+            Windows::CurrentTasks(index) => Some(index),
+            Windows::CompletedTasks(index) => Some(index),
+            // Windows::OptionPopUp(index) => Some(index),
+            // Windows::InputBox => None,
         }
     }
 }

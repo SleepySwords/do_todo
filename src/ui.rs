@@ -248,6 +248,7 @@ where
 {
     let text = vec![
         Spans::default(),
+        Spans::from(vec![Span::raw("Title: "), Span::raw(&task.title)]),
         Spans::from(vec![
             Span::raw("Priority: "),
             Span::styled(
@@ -256,8 +257,8 @@ where
             ),
             Span::raw("."),
         ]),
-        Spans::from(Span::styled("Second line", Style::default().fg(Color::Red))),
     ];
+
     let paragraph = Paragraph::new(text)
         .block(
             Block::default()
