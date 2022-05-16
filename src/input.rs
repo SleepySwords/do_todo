@@ -70,9 +70,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
                     app.mode = Mode::Delete(task_index, index - 1);
                 }
             }
-            KeyCode::Char('q') => {
-                app.mode = Mode::Normal;
-            }
+            KeyCode::Esc | KeyCode::Char('q') => app.mode = Mode::Normal,
             _ => {}
         }
         return Some(());
@@ -86,6 +84,9 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
         KeyCode::Char('q') => return None,
         _ => {}
     }
+
+    handle_movement(key_code, app);
+
     if let Windows::CurrentTasks(selected_index) = app.selected_window {
         handle_current_task(key_code, selected_index, app);
     }
@@ -97,27 +98,6 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
 
 pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut App) {
     match key_code {
-        // J and K should have a `handle_movement` method
-        KeyCode::Char('j') => {
-            if app.tasks.is_empty() {
-                return;
-            }
-            if selected_index == app.tasks.len() - 1 {
-                app.selected_window = Windows::CurrentTasks(0);
-            } else {
-                app.selected_window = Windows::CurrentTasks(selected_index + 1);
-            }
-        }
-        KeyCode::Char('k') => {
-            if app.tasks.is_empty() {
-                return;
-            }
-            if selected_index == 0 {
-                app.selected_window = Windows::CurrentTasks(app.tasks.len() - 1);
-            } else {
-                app.selected_window = Windows::CurrentTasks(selected_index - 1);
-            }
-        }
         KeyCode::Char('e') => {
             app.mode = Mode::Edit(selected_index);
         }
@@ -158,26 +138,6 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
 
 pub fn handle_completed(key_code: KeyCode, selected_index: usize, app: &mut App) {
     match key_code {
-        KeyCode::Char('j') => {
-            if app.completed_tasks.is_empty() {
-                return;
-            }
-            if selected_index == app.completed_tasks.len() - 1 {
-                app.selected_window = Windows::CompletedTasks(0);
-            } else {
-                app.selected_window = Windows::CompletedTasks(selected_index + 1);
-            }
-        }
-        KeyCode::Char('k') => {
-            if app.completed_tasks.is_empty() {
-                return;
-            }
-            if selected_index == 0 {
-                app.selected_window = Windows::CompletedTasks(app.completed_tasks.len() - 1);
-            } else {
-                app.selected_window = Windows::CompletedTasks(selected_index - 1);
-            }
-        }
         KeyCode::Char('r') => {
             if app.completed_tasks.is_empty() {
                 return;
@@ -187,6 +147,46 @@ pub fn handle_completed(key_code: KeyCode, selected_index: usize, app: &mut App)
             ));
             if selected_index == app.tasks.len() && !app.tasks.is_empty() {
                 app.selected_window = Windows::CompletedTasks(selected_index - 1);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn handle_movement(key_code: KeyCode, app: &mut App) {
+    let max_index = match app.selected_window {
+        Windows::CurrentTasks(_) => app.tasks.len(),
+        Windows::CompletedTasks(_) => app.completed_tasks.len(),
+    };
+    
+    let is_empty = match app.selected_window {
+        Windows::CurrentTasks(_) => app.tasks.is_empty(),
+        Windows::CompletedTasks(_) => app.completed_tasks.is_empty(),
+    };
+
+    let index = app.selected_window.get_selected();
+    if index.is_none() { return; }
+    let /* ref */ index = index.unwrap();
+
+    match key_code {
+        KeyCode::Char('j') => {
+            if is_empty {
+                return;
+            }
+            if *index == max_index - 1 {
+                *index = 0;
+            } else {
+                *index += 1;
+            }
+        }
+        KeyCode::Char('k') => {
+            if is_empty {
+                return;
+            }
+            if *index == 0 {
+                *index = max_index - 1;
+            } else {
+                *index -= 1;
             }
         }
         _ => {}
