@@ -70,9 +70,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
                     app.mode = Mode::Delete(task_index, index - 1);
                 }
             }
-            KeyCode::Char('q') => {
-                app.mode = Mode::Normal;
-            }
+            KeyCode::Esc | KeyCode::Char('q') => app.mode = Mode::Normal,
             _ => {}
         }
         return Some(());
