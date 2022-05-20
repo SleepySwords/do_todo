@@ -158,14 +158,16 @@ fn handle_movement(key_code: KeyCode, app: &mut App) {
         Windows::CurrentTasks(_) => app.tasks.len(),
         Windows::CompletedTasks(_) => app.completed_tasks.len(),
     };
-    
+
     let is_empty = match app.selected_window {
         Windows::CurrentTasks(_) => app.tasks.is_empty(),
         Windows::CompletedTasks(_) => app.completed_tasks.is_empty(),
     };
 
     let index = app.selected_window.get_selected();
-    if index.is_none() { return; }
+    if index.is_none() {
+        return;
+    }
     let /* ref */ index = index.unwrap();
 
     match key_code {
