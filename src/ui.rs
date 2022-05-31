@@ -156,7 +156,7 @@ fn render_current_tasks<B>(
             );
 
             let priority = Span::styled(
-                format!("{}", task.priority.get_short_hand()),
+                task.priority.get_short_hand().to_string(),
                 style.fg(task.priority.get_colour(theme)),
             );
 

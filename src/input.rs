@@ -105,6 +105,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
             if app.tasks.is_empty() {
                 return;
             }
+            // todo proper deletion/popup
             app.mode = Mode::Delete(selected_index, 0)
         }
         KeyCode::Char('h') => {
@@ -137,19 +138,17 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
 }
 
 pub fn handle_completed(key_code: KeyCode, selected_index: usize, app: &mut App) {
-    match key_code {
-        KeyCode::Char('r') => {
-            if app.completed_tasks.is_empty() {
-                return;
-            }
-            app.tasks.push(Task::from_completed_task(
-                app.completed_tasks.remove(selected_index),
-            ));
-            if selected_index == app.tasks.len() && !app.tasks.is_empty() {
-                app.selected_window = Windows::CompletedTasks(selected_index - 1);
-            }
+    // This way until there is a better implementation for other uis/popups
+    if let KeyCode::Char('r') = key_code {
+        if app.completed_tasks.is_empty() {
+            return;
         }
-        _ => {}
+        app.tasks.push(Task::from_completed_task(
+            app.completed_tasks.remove(selected_index),
+        ));
+        if selected_index == app.tasks.len() && !app.tasks.is_empty() {
+            app.selected_window = Windows::CompletedTasks(selected_index - 1);
+        }
     }
 }
 
