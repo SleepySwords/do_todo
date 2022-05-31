@@ -156,7 +156,7 @@ fn render_current_tasks<B>(
             );
 
             let priority = Span::styled(
-                format!("{}", task.priority.get_short_hand()),
+                task.priority.get_short_hand().to_string(),
                 style.fg(task.priority.get_colour(theme)),
             );
 
@@ -272,7 +272,7 @@ where
 
     let rows = items.iter().map(|item| {
         let text = textwrap::fill(
-            &item.1,
+            item.1,
             constraints[1].apply(layout_chunk.width) as usize - 2,
         );
         let height = text.chars().filter(|c| *c == '\n').count() + 1;
