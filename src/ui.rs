@@ -259,25 +259,28 @@ fn render_selected_task<B>(task: &Task, theme: &Theme, frame: &mut Frame<B>, lay
 where
     B: Backend,
 {
+    let constraints = &[Constraint::Percentage(20), Constraint::Percentage(80)];
+
     let items = vec![
-        vec![Span::raw("Title"), Span::raw(&task.title)],
-        vec![
+        (Span::raw("Title"), &task.title as &str, Style::default()),
+        (
             Span::raw("Priority"),
-            Span::styled(
-                task.priority.get_display_string(),
-                Style::default().fg(task.priority.get_colour(theme)),
-            ),
-        ],
+            task.priority.get_display_string(),
+            Style::default().fg(task.priority.get_colour(theme)),
+        ),
     ];
 
     let rows = items.iter().map(|item| {
-        let height = item
-            .iter()
-            .map(|content| content.content.chars().filter(|c| *c == '\n').count())
-            .max()
-            .unwrap_or(0)
-            + 1;
-        let cells = item.iter().map(|c| Cell::from(c.to_owned()));
+        let text = textwrap::fill(
+            item.1,
+            constraints[1].apply(layout_chunk.width) as usize - 2,
+        );
+        let height = text.chars().filter(|c| *c == '\n').count() + 1;
+        // To owned is not that efficient is it
+        let cells = vec![
+            Cell::from(item.0.to_owned()),
+            Cell::from(Text::styled(text, item.2)),
+        ];
         Row::new(cells).height(height as u16).bottom_margin(1)
     });
 
