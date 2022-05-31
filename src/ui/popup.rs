@@ -1,4 +1,4 @@
-use tui::widgets::{Widget, Clear};
+use tui::widgets::{Clear, Widget};
 
 struct PopUp;
 

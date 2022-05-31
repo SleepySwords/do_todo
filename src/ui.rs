@@ -271,13 +271,16 @@ where
     ];
 
     let rows = items.iter().map(|item| {
-        let text = textwrap::fill(&item.1, constraints[1].apply(layout_chunk.width) as usize - 2);
-        let height = text
-            .chars()
-            .filter(|c| *c == '\n').count()
-            + 1;
+        let text = textwrap::fill(
+            &item.1,
+            constraints[1].apply(layout_chunk.width) as usize - 2,
+        );
+        let height = text.chars().filter(|c| *c == '\n').count() + 1;
         // To owned is not that efficient is it
-        let cells = vec![Cell::from(item.0.to_owned()), Cell::from(Text::styled(text, item.2))];
+        let cells = vec![
+            Cell::from(item.0.to_owned()),
+            Cell::from(Text::styled(text, item.2)),
+        ];
         Row::new(cells).height(height as u16).bottom_margin(1)
     });
 
