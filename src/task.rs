@@ -29,6 +29,7 @@ impl Task {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct CompletedTask {
     pub title: String,
     pub time_completed: NaiveTime,

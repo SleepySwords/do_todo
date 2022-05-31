@@ -1,22 +1,29 @@
+use serde::{Deserialize, Serialize};
+
 use crate::task::{CompletedTask, Task};
 use crate::theme::Theme;
 
 #[derive(Default)]
 pub struct App {
-    pub add_mode: bool,
     pub theme: Theme,
     pub selected_window: Windows,
     pub mode: Mode,
     pub words: String,
+    pub task_data: TaskData
+}
+
+#[derive(Deserialize, Default, Serialize)]
+pub struct TaskData {
     pub tasks: Vec<Task>,
-    pub completed_tasks: Vec<CompletedTask>,
+    pub completed_tasks: Vec<CompletedTask>
+
 }
 
 impl App {
-    pub fn new(theme: Theme, tasks: Vec<Task>) -> App {
+    pub fn new(theme: Theme, task_data: TaskData) -> App {
         App {
             theme,
-            tasks,
+            task_data,
             ..Default::default()
         }
     }

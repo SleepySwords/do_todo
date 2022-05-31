@@ -1,3 +1,5 @@
+mod tasks_list;
+
 use crate::{
     app::{App, Mode, Windows},
     task::Task,
@@ -31,13 +33,13 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
 
     match app.selected_window {
         Windows::CurrentTasks(i) => {
-            if !app.tasks.is_empty() {
+            if !app.task_data.tasks.is_empty() {
                 let chunks = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints(vec![Constraint::Percentage(70), Constraint::Percentage(30)])
                     .split(menu[0]);
                 render_tasks(app, f, chunks[0]);
-                render_selected_task(&app.tasks[i], &app.theme, f, chunks[1]);
+                render_selected_task(&app.task_data.tasks[i], &app.theme, f, chunks[1]);
             } else {
                 render_tasks(app, f, menu[0]);
             }
@@ -52,7 +54,7 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .title(format!("Edit the task {}", app.tasks[task_index].title)),
+                .title(format!("Edit the task {}", app.task_data.tasks[task_index].title)),
         );
         let area = centered_rect(70, 20, f.size());
         f.render_widget(Clear, area);
@@ -86,7 +88,7 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(Color::Green))
                     .border_type(BorderType::Rounded)
-                    .title(format!("Delete the task {}", app.tasks[task_index].title)),
+                    .title(format!("Delete the task {}", app.task_data.tasks[task_index].title)),
             )
             .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
@@ -132,6 +134,7 @@ fn render_current_tasks<B>(
 {
     let theme = &app.theme;
     let tasks: Vec<ListItem> = app
+        .task_data
         .tasks
         .iter()
         .enumerate()
@@ -195,6 +198,7 @@ where
     };
 
     let completed_tasks: Vec<ListItem> = app
+        .task_data
         .completed_tasks
         .iter()
         .enumerate()
@@ -231,10 +235,10 @@ where
         .style(Style::default().fg(Color::White));
 
     let mut completed_state = ListState::default();
-    if !app.completed_tasks.is_empty() {
+    if !app.task_data.completed_tasks.is_empty() {
         let index = match app.selected_window {
             Windows::CompletedTasks(i) => i,
-            _ => app.completed_tasks.len() - 1,
+            _ => app.task_data.completed_tasks.len() - 1,
         };
         completed_state.select(Some(index));
     }

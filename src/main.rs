@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     fs::write(
         dirs::home_dir().unwrap().join(".config/dtb/data.json"),
-        serde_json::to_string(&app.tasks)?,
+        serde_json::to_string(&app.task_data)?,
     )?;
 
     // Cleanup
