@@ -19,7 +19,7 @@ impl Default for Theme {
             selected_border_colour: Color::Green,
             selected_task_colour: Color::Red,
             high_priority_colour: Color::Red,
-            normal_priority_colour: Color::White,
+            normal_priority_colour: Color::LightYellow,
             low_priority_colour: Color::Green,
             test_thing: Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
         }

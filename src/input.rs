@@ -105,6 +105,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
             if app.task_data.tasks.is_empty() {
                 return;
             }
+            // todo proper deletion/popup
             app.mode = Mode::Delete(selected_index, 0)
         }
         KeyCode::Char('h') => {
@@ -124,7 +125,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
                 return;
             }
             let local = Local::now();
-            let time_completed = local.time();
+            let time_completed = local.naive_local();
             let task = app.task_data.tasks.remove(selected_index);
             app.task_data.completed_tasks
                 .push(CompletedTask::from_task(task, time_completed));
@@ -137,19 +138,17 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
 }
 
 pub fn handle_completed(key_code: KeyCode, selected_index: usize, app: &mut App) {
-    match key_code {
-        KeyCode::Char('r') => {
-            if app.task_data.completed_tasks.is_empty() {
-                return;
-            }
-            app.task_data.tasks.push(Task::from_completed_task(
-                app.task_data.completed_tasks.remove(selected_index),
-            ));
-            if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-                app.selected_window = Windows::CompletedTasks(selected_index - 1);
-            }
+    // This way until there is a better implementation for other uis/popups
+    if let KeyCode::Char('r') = key_code {
+        if app.task_data.completed_tasks.is_empty() {
+            return;
         }
-        _ => {}
+        app.task_data.tasks.push(Task::from_completed_task(
+            app.task_data.completed_tasks.remove(selected_index),
+        ));
+        if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
+            app.selected_window = Windows::CompletedTasks(selected_index - 1);
+        }
     }
 }
 
@@ -158,14 +157,16 @@ fn handle_movement(key_code: KeyCode, app: &mut App) {
         Windows::CurrentTasks(_) => app.task_data.tasks.len(),
         Windows::CompletedTasks(_) => app.task_data.completed_tasks.len(),
     };
-    
+
     let is_empty = match app.selected_window {
         Windows::CurrentTasks(_) => app.task_data.tasks.is_empty(),
         Windows::CompletedTasks(_) => app.task_data.completed_tasks.is_empty(),
     };
 
     let index = app.selected_window.get_selected();
-    if index.is_none() { return; }
+    if index.is_none() {
+        return;
+    }
     let /* ref */ index = index.unwrap();
 
     match key_code {

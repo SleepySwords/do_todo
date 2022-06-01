@@ -1,4 +1,5 @@
 mod tasks_list;
+mod popup;
 
 use crate::{
     app::{App, Mode, Windows},
@@ -10,7 +11,9 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{
+        Block, BorderType, Borders, Cell, Clear, List, ListItem, ListState, Paragraph, Row, Table,
+    },
     Frame,
 };
 
@@ -36,7 +39,7 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
             if !app.task_data.tasks.is_empty() {
                 let chunks = Layout::default()
                     .direction(Direction::Horizontal)
-                    .constraints(vec![Constraint::Percentage(70), Constraint::Percentage(30)])
+                    .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
                     .split(menu[0]);
                 render_tasks(app, f, chunks[0]);
                 render_selected_task(&app.task_data.tasks[i], &app.theme, f, chunks[1]);
@@ -144,6 +147,7 @@ fn render_current_tasks<B>(
             } else {
                 Style::default()
             };
+
             let progress = Span::styled(
                 if task.progress { "[-] " } else { "[ ] " },
                 style.fg(if selected_index == Some(i) {
@@ -152,11 +156,19 @@ fn render_current_tasks<B>(
                     Color::White
                 }),
             );
-            let content = Span::styled(
-                task.title.as_str(),
+
+            let priority = Span::styled(
+                task.priority.get_short_hand().to_string(),
                 style.fg(task.priority.get_colour(theme)),
             );
-            let content = Spans::from(vec![progress, content]);
+
+            let content = Span::styled(
+                task.title.as_str(),
+                // style.fg(task.priority.get_colour(theme)),
+                style,
+            );
+
+            let content = Spans::from(vec![progress, priority, content]);
             ListItem::new(content)
         })
         .collect();
@@ -215,7 +227,7 @@ where
             let content = Spans::from(Span::styled(
                 format!(
                     "{} {}",
-                    task.time_completed.format("%-I:%M:%S %p"),
+                    task.time_completed.format("%d/%m/%y %-I:%M:%S %p"),
                     task.title
                 ),
                 Style::default().fg(colour),
@@ -250,30 +262,43 @@ fn render_selected_task<B>(task: &Task, theme: &Theme, frame: &mut Frame<B>, lay
 where
     B: Backend,
 {
-    let text = vec![
-        Spans::default(),
-        Spans::from(vec![Span::raw("Title: "), Span::raw(&task.title)]),
-        Spans::from(vec![
-            Span::raw("Priority: "),
-            Span::styled(
-                task.priority.get_display_string(),
-                Style::default().fg(task.priority.get_colour(theme)),
-            ),
-            Span::raw("."),
-        ]),
+    let constraints = &[Constraint::Percentage(20), Constraint::Percentage(80)];
+
+    let items = vec![
+        (Span::raw("Title"), &task.title as &str, Style::default()),
+        (
+            Span::raw("Priority"),
+            task.priority.get_display_string(),
+            Style::default().fg(task.priority.get_colour(theme)),
+        ),
     ];
 
-    let paragraph = Paragraph::new(text)
+    let rows = items.iter().map(|item| {
+        let text = textwrap::fill(
+            item.1,
+            constraints[1].apply(layout_chunk.width) as usize - 2,
+        );
+        let height = text.chars().filter(|c| *c == '\n').count() + 1;
+        // To owned is not that efficient is it
+        let cells = vec![
+            Cell::from(item.0.to_owned()),
+            Cell::from(Text::styled(text, item.2)),
+        ];
+        Row::new(cells).height(height as u16).bottom_margin(1)
+    });
+
+    let rows = Table::new(rows)
         .block(
             Block::default()
                 .title(task.title.as_str())
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded),
         )
-        // .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true });
+        .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)]);
+    // .alignment(Alignment::Center)
+    // .wrap(Wrap { trim: true });
 
-    frame.render_widget(paragraph, layout_chunk)
+    frame.render_widget(rows, layout_chunk)
 }
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
