@@ -15,7 +15,7 @@ struct TaskState;
 impl StatefulWidget for TaskList<'_> {
     type State = TaskState;
 
-    fn render(self, area: tui::layout::Rect, buf: &mut tui::buffer::Buffer, state: &mut TaskState) {
+    fn render(self, area: tui::layout::Rect, buf: &mut tui::buffer::Buffer, _: &mut TaskState) {
         let theme = &self.app.theme;
         let selected_index = Some(0);
         let tasks: Vec<ListItem> = self

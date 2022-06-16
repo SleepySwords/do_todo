@@ -1,14 +1,39 @@
 use chrono::Local;
 use crossterm::event::KeyCode;
+use tui::{backend::Backend, layout::Rect, Frame};
+use tui::widgets::Widget;
 
 use crate::{
-    app::{App, Mode, Windows},
-    task::{CompletedTask, Task},
+    app::{Action, App, SelectedComponent},
+    task::{CompletedTask, Task}, components::dialog::DialogComponent,
 };
+use crate::app::TaskData;
+
+pub trait Component {
+    // Option should pribably be a custom enum
+    fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()>;
+
+    // Could perhaps be a different trait
+    fn draw<B: Backend>(&self, app: &App, area: Rect, f: &mut Frame<B>);
+}
 
 // Returning an option is pretty lazy, ill refactor this once again at some point.
 pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
-    if let Mode::Add = app.mode {
+    // This is some janky af shit
+    if let Some(mut component) = app.dialog_stack.pop_front() {
+        if component.handle_event(app, key_code).is_none() {
+            return Some(());
+        }
+        if let KeyCode::Char(char) = key_code {
+            if char == 'q' {
+                return Some(());
+            }
+        }
+        app.dialog_stack.push_front(component);
+        return Some(());
+    }
+
+    if let Action::Add = app.action {
         match key_code {
             KeyCode::Char(c) => app.words.push(c),
             KeyCode::Backspace => {
@@ -18,15 +43,15 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
                 app.task_data.tasks.push(Task::from_string(
                     app.words.drain(..).collect::<String>().trim().to_string(),
                 ));
-                app.mode = Mode::Normal;
+                app.action = Action::Normal;
             }
-            KeyCode::Esc => app.mode = Mode::Normal,
+            KeyCode::Esc => app.action = Action::Normal,
             _ => {}
         }
         return Some(());
     }
 
-    if let Mode::Edit(task_index) = app.mode {
+    if let Action::Edit(task_index) = app.action {
         match key_code {
             KeyCode::Char(c) => app.words.push(c),
             KeyCode::Backspace => {
@@ -35,62 +60,62 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
             KeyCode::Enter => {
                 app.task_data.tasks[task_index].title =
                     app.words.drain(..).collect::<String>().trim().to_string();
-                app.mode = Mode::Normal;
+                app.action = Action::Normal;
             }
-            KeyCode::Esc => app.mode = Mode::Normal,
+            KeyCode::Esc => app.action = Action::Normal,
             _ => {}
         }
         return Some(());
     }
 
-    if let Mode::Delete(task_index, index) = app.mode {
-        match key_code {
-            KeyCode::Enter => {
-                if index == 0 {
-                    app.task_data.tasks.remove(task_index);
-                    if task_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-                        app.selected_window = Windows::CurrentTasks(task_index - 1);
-                    }
-                    app.mode = Mode::Normal;
-                } else {
-                    app.mode = Mode::Normal;
-                }
-            }
-            KeyCode::Char('j') => {
-                if index == 1 {
-                    app.mode = Mode::Delete(task_index, 0);
-                } else {
-                    app.mode = Mode::Delete(task_index, index + 1);
-                }
-            }
-            KeyCode::Char('k') => {
-                if index == 0 {
-                    app.mode = Mode::Delete(task_index, 1);
-                } else {
-                    app.mode = Mode::Delete(task_index, index - 1);
-                }
-            }
-            KeyCode::Esc | KeyCode::Char('q') => app.mode = Mode::Normal,
-            _ => {}
-        }
-        return Some(());
-    }
+    // if let Action::Delete(task_index, index) = app.action {
+    //     match key_code {
+    //         KeyCode::Enter => {
+    //             if index == 0 {
+    //                 app.task_data.tasks.remove(task_index);
+    //                 if task_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
+    //                     app.selected_window = SelectedComponent::CurrentTasks(task_index - 1);
+    //                 }
+    //                 app.action = Action::Normal;
+    //             } else {
+    //                 app.action = Action::Normal;
+    //             }
+    //         }
+    //         KeyCode::Char('j') => {
+    //             if index == 1 {
+    //                 app.action = Action::Delete(task_index, 0);
+    //             } else {
+    //                 app.action = Action::Delete(task_index, index + 1);
+    //             }
+    //         }
+    //         KeyCode::Char('k') => {
+    //             if index == 0 {
+    //                 app.action = Action::Delete(task_index, 1);
+    //             } else {
+    //                 app.action = Action::Delete(task_index, index - 1);
+    //             }
+    //         }
+    //         KeyCode::Esc | KeyCode::Char('q') => app.action = Action::Normal,
+    //         _ => {}
+    //     }
+        // return Some(());
+    // }
 
     // Universal keyboard shortcuts (should also be customisable)
     match key_code {
-        KeyCode::Char('a') => app.mode = Mode::Add,
-        KeyCode::Char('1') => app.selected_window = Windows::CurrentTasks(0),
-        KeyCode::Char('2') => app.selected_window = Windows::CompletedTasks(0),
+        KeyCode::Char('a') => app.action = Action::Add,
+        KeyCode::Char('1') => app.selected_window = SelectedComponent::CurrentTasks(0),
+        KeyCode::Char('2') => app.selected_window = SelectedComponent::CompletedTasks(0),
         KeyCode::Char('q') => return None,
         _ => {}
     }
 
     handle_movement(key_code, app);
 
-    if let Windows::CurrentTasks(selected_index) = app.selected_window {
+    if let SelectedComponent::CurrentTasks(selected_index) = app.selected_window {
         handle_current_task(key_code, selected_index, app);
     }
-    if let Windows::CompletedTasks(selected_index) = app.selected_window {
+    if let SelectedComponent::CompletedTasks(selected_index) = app.selected_window {
         handle_completed(key_code, selected_index, app);
     }
     Some(())
@@ -99,26 +124,42 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
 pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut App) {
     match key_code {
         KeyCode::Char('e') => {
-            app.mode = Mode::Edit(selected_index);
+            app.words = app.task_data.tasks[selected_index].title.clone();
+            app.action = Action::Edit(selected_index);
         }
         KeyCode::Char('d') => {
             if app.task_data.tasks.is_empty() {
                 return;
             }
+            app.dialog_stack.push_front(DialogComponent::new(format!("Delete task {}", app.task_data.tasks[selected_index].title), vec![
+                (String::from("Delete"), Box::new(move |app| {
+                    app.task_data.tasks.remove(selected_index);
+                    if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
+                        app.selected_window = SelectedComponent::CurrentTasks(selected_index - 1);
+                    }
+                })),
+                (String::from("Delete"), Box::new(move |app| {
+                    app.task_data = TaskData::default();
+                    app.selected_window = SelectedComponent::CurrentTasks(0);
+                })),
+                (String::from("Cancel"), Box::new(|_| {})),
+            ]));
             // todo proper deletion/popup
-            app.mode = Mode::Delete(selected_index, 0)
+            // app.action = Action::Delete(selected_index, 0)
         }
         KeyCode::Char('h') => {
             if app.task_data.tasks.is_empty() {
                 return;
             }
-            app.task_data.tasks[selected_index].priority = app.task_data.tasks[selected_index].priority.get_next();
+            app.task_data.tasks[selected_index].priority =
+                app.task_data.tasks[selected_index].priority.get_next();
         }
         KeyCode::Char('p') => {
             if app.task_data.tasks.is_empty() {
                 return;
             }
-            app.task_data.tasks[selected_index].progress = !app.task_data.tasks[selected_index].progress;
+            app.task_data.tasks[selected_index].progress =
+                !app.task_data.tasks[selected_index].progress;
         }
         KeyCode::Char('c') => {
             if app.task_data.tasks.is_empty() {
@@ -127,10 +168,11 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
             let local = Local::now();
             let time_completed = local.naive_local();
             let task = app.task_data.tasks.remove(selected_index);
-            app.task_data.completed_tasks
+            app.task_data
+                .completed_tasks
                 .push(CompletedTask::from_task(task, time_completed));
             if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-                app.selected_window = Windows::CurrentTasks(selected_index - 1);
+                app.selected_window = SelectedComponent::CurrentTasks(selected_index - 1);
             }
         }
         _ => {}
@@ -147,27 +189,27 @@ pub fn handle_completed(key_code: KeyCode, selected_index: usize, app: &mut App)
             app.task_data.completed_tasks.remove(selected_index),
         ));
         if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-            app.selected_window = Windows::CompletedTasks(selected_index - 1);
+            app.selected_window = SelectedComponent::CompletedTasks(selected_index - 1);
         }
     }
 }
 
 fn handle_movement(key_code: KeyCode, app: &mut App) {
     let max_index = match app.selected_window {
-        Windows::CurrentTasks(_) => app.task_data.tasks.len(),
-        Windows::CompletedTasks(_) => app.task_data.completed_tasks.len(),
+        SelectedComponent::CurrentTasks(_) => app.task_data.tasks.len(),
+        SelectedComponent::CompletedTasks(_) => app.task_data.completed_tasks.len(),
     };
 
     let is_empty = match app.selected_window {
-        Windows::CurrentTasks(_) => app.task_data.tasks.is_empty(),
-        Windows::CompletedTasks(_) => app.task_data.completed_tasks.is_empty(),
+        SelectedComponent::CurrentTasks(_) => app.task_data.tasks.is_empty(),
+        SelectedComponent::CompletedTasks(_) => app.task_data.completed_tasks.is_empty(),
     };
 
     let index = app.selected_window.get_selected();
     if index.is_none() {
         return;
     }
-    let /* ref */ index = index.unwrap();
+    let index = index.unwrap();
 
     match key_code {
         KeyCode::Char('j') => {

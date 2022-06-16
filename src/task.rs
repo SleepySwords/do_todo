@@ -1,5 +1,5 @@
 use crate::theme::Theme;
-use chrono::{NaiveTime, NaiveDateTime};
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tui::style::Color;

@@ -1,10 +1,7 @@
-mod tasks_list;
-mod popup;
-
 use crate::{
-    app::{App, Mode, Windows},
+    app::{Action, App, SelectedComponent},
     task::Task,
-    theme::Theme,
+    theme::Theme, components, input::Component,
 };
 use tui::{
     backend::Backend,
@@ -23,19 +20,14 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         .constraints(vec![Constraint::Min(1), Constraint::Length(1)])
         .split(f.size());
 
-    let help = Text::styled(
-        "Press q to exit.",
-        Style::default()
-            .fg(Color::White)
-            .add_modifier(Modifier::BOLD),
-    );
+    let help = Text::styled("Press q to exit.", Style::default().fg(Color::White));
 
     let paragraph = Paragraph::new(help);
 
     f.render_widget(paragraph, menu[1]);
 
     match app.selected_window {
-        Windows::CurrentTasks(i) => {
+        SelectedComponent::CurrentTasks(i) => {
             if !app.task_data.tasks.is_empty() {
                 let chunks = Layout::default()
                     .direction(Direction::Horizontal)
@@ -50,14 +42,17 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         _ => render_tasks(app, f, menu[0]),
     }
 
-    if let Mode::Edit(task_index) = app.mode {
+    if let Action::Edit(task_index) = app.action {
         let text = Text::from(Spans::from(app.words.as_ref()));
         let help_message = Paragraph::new(text);
         let help_message = help_message.block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .title(format!("Edit the task {}", app.task_data.tasks[task_index].title)),
+                .title(format!(
+                    "Edit the task {}",
+                    app.task_data.tasks[task_index].title
+                )),
         );
         let area = centered_rect(70, 20, f.size());
         f.render_widget(Clear, area);
@@ -65,7 +60,7 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
     }
 
-    if let Mode::Add = app.mode {
+    if let Action::Add = app.action {
         let text = Text::from(Spans::from(app.words.as_ref()));
         let help_message = Paragraph::new(text);
         let help_message = help_message.block(
@@ -80,27 +75,9 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
     }
 
-    if let Mode::Delete(task_index, index) = app.mode {
-        let text = vec![
-            ListItem::new(Spans::from("Delete")),
-            ListItem::new(Spans::from("Cancel")),
-        ];
-        let help_message = List::new(text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Green))
-                    .border_type(BorderType::Rounded)
-                    .title(format!("Delete the task {}", app.task_data.tasks[task_index].title)),
-            )
-            .highlight_style(Style::default().add_modifier(Modifier::BOLD));
-
-        let mut state = ListState::default();
-        state.select(Some(index));
-
+    if let Some(component) = app.dialog_stack.front() {
         let area = centered_rect(70, 20, f.size());
-        f.render_widget(Clear, area);
-        f.render_stateful_widget(help_message, area, &mut state);
+        component.draw(app, area, f)
     }
 }
 
@@ -117,7 +94,7 @@ where
         app,
         frame,
         layout_chunk[0],
-        if let Windows::CurrentTasks(selected) = app.selected_window {
+        if let SelectedComponent::CurrentTasks(selected) = app.selected_window {
             Some(selected)
         } else {
             None
@@ -174,7 +151,7 @@ fn render_current_tasks<B>(
         .collect();
 
     let border_colour = match app.selected_window {
-        Windows::CurrentTasks(_) => theme.selected_border_colour,
+        SelectedComponent::CurrentTasks(_) => theme.selected_border_colour,
         _ => theme.default_border_colour,
     };
 
@@ -188,7 +165,7 @@ fn render_current_tasks<B>(
 
     let mut state = ListState::default();
     state.select(
-        if let Windows::CurrentTasks(selected) = app.selected_window {
+        if let SelectedComponent::CurrentTasks(selected) = app.selected_window {
             Some(selected)
         } else {
             None
@@ -205,7 +182,7 @@ where
     let theme = &app.theme;
 
     let border_colour = match app.selected_window {
-        Windows::CompletedTasks(_) => theme.selected_border_colour,
+        SelectedComponent::CompletedTasks(_) => theme.selected_border_colour,
         _ => theme.default_border_colour,
     };
 
@@ -215,7 +192,7 @@ where
         .iter()
         .enumerate()
         .map(|(ind, task)| {
-            let colour = if let Windows::CompletedTasks(i) = app.selected_window {
+            let colour = if let SelectedComponent::CompletedTasks(i) = app.selected_window {
                 if i == ind {
                     theme.selected_task_colour
                 } else {
@@ -249,7 +226,7 @@ where
     let mut completed_state = ListState::default();
     if !app.task_data.completed_tasks.is_empty() {
         let index = match app.selected_window {
-            Windows::CompletedTasks(i) => i,
+            SelectedComponent::CompletedTasks(i) => i,
             _ => app.task_data.completed_tasks.len() - 1,
         };
         completed_state.select(Some(index));

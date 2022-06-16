@@ -11,3 +11,6 @@ A todo list to organise your needs :)
 - [ ] Tags with colours
 - [ ] Filterings + commands
 - [ ] Works[aces]
+
+
+Perhaps we should store the windows as widgets in the App. The widgets also have a reference to items in App with the same lifetime.
