@@ -5,6 +5,7 @@ mod task;
 mod theme;
 mod ui;
 mod components;
+mod actions;
 
 use app::App;
 use crossterm::{

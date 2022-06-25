@@ -1,13 +1,12 @@
 use chrono::Local;
 use crossterm::event::KeyCode;
 use tui::{backend::Backend, layout::Rect, Frame};
-use tui::widgets::Widget;
 
+use crate::actions;
 use crate::{
     app::{Action, App, SelectedComponent},
-    task::{CompletedTask, Task}, components::dialog::DialogComponent,
+    task::{CompletedTask, Task},
 };
-use crate::app::TaskData;
 
 pub trait Component {
     // Option should pribably be a custom enum
@@ -98,7 +97,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
     //         KeyCode::Esc | KeyCode::Char('q') => app.action = Action::Normal,
     //         _ => {}
     //     }
-        // return Some(());
+    // return Some(());
     // }
 
     // Universal keyboard shortcuts (should also be customisable)
@@ -106,6 +105,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
         KeyCode::Char('a') => app.action = Action::Add,
         KeyCode::Char('1') => app.selected_window = SelectedComponent::CurrentTasks(0),
         KeyCode::Char('2') => app.selected_window = SelectedComponent::CompletedTasks(0),
+        KeyCode::Char('x') => actions::open_help_menu(app),
         KeyCode::Char('q') => return None,
         _ => {}
     }
@@ -131,19 +131,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
             if app.task_data.tasks.is_empty() {
                 return;
             }
-            app.dialog_stack.push_front(DialogComponent::new(format!("Delete task {}", app.task_data.tasks[selected_index].title), vec![
-                (String::from("Delete"), Box::new(move |app| {
-                    app.task_data.tasks.remove(selected_index);
-                    if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-                        app.selected_window = SelectedComponent::CurrentTasks(selected_index - 1);
-                    }
-                })),
-                (String::from("Delete"), Box::new(move |app| {
-                    app.task_data = TaskData::default();
-                    app.selected_window = SelectedComponent::CurrentTasks(0);
-                })),
-                (String::from("Cancel"), Box::new(|_| {})),
-            ]));
+            actions::open_delete_task_menu(app, selected_index)
             // todo proper deletion/popup
             // app.action = Action::Delete(selected_index, 0)
         }
