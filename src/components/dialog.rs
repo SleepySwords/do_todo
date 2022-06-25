@@ -2,25 +2,31 @@ use crossterm::event::KeyCode;
 
 use tui::{
     layout::Rect,
-    widgets::{
-        Block, BorderType, Borders, Clear, List, ListItem, ListState,
-    }, style::{Style, Modifier}, text::Spans,
+    style::{Modifier, Style},
+    text::Spans,
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState},
 };
 
 use crate::{app::App, input::Component};
 
+pub type DialogOption = (String, Box<dyn Fn(&mut App)>);
+
 pub struct DialogComponent {
     title: String,
     index: usize,
-    options: Vec<(String, Box<dyn Fn(&mut App)>)>,
+    options: Vec<DialogOption>,
 }
 
 impl DialogComponent {
-    pub fn new(title: String, options: Vec<(String, Box<dyn Fn(&mut App)>)>) -> DialogComponent {
+    pub fn new(title: String, options: Vec<DialogOption>) -> DialogComponent {
         if options.is_empty() {
             panic!("The size of the options is 0");
         }
-        DialogComponent { title, index: 0, options }
+        DialogComponent {
+            title,
+            index: 0,
+            options,
+        }
     }
 }
 

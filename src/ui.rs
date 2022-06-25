@@ -1,7 +1,8 @@
 use crate::{
     app::{Action, App, SelectedComponent},
+    input::Component,
     task::Task,
-    theme::Theme, input::Component,
+    theme::Theme,
 };
 use tui::{
     backend::Backend,

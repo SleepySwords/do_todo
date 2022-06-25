@@ -1,6 +1,6 @@
 use std::{error::Error, fs, path::Path};
 
-use crate::{task::Task, theme::Theme, app::TaskData};
+use crate::{app::TaskData, task::Task, theme::Theme};
 
 pub fn get_config() -> Result<(Theme, TaskData), Box<dyn Error>> {
     match dirs::home_dir() {

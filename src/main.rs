@@ -1,11 +1,11 @@
+mod actions;
 mod app;
+mod components;
 mod config;
 mod input;
 mod task;
 mod theme;
 mod ui;
-mod components;
-mod actions;
 
 use app::App;
 use crossterm::{
