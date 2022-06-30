@@ -1,5 +1,6 @@
 use crate::{
     app::{Action, App, PopUpComponents, SelectedComponent},
+    components::status_line::StatusLineComponent,
     input::Component,
     task::Task,
     theme::Theme,
@@ -16,16 +17,19 @@ use tui::{
 };
 
 pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
-    let menu = Layout::default()
+    let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Min(1), Constraint::Length(1)])
         .split(f.size());
 
-    let help = Text::styled("Press q to exit.", Style::default().fg(Color::White));
+    let main_body = layout[0];
+    let status_line = layout[1];
 
-    let paragraph = Paragraph::new(help);
-
-    f.render_widget(paragraph, menu[1]);
+    StatusLineComponent::new(String::from("Press x for help. Press q to exit.")).draw(
+        app,
+        status_line,
+        f,
+    );
 
     match app.selected_window {
         SelectedComponent::CurrentTasks(i) => {
@@ -33,14 +37,14 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
                 let chunks = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
-                    .split(menu[0]);
+                    .split(main_body);
                 render_tasks(app, f, chunks[0]);
                 render_selected_task(&app.task_data.tasks[i], &app.theme, f, chunks[1]);
             } else {
-                render_tasks(app, f, menu[0]);
+                render_tasks(app, f, main_body);
             }
         }
-        _ => render_tasks(app, f, menu[0]),
+        _ => render_tasks(app, f, main_body),
     }
 
     if let Action::Edit(task_index) = app.action {

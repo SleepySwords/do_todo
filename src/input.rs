@@ -26,11 +26,6 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
                 if component.handle_event(app, key_code).is_none() {
                     return Some(());
                 }
-                if let KeyCode::Char(char) = key_code {
-                    if char == 'q' {
-                        return Some(());
-                    }
-                }
                 app.popup_stack
                     .push_front(PopUpComponents::InputBox(component));
             }
