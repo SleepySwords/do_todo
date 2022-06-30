@@ -1,5 +1,5 @@
 use crate::{
-    app::{Action, App, SelectedComponent},
+    app::{Action, App, PopUpComponents, SelectedComponent},
     input::Component,
     task::Task,
     theme::Theme,
@@ -61,24 +61,12 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
     }
 
-    if let Action::Add = app.action {
-        let text = Text::from(Spans::from(app.words.as_ref()));
-        let help_message = Paragraph::new(text);
-        let help_message = help_message.block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .title("Add a task"),
-        );
+    if let Some(component) = app.popup_stack.front() {
         let area = centered_rect(70, 20, f.size());
-        f.render_widget(Clear, area);
-        f.render_widget(help_message, area);
-        f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
-    }
-
-    if let Some(component) = app.dialog_stack.front() {
-        let area = centered_rect(70, 20, f.size());
-        component.draw(app, area, f)
+        match component {
+            PopUpComponents::InputBox(component) => component.draw(app, area, f),
+            PopUpComponents::DialogBox(component) => component.draw(app, area, f),
+        }
     }
 }
 

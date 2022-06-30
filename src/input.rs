@@ -3,8 +3,9 @@ use crossterm::event::KeyCode;
 use tui::{backend::Backend, layout::Rect, Frame};
 
 use crate::actions;
+use crate::components::input_box::InputBoxComponent;
 use crate::{
-    app::{Action, App, SelectedComponent},
+    app::{App, PopUpComponents, SelectedComponent},
     task::{CompletedTask, Task},
 };
 
@@ -19,90 +20,49 @@ pub trait Component {
 // Returning an option is pretty lazy, ill refactor this once again at some point.
 pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
     // This is some janky af shit
-    if let Some(mut component) = app.dialog_stack.pop_front() {
-        if component.handle_event(app, key_code).is_none() {
-            return Some(());
-        }
-        if let KeyCode::Char(char) = key_code {
-            if char == 'q' {
-                return Some(());
+    if let Some(component) = app.popup_stack.pop_front() {
+        match component {
+            PopUpComponents::InputBox(mut component) => {
+                if component.handle_event(app, key_code).is_none() {
+                    return Some(());
+                }
+                if let KeyCode::Char(char) = key_code {
+                    if char == 'q' {
+                        return Some(());
+                    }
+                }
+                app.popup_stack
+                    .push_front(PopUpComponents::InputBox(component));
             }
-        }
-        app.dialog_stack.push_front(component);
-        return Some(());
-    }
-
-    if let Action::Add = app.action {
-        match key_code {
-            KeyCode::Char(c) => app.words.push(c),
-            KeyCode::Backspace => {
-                app.words.pop();
+            PopUpComponents::DialogBox(mut component) => {
+                if component.handle_event(app, key_code).is_none() {
+                    return Some(());
+                }
+                if let KeyCode::Char(char) = key_code {
+                    if char == 'q' {
+                        return Some(());
+                    }
+                }
+                app.popup_stack
+                    .push_front(PopUpComponents::DialogBox(component));
             }
-            KeyCode::Enter => {
-                app.task_data.tasks.push(Task::from_string(
-                    app.words.drain(..).collect::<String>().trim().to_string(),
-                ));
-                app.action = Action::Normal;
-            }
-            KeyCode::Esc => app.action = Action::Normal,
-            _ => {}
-        }
-        return Some(());
-    }
-
-    if let Action::Edit(task_index) = app.action {
-        match key_code {
-            KeyCode::Char(c) => app.words.push(c),
-            KeyCode::Backspace => {
-                app.words.pop();
-            }
-            KeyCode::Enter => {
-                app.task_data.tasks[task_index].title =
-                    app.words.drain(..).collect::<String>().trim().to_string();
-                app.action = Action::Normal;
-            }
-            KeyCode::Esc => app.action = Action::Normal,
-            _ => {}
         }
         return Some(());
     }
-
-    // if let Action::Delete(task_index, index) = app.action {
-    //     match key_code {
-    //         KeyCode::Enter => {
-    //             if index == 0 {
-    //                 app.task_data.tasks.remove(task_index);
-    //                 if task_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-    //                     app.selected_window = SelectedComponent::CurrentTasks(task_index - 1);
-    //                 }
-    //                 app.action = Action::Normal;
-    //             } else {
-    //                 app.action = Action::Normal;
-    //             }
-    //         }
-    //         KeyCode::Char('j') => {
-    //             if index == 1 {
-    //                 app.action = Action::Delete(task_index, 0);
-    //             } else {
-    //                 app.action = Action::Delete(task_index, index + 1);
-    //             }
-    //         }
-    //         KeyCode::Char('k') => {
-    //             if index == 0 {
-    //                 app.action = Action::Delete(task_index, 1);
-    //             } else {
-    //                 app.action = Action::Delete(task_index, index - 1);
-    //             }
-    //         }
-    //         KeyCode::Esc | KeyCode::Char('q') => app.action = Action::Normal,
-    //         _ => {}
-    //     }
-    // return Some(());
-    // }
 
     // Universal keyboard shortcuts (should also be customisable)
     match key_code {
-        KeyCode::Char('a') => app.action = Action::Add,
+        KeyCode::Char('a') => {
+            app.popup_stack
+                .push_front(PopUpComponents::InputBox(InputBoxComponent::new(
+                    String::from("Add a task"),
+                    Box::new(|app, mut word| {
+                        app.task_data.tasks.push(Task::from_string(
+                            word.drain(..).collect::<String>().trim().to_string(),
+                        ));
+                    }),
+                )))
+        }
         KeyCode::Char('1') => app.selected_window = SelectedComponent::CurrentTasks(0),
         KeyCode::Char('2') => app.selected_window = SelectedComponent::CompletedTasks(0),
         KeyCode::Char('x') => actions::open_help_menu(app),
@@ -123,10 +83,21 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
 
 pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut App) {
     match key_code {
-        KeyCode::Char('e') => {
-            app.words = app.task_data.tasks[selected_index].title.clone();
-            app.action = Action::Edit(selected_index);
-        }
+        KeyCode::Char('e') => app.popup_stack.push_front(PopUpComponents::InputBox(
+            InputBoxComponent::new_preexisting_word(
+                // TODO: cleanup this so it doesn't use clone
+                format!(
+                    "Edit the task {}",
+                    app.task_data.tasks[selected_index].title.clone()
+                ),
+                app.task_data.tasks[selected_index].title.clone(),
+                // This move is kinda jank not too sure, may try to find a better way
+                Box::new(move |app, mut word| {
+                    app.task_data.tasks[selected_index].title =
+                        word.drain(..).collect::<String>().trim().to_string();
+                }),
+            ),
+        )),
         KeyCode::Char('d') => {
             if app.task_data.tasks.is_empty() {
                 return;
@@ -170,15 +141,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
 pub fn handle_completed(key_code: KeyCode, selected_index: usize, app: &mut App) {
     // This way until there is a better implementation for other uis/popups
     if let KeyCode::Char('r') = key_code {
-        if app.task_data.completed_tasks.is_empty() {
-            return;
-        }
-        app.task_data.tasks.push(Task::from_completed_task(
-            app.task_data.completed_tasks.remove(selected_index),
-        ));
-        if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-            app.selected_window = SelectedComponent::CompletedTasks(selected_index - 1);
-        }
+        actions::restore_task(app, selected_index)
     }
 }
 

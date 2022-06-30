@@ -3,16 +3,23 @@ use std::collections::VecDeque;
 use serde::{Deserialize, Serialize};
 
 use crate::components::dialog::DialogComponent;
+use crate::components::input_box::InputBoxComponent;
 use crate::task::{CompletedTask, Task};
 use crate::theme::Theme;
 
+#[derive(Default)]
 pub struct App {
     pub theme: Theme,
     pub selected_window: SelectedComponent,
     pub action: Action,
     pub words: String,
     pub task_data: TaskData,
-    pub dialog_stack: VecDeque<DialogComponent>,
+    pub popup_stack: VecDeque<PopUpComponents>,
+}
+
+pub enum PopUpComponents {
+    InputBox(InputBoxComponent),
+    DialogBox(DialogComponent),
 }
 
 #[derive(Deserialize, Default, Serialize)]
@@ -27,20 +34,6 @@ impl App {
             theme,
             task_data,
             ..Default::default()
-        }
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        let queue = VecDeque::new();
-        App {
-            theme: Theme::default(),
-            selected_window: SelectedComponent::default(),
-            action: Action::default(),
-            words: String::default(),
-            task_data: TaskData::default(),
-            dialog_stack: queue,
         }
     }
 }

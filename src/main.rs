@@ -4,6 +4,7 @@ mod components;
 mod config;
 mod input;
 mod task;
+mod test;
 mod theme;
 mod ui;
 
