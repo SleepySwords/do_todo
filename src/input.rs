@@ -78,21 +78,22 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> Option<()> {
 
 pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut App) {
     match key_code {
-        KeyCode::Char('e') => app.popup_stack.push_front(PopUpComponents::InputBox(
-            InputBoxComponent::new_preexisting_word(
-                // TODO: cleanup this so it doesn't use clone
-                format!(
-                    "Edit the task {}",
-                    app.task_data.tasks[selected_index].title.clone()
-                ),
-                app.task_data.tasks[selected_index].title.clone(),
-                // This move is kinda jank not too sure, may try to find a better way
-                Box::new(move |app, mut word| {
-                    app.task_data.tasks[selected_index].title =
-                        word.drain(..).collect::<String>().trim().to_string();
-                }),
-            ),
-        )),
+        KeyCode::Char('e') => {
+            app.popup_stack
+                .push_front(PopUpComponents::InputBox(InputBoxComponent::filled(
+                    // TODO: cleanup this so it doesn't use clone
+                    format!(
+                        "Edit the task {}",
+                        app.task_data.tasks[selected_index].title.clone()
+                    ),
+                    app.task_data.tasks[selected_index].title.clone(),
+                    // This move is kinda jank not too sure, may try to find a better way
+                    Box::new(move |app, mut word| {
+                        app.task_data.tasks[selected_index].title =
+                            word.drain(..).collect::<String>().trim().to_string();
+                    }),
+                )))
+        }
         KeyCode::Char('d') => {
             if app.task_data.tasks.is_empty() {
                 return;

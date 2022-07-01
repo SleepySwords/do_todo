@@ -1,9 +1,16 @@
-use tui::{style::{Style, Color}, widgets::Paragraph, text::Text};
+use crossterm::event::KeyCode;
+use tui::{
+    layout::Rect,
+    style::{Color, Style},
+    text::Text,
+    widgets::Paragraph,
+    Frame,
+};
 
-use crate::input::Component;
+use crate::{app::App, input::Component};
 
 pub struct StatusLineComponent {
-    status_line: String
+    status_line: String,
 }
 
 impl StatusLineComponent {
@@ -13,11 +20,11 @@ impl StatusLineComponent {
 }
 
 impl Component for StatusLineComponent {
-    fn handle_event(&mut self, _: &mut crate::app::App, _: crossterm::event::KeyCode) -> Option<()> {
+    fn handle_event(&mut self, _: &mut App, _: KeyCode) -> Option<()> {
         None
     }
 
-    fn draw<B: tui::backend::Backend>(&self, _: &crate::app::App, area: tui::layout::Rect, f: &mut tui::Frame<B>) {
+    fn draw<B: tui::backend::Backend>(&self, _: &App, area: Rect, f: &mut Frame<B>) {
         let help = Text::styled(self.status_line.as_str(), Style::default().fg(Color::White));
         let paragraph = Paragraph::new(help);
         f.render_widget(paragraph, area);
