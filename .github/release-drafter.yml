@@ -7,6 +7,15 @@ category-template: "### $TITLE"
 exclude-contributors:
   - 'SleepySwords'
 categories:
+  - title: 'Integration'
+    labels:
+      - 'integration'
+  - title: 'Organisation'
+    labels:
+      - 'organisation'
+  - title: 'UI/UX'
+    labels:
+      - 'ui/ux'
   - title: 'Code Quality'
     labels:
       - 'code quality'
