@@ -7,6 +7,7 @@ mod task;
 mod test;
 mod theme;
 mod ui;
+mod utils;
 
 use app::App;
 use crossterm::{

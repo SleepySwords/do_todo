@@ -1,12 +1,13 @@
 use crossterm::event::KeyCode;
 
+use tui::layout::Rect;
 use tui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::Constraint,
     text::Text,
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
 };
 
-use crate::{app::App, input::Component};
+use crate::{app::App, input::Component, utils};
 
 pub struct InputBoxComponent {
     title: String,
@@ -74,10 +75,14 @@ impl Component for InputBoxComponent {
     }
 
     fn draw<B: tui::backend::Backend>(&self, _: &App, _: Rect, f: &mut tui::Frame<B>) {
-        // Two fro border, one for curror
-        const PADDING: usize = 3;
+        const PADDING: usize = 2;
+        const CURSOR_SIZE: usize = 1;
         // Perhaps should respect the boundries of the draw rect?
-        let area = centered_absolute_y_rect(70, (self.words.len() as u16).max(1) + 2, f.size());
+        let area = utils::centered_rect(
+            Constraint::Percentage(70),
+            Constraint::Length((self.words.len() as u16).max(1) + PADDING as u16),
+            f.size(),
+        );
 
         let lines = self
             .words
@@ -85,14 +90,15 @@ impl Component for InputBoxComponent {
             .enumerate()
             .map(|(i, x)| {
                 if i == self.words.len() - 1 {
-                    let substring_length = if x.len() > area.width as usize - PADDING {
-                        x.len() + PADDING - area.width as usize
+                    let substring_length = if x.len() > area.width as usize - PADDING - CURSOR_SIZE
+                    {
+                        x.len() + PADDING + CURSOR_SIZE - area.width as usize
                     } else {
                         0
                     };
                     &x[substring_length..]
                 } else {
-                    &x[..(area.width as usize - PADDING).min(x.len())]
+                    &x[..(area.width as usize - PADDING - CURSOR_SIZE).min(x.len())]
                 }
             })
             .collect::<Vec<&str>>();
@@ -114,30 +120,4 @@ impl Component for InputBoxComponent {
             area.y + 1 + current_line as u16,
         )
     }
-}
-
-fn centered_absolute_y_rect(percent_x: u16, absolute_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length((r.height - absolute_y) / 2),
-                Constraint::Length(absolute_y),
-                Constraint::Length((r.height - absolute_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
 }

@@ -1,7 +1,9 @@
+use chrono::Local;
+
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
     components::dialog::{DialogComponent, DialogOption},
-    task::Task,
+    task::{CompletedTask, Task},
 };
 
 pub fn open_help_menu(app: &mut App) {
@@ -21,6 +23,12 @@ pub fn open_help_menu(app: &mut App) {
         ),
     ];
     if let SelectedComponent::CurrentTasks(selected_task) = app.selected_window {
+        actions.push((
+            String::from("c    Complete selected task"),
+            Box::new(move |app| {
+                complete_task(app, selected_task);
+            }),
+        ));
         actions.push((
             String::from("d    Delete selected task"),
             Box::new(move |app| {
@@ -44,6 +52,9 @@ pub fn open_help_menu(app: &mut App) {
 }
 
 pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
+    if app.task_data.tasks.is_empty() {
+        return;
+    }
     app.popup_stack
         .push_front(PopUpComponents::DialogBox(DialogComponent::new(
             format!("Delete task {}", app.task_data.tasks[selected_task].title),
@@ -74,5 +85,20 @@ pub fn restore_task(app: &mut App, selected_task: usize) {
     ));
     if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
         app.selected_window = SelectedComponent::CompletedTasks(selected_task - 1);
+    }
+}
+
+pub fn complete_task(app: &mut App, selected_task: usize) {
+    if app.task_data.tasks.is_empty() {
+        return;
+    }
+    let local = Local::now();
+    let time_completed = local.naive_local();
+    let task = app.task_data.tasks.remove(selected_task);
+    app.task_data
+        .completed_tasks
+        .push(CompletedTask::from_task(task, time_completed));
+    if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
+        app.selected_window = SelectedComponent::CurrentTasks(selected_task - 1);
     }
 }

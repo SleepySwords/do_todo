@@ -1,18 +1,17 @@
 use crate::{
-    app::{Action, App, PopUpComponents, SelectedComponent},
+    app::{App, PopUpComponents, SelectedComponent},
     components::status_line::StatusLineComponent,
     input::Component,
     task::Task,
     theme::Theme,
+    utils,
 };
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{
-        Block, BorderType, Borders, Cell, Clear, List, ListItem, ListState, Paragraph, Row, Table,
-    },
+    widgets::{Block, BorderType, Borders, Cell, List, ListItem, ListState, Row, Table},
     Frame,
 };
 
@@ -47,26 +46,12 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
         _ => render_tasks(app, f, main_body),
     }
 
-    if let Action::Edit(task_index) = app.action {
-        let text = Text::from(Spans::from(app.words.as_ref()));
-        let help_message = Paragraph::new(text);
-        let help_message = help_message.block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .title(format!(
-                    "Edit the task {}",
-                    app.task_data.tasks[task_index].title
-                )),
-        );
-        let area = centered_rect(70, 20, f.size());
-        f.render_widget(Clear, area);
-        f.render_widget(help_message, area);
-        f.set_cursor(area.x + 1 + app.words.len() as u16, area.y + 1)
-    }
-
     if let Some(component) = app.popup_stack.front() {
-        let area = centered_rect(70, 20, f.size());
+        let area = utils::centered_rect(
+            Constraint::Percentage(70),
+            Constraint::Percentage(20),
+            f.size(),
+        );
         match component {
             PopUpComponents::InputBox(component) => component.draw(app, area, f),
             PopUpComponents::DialogBox(component) => component.draw(app, area, f),
@@ -249,7 +234,7 @@ where
             constraints[1].apply(layout_chunk.width) as usize - 2,
         );
         let height = text.chars().filter(|c| *c == '\n').count() + 1;
-        // To owned is not that efficient is it
+        // Clone (actually crying tho)
         let cells = vec![
             Cell::from(item.0.to_owned()),
             Cell::from(Text::styled(text, item.2)),
@@ -269,31 +254,4 @@ where
     // .wrap(Wrap { trim: true });
 
     frame.render_widget(rows, layout_chunk)
-}
-
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
 }

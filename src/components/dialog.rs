@@ -1,13 +1,13 @@
 use crossterm::event::KeyCode;
 
 use tui::{
-    layout::Rect,
+    layout::{Constraint, Rect},
     style::{Modifier, Style},
     text::Spans,
     widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState},
 };
 
-use crate::{app::App, input::Component};
+use crate::{app::App, input::Component, utils::centered_rect};
 
 pub type DialogOption = (String, Box<dyn Fn(&mut App)>);
 
@@ -62,8 +62,13 @@ impl Component for DialogComponent {
         Some(())
     }
 
-    fn draw<B: tui::backend::Backend>(&self, _: &App, area: Rect, f: &mut tui::Frame<B>) {
-        f.render_widget(Clear, area);
+    fn draw<B: tui::backend::Backend>(&self, _: &App, _: Rect, f: &mut tui::Frame<B>) {
+        let area = centered_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.options.len() as u16 + 2),
+            f.size(),
+        );
+
         // Clone is not the best :(
         let list = List::new(
             self.options
@@ -79,8 +84,11 @@ impl Component for DialogComponent {
                 .title(self.title.clone())
                 .border_style(Style::default().fg(tui::style::Color::Green)),
         );
+
         let mut list_state = ListState::default();
         list_state.select(Some(self.index));
+
+        f.render_widget(Clear, area);
         f.render_stateful_widget(list, area, &mut list_state);
     }
 }

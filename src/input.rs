@@ -1,12 +1,11 @@
-use chrono::Local;
 use crossterm::event::KeyCode;
 use tui::{backend::Backend, layout::Rect, Frame};
 
-use crate::actions;
+use crate::actions::{self, complete_task};
 use crate::components::input_box::InputBoxComponent;
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
-    task::{CompletedTask, Task},
+    task::Task,
 };
 
 pub trait Component {
@@ -94,14 +93,9 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
                     }),
                 )))
         }
-        KeyCode::Char('d') => {
-            if app.task_data.tasks.is_empty() {
-                return;
-            }
-            actions::open_delete_task_menu(app, selected_index)
-            // todo proper deletion/popup
-            // app.action = Action::Delete(selected_index, 0)
-        }
+        KeyCode::Char('d') => actions::open_delete_task_menu(app, selected_index),
+        // todo proper deletion/popup
+        // app.action = Action::Delete(selected_index, 0)
         KeyCode::Char('h') => {
             if app.task_data.tasks.is_empty() {
                 return;
@@ -116,20 +110,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
             app.task_data.tasks[selected_index].progress =
                 !app.task_data.tasks[selected_index].progress;
         }
-        KeyCode::Char('c') => {
-            if app.task_data.tasks.is_empty() {
-                return;
-            }
-            let local = Local::now();
-            let time_completed = local.naive_local();
-            let task = app.task_data.tasks.remove(selected_index);
-            app.task_data
-                .completed_tasks
-                .push(CompletedTask::from_task(task, time_completed));
-            if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-                app.selected_window = SelectedComponent::CurrentTasks(selected_index - 1);
-            }
-        }
+        KeyCode::Char('c') => complete_task(app, selected_index),
         _ => {}
     }
 }
