@@ -41,17 +41,21 @@ impl App {
 pub enum SelectedComponent {
     CurrentTasks(usize),
     CompletedTasks(usize),
-    // OptionPopUp(usize),
-    // InputBox
+    PopUpComponent,
 }
 
+// Should be written in a trait
+// ie:
+// trait Select {
+//  fn selected() -> usize;
+//  fn select(usize);
+// }
 impl SelectedComponent {
-    pub fn get_selected(&mut self) -> Option<&mut usize> {
+    pub fn selected(&mut self) -> Option<&mut usize> {
         match self {
             SelectedComponent::CurrentTasks(index) => Some(index),
             SelectedComponent::CompletedTasks(index) => Some(index),
-            // Windows::OptionPopUp(index) => Some(index),
-            // Windows::InputBox => None,
+            SelectedComponent::PopUpComponent => None,
         }
     }
 }

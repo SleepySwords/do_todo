@@ -113,13 +113,13 @@ fn render_current_tasks<B>(
             );
 
             let priority = Span::styled(
-                task.priority.get_short_hand().to_string(),
-                style.fg(task.priority.get_colour(theme)),
+                task.priority.short_hand().to_string(),
+                style.fg(task.priority.colour(theme)),
             );
 
             let content = Span::styled(
                 task.title.as_str(),
-                // style.fg(task.priority.get_colour(theme)),
+                // style.fg(task.priority.colour(theme)),
                 style,
             );
 
@@ -223,8 +223,8 @@ where
         (Span::raw("Title"), &task.title as &str, Style::default()),
         (
             Span::raw("Priority"),
-            task.priority.get_display_string(),
-            Style::default().fg(task.priority.get_colour(theme)),
+            task.priority.display_string(),
+            Style::default().fg(task.priority.colour(theme)),
         ),
     ];
 

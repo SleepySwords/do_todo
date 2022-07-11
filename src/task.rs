@@ -63,7 +63,7 @@ pub enum Priority {
 }
 
 impl Priority {
-    pub fn get_display_string(&self) -> &str {
+    pub fn display_string(&self) -> &str {
         match *self {
             Priority::None => "None",
             Priority::High => "High",
@@ -72,7 +72,7 @@ impl Priority {
         }
     }
 
-    pub(crate) fn get_short_hand(&self) -> &str {
+    pub fn short_hand(&self) -> &str {
         match *self {
             Priority::None => "    ",
             Priority::High => "!!! ",
@@ -94,7 +94,7 @@ impl Display for Priority {
 }
 
 impl Priority {
-    pub fn get_colour(&self, theme: &Theme) -> Color {
+    pub fn colour(&self, theme: &Theme) -> Color {
         match self {
             Priority::None => Color::White,
             Priority::High => theme.high_priority_colour,
@@ -103,7 +103,7 @@ impl Priority {
         }
     }
 
-    pub fn get_next(&self) -> Priority {
+    pub fn next_priority(&self) -> Priority {
         match self {
             Priority::None => Priority::High,
             Priority::High => Priority::Normal,
