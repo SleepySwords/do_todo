@@ -2,7 +2,7 @@ use chrono::Local;
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
-    components::dialog::{DialogComponent, Action},
+    components::dialog::{Action, DialogComponent},
     task::{CompletedTask, Task},
 };
 
@@ -10,19 +10,14 @@ use lazy_static::lazy_static;
 
 // Action class maybe?!!
 
-lazy_static! {
-
-}
+lazy_static! {}
 
 pub fn open_help_menu(app: &mut App) {
     // Tasks that are universal
     let mut actions: Vec<Action> = vec![
-        Action::new(
-            String::from("1    Change to current task window"),
-            |app| {
-                app.selected_window = SelectedComponent::CurrentTasks(0);
-            },
-        ),
+        Action::new(String::from("1    Change to current task window"), |app| {
+            app.selected_window = SelectedComponent::CurrentTasks(0);
+        }),
         Action::new(
             String::from("2    Change to completed task window"),
             |app| {
@@ -67,18 +62,13 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
         .push_front(PopUpComponents::DialogBox(DialogComponent::new(
             format!("Delete task {}", app.task_data.tasks[selected_task].title),
             vec![
-                Action::new(
-                    String::from("Delete"),
-                    move |app| {
-                        app.task_data.tasks.remove(selected_task);
-                        if selected_task == app.task_data.tasks.len()
-                            && !app.task_data.tasks.is_empty()
-                        {
-                            app.selected_window =
-                                SelectedComponent::CurrentTasks(selected_task - 1);
-                        }
-                    },
-                ),
+                Action::new(String::from("Delete"), move |app| {
+                    app.task_data.tasks.remove(selected_task);
+                    if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty()
+                    {
+                        app.selected_window = SelectedComponent::CurrentTasks(selected_task - 1);
+                    }
+                }),
                 Action::new(String::from("Cancel"), |_| {}),
             ],
         )));

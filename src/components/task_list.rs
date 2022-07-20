@@ -3,11 +3,14 @@ use crossterm::event::KeyCode;
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
-use tui::widgets::{List, ListItem, ListState};
 use tui::widgets::{Block, Borders};
+use tui::widgets::{List, ListItem, ListState};
 
 use crate::utils;
-use crate::{app::{App, SelectedComponent}, input::Component};
+use crate::{
+    app::{App, SelectedComponent},
+    input::Component,
+};
 
 pub struct TaskList {
     index: usize,

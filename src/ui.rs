@@ -11,7 +11,7 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, Cell, List, ListItem, ListState, Row, Table},
+    widgets::{Block, Borders, Cell, List, ListItem, ListState, Row, Table},
     Frame,
 };
 

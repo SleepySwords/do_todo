@@ -19,7 +19,10 @@ impl Action {
     where
         F: Fn(&mut App),
     {
-        Action { name, function: Box::new(function) }
+        Action {
+            name,
+            function: Box::new(function),
+        }
     }
 }
 pub struct DialogComponent {

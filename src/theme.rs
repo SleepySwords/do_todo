@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use tui::{style::{Color, Modifier, Style}, widgets::BorderType};
+use tui::{
+    style::{Color, Modifier, Style},
+    widgets::BorderType,
+};
 
 #[derive(Deserialize, Serialize)]
 pub struct Theme {
@@ -12,7 +15,7 @@ pub struct Theme {
     pub test_thing: Style,
 
     #[serde(skip_serializing, skip_deserializing)]
-    pub border_style: BorderStyle
+    pub border_style: BorderStyle,
 }
 
 impl Default for Theme {
@@ -25,17 +28,19 @@ impl Default for Theme {
             normal_priority_colour: Color::LightYellow,
             low_priority_colour: Color::Green,
             test_thing: Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-            border_style: BorderStyle::default()
+            border_style: BorderStyle::default(),
         }
     }
 }
 
 pub struct BorderStyle {
-    pub border_type: BorderType
+    pub border_type: BorderType,
 }
 
 impl Default for BorderStyle {
     fn default() -> Self {
-        BorderStyle { border_type: BorderType::Plain }
+        BorderStyle {
+            border_type: BorderType::Plain,
+        }
     }
 }

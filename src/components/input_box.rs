@@ -4,7 +4,7 @@ use tui::layout::Rect;
 use tui::{
     layout::Constraint,
     text::Text,
-    widgets::{Block, BorderType, Borders, Clear, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph},
 };
 
 use crate::{app::App, input::Component, utils};
