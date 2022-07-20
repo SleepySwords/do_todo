@@ -14,7 +14,10 @@ pub struct App {
     pub action: Action,
     pub words: String,
     pub task_data: TaskData,
+
+    // Should be stack
     pub popup_stack: VecDeque<PopUpComponents>,
+    pub should_shutdown: bool,
 }
 
 pub enum PopUpComponents {
@@ -35,6 +38,10 @@ impl App {
             task_data,
             ..Default::default()
         }
+    }
+
+    pub fn shutdown(&mut self) {
+        self.should_shutdown = true
     }
 }
 

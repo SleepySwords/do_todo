@@ -16,32 +16,30 @@ pub trait Component {
     fn draw<B: Backend>(&self, app: &App, area: Rect, f: &mut Frame<B>);
 }
 
-// Returns if should exit
-pub fn handle_input(key_code: KeyCode, app: &mut App) -> bool {
-    // This is some janky af shit
+pub fn handle_input(key_code: KeyCode, app: &mut App) {
     if let Some(component) = app.popup_stack.pop_front() {
         match component {
             PopUpComponents::InputBox(mut component) => {
                 if component.handle_event(app, key_code).is_none() {
-                    return false;
+                    return;
                 }
                 app.popup_stack
                     .push_front(PopUpComponents::InputBox(component));
             }
             PopUpComponents::DialogBox(mut component) => {
                 if component.handle_event(app, key_code).is_none() {
-                    return false;
+                    return;
                 }
                 if let KeyCode::Char(char) = key_code {
                     if char == 'q' {
-                        return false;
+                        return;
                     }
                 }
                 app.popup_stack
                     .push_front(PopUpComponents::DialogBox(component));
             }
         }
-        return false;
+        return;
     }
 
     // Universal keyboard shortcuts (should also be customisable)
@@ -60,7 +58,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> bool {
         KeyCode::Char('1') => app.selected_window = SelectedComponent::CurrentTasks(0),
         KeyCode::Char('2') => app.selected_window = SelectedComponent::CompletedTasks(0),
         KeyCode::Char('x') => actions::open_help_menu(app),
-        KeyCode::Char('q') => return true,
+        KeyCode::Char('q') => app.shutdown(),
         _ => {}
     }
 
@@ -72,7 +70,6 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> bool {
     if let SelectedComponent::CompletedTasks(selected_index) = app.selected_window {
         handle_completed(key_code, selected_index, app);
     }
-    false
 }
 
 pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut App) {

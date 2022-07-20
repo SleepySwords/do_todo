@@ -1,8 +1,6 @@
 use crossterm::event::KeyCode;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
-
-
 // Only available for percentages, ratios and length
 pub fn centered_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
     let popup_layout = Layout::default()
