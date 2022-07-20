@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod input {
     use crossterm::event::KeyCode;
 
     use crate::{

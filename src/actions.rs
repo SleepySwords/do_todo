@@ -2,46 +2,54 @@ use chrono::Local;
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
-    components::dialog::{DialogComponent, DialogOption},
+    components::dialog::{DialogComponent, Action},
     task::{CompletedTask, Task},
 };
 
+use lazy_static::lazy_static;
+
+// Action class maybe?!!
+
+lazy_static! {
+
+}
+
 pub fn open_help_menu(app: &mut App) {
     // Tasks that are universal
-    let mut actions: Vec<DialogOption> = vec![
-        (
+    let mut actions: Vec<Action> = vec![
+        Action::new(
             String::from("1    Change to current task window"),
-            Box::new(|app| {
+            |app| {
                 app.selected_window = SelectedComponent::CurrentTasks(0);
-            }),
+            },
         ),
-        (
+        Action::new(
             String::from("2    Change to completed task window"),
-            Box::new(|app| {
+            |app| {
                 app.selected_window = SelectedComponent::CompletedTasks(0);
-            }),
+            },
         ),
     ];
     if let SelectedComponent::CurrentTasks(selected_task) = app.selected_window {
-        actions.push((
+        actions.push(Action::new(
             String::from("c    Complete selected task"),
-            Box::new(move |app| {
+            move |app| {
                 complete_task(app, selected_task);
-            }),
+            },
         ));
-        actions.push((
+        actions.push(Action::new(
             String::from("d    Delete selected task"),
-            Box::new(move |app| {
+            move |app| {
                 open_delete_task_menu(app, selected_task);
-            }),
+            },
         ));
     }
     if let SelectedComponent::CompletedTasks(selected_task) = app.selected_window {
-        actions.push((
+        actions.push(Action::new(
             String::from("r    Restore current task"),
-            Box::new(move |app| {
+            move |app| {
                 restore_task(app, selected_task);
-            }),
+            },
         ));
     }
     app.popup_stack
@@ -59,9 +67,9 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
         .push_front(PopUpComponents::DialogBox(DialogComponent::new(
             format!("Delete task {}", app.task_data.tasks[selected_task].title),
             vec![
-                (
+                Action::new(
                     String::from("Delete"),
-                    Box::new(move |app| {
+                    move |app| {
                         app.task_data.tasks.remove(selected_task);
                         if selected_task == app.task_data.tasks.len()
                             && !app.task_data.tasks.is_empty()
@@ -69,9 +77,9 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
                             app.selected_window =
                                 SelectedComponent::CurrentTasks(selected_task - 1);
                         }
-                    }),
+                    },
                 ),
-                (String::from("Cancel"), Box::new(|_| {})),
+                Action::new(String::from("Cancel"), |_| {}),
             ],
         )));
 }

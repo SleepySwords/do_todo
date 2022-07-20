@@ -4,21 +4,32 @@ use tui::{
     layout::{Constraint, Rect},
     style::{Modifier, Style},
     text::Spans,
-    widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
 use crate::{app::App, input::Component, utils::centered_rect};
 
-pub type DialogOption = (String, Box<dyn Fn(&mut App)>);
+pub struct Action {
+    name: String,
+    function: Box<dyn Fn(&mut App)>,
+}
 
+impl Action {
+    pub fn new<F: 'static>(name: String, function: F) -> Action
+    where
+        F: Fn(&mut App),
+    {
+        Action { name, function: Box::new(function) }
+    }
+}
 pub struct DialogComponent {
     title: String,
     index: usize,
-    options: Vec<DialogOption>,
+    options: Vec<Action>,
 }
 
 impl DialogComponent {
-    pub fn new(title: String, options: Vec<DialogOption>) -> DialogComponent {
+    pub fn new(title: String, options: Vec<Action>) -> DialogComponent {
         if options.is_empty() {
             panic!("The size of the options is 0");
         }
@@ -34,7 +45,8 @@ impl Component for DialogComponent {
     fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
         match key_code {
             KeyCode::Enter => {
-                self.options[self.index].1(app);
+                (self.options[self.index].function)(app);
+                // app.popup_stack.retain(|x| x != PopUpComponents::DialogBox(self));
                 return None;
             }
             KeyCode::Char(char) => {
@@ -62,7 +74,7 @@ impl Component for DialogComponent {
         Some(())
     }
 
-    fn draw<B: tui::backend::Backend>(&self, _: &App, _: Rect, f: &mut tui::Frame<B>) {
+    fn draw<B: tui::backend::Backend>(&self, app: &App, _: Rect, f: &mut tui::Frame<B>) {
         let area = centered_rect(
             Constraint::Percentage(70),
             Constraint::Length(self.options.len() as u16 + 2),
@@ -73,14 +85,14 @@ impl Component for DialogComponent {
         let list = List::new(
             self.options
                 .iter()
-                .map(|(name, _)| ListItem::new(Spans::from(name.clone())))
+                .map(|action| ListItem::new(Spans::from(action.name.clone())))
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
+                .border_type(app.theme.border_style.border_type)
                 .title(self.title.clone())
                 .border_style(Style::default().fg(tui::style::Color::Green)),
         );

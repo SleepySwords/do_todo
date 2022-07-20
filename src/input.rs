@@ -50,11 +50,11 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) -> bool {
             app.popup_stack
                 .push_front(PopUpComponents::InputBox(InputBoxComponent::new(
                     String::from("Add a task"),
-                    Box::new(|app, mut word| {
+                    |app, mut word| {
                         app.task_data.tasks.push(Task::from_string(
                             word.drain(..).collect::<String>().trim().to_string(),
                         ));
-                    }),
+                    },
                 )))
         }
         KeyCode::Char('1') => app.selected_window = SelectedComponent::CurrentTasks(0),
@@ -165,3 +165,13 @@ fn handle_movement(key_code: KeyCode, app: &mut App) {
         _ => {}
     }
 }
+
+// fn provide_input<T>(app: &mut App, event: KeyCode, mut component: T)
+// where
+//     T: Component<>
+// {
+//     for child in component.children {
+//         provide_input(app, event, child)
+//     }
+//     component.handle_event(app, event);
+// }

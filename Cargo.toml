@@ -14,6 +14,8 @@ serde_yaml = "0.8"
 serde_json = "1.0"
 tui = { version = "0.17", features = ["serde"] }
 
+lazy_static = "1.4.0"
+
 # Using textwrap for now until tui-rs implements more general wrapping for widgets such as Tables.
 # This somewhat limits styling capabilities, as the wrapping is applied to strings, not tui::text::Text
 # However it should be fine with the current use case

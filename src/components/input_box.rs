@@ -16,11 +16,14 @@ pub struct InputBoxComponent {
 }
 
 impl InputBoxComponent {
-    pub fn new(title: String, callback: Box<dyn Fn(&mut App, String)>) -> InputBoxComponent {
+    pub fn new<T: 'static>(title: String, callback: T) -> InputBoxComponent
+    where
+        T: Fn(&mut App, String),
+    {
         InputBoxComponent {
             title,
             words: vec![String::default()],
-            callback,
+            callback: Box::new(callback),
         }
     }
 
@@ -74,7 +77,7 @@ impl Component for InputBoxComponent {
         Some(())
     }
 
-    fn draw<B: tui::backend::Backend>(&self, _: &App, _: Rect, f: &mut tui::Frame<B>) {
+    fn draw<B: tui::backend::Backend>(&self, app: &App, _: Rect, f: &mut tui::Frame<B>) {
         const PADDING: usize = 2;
         const CURSOR_SIZE: usize = 1;
         // Perhaps should respect the boundries of the draw rect?
@@ -108,7 +111,7 @@ impl Component for InputBoxComponent {
         let input_box = input_box.block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
+                .border_type(app.theme.border_style.border_type)
                 .title(self.title.as_ref()),
         );
         f.render_widget(Clear, area);

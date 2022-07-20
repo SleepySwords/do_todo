@@ -113,7 +113,7 @@ fn render_current_tasks<B>(
             );
 
             let priority = Span::styled(
-                task.priority.short_hand().to_string(),
+                task.priority.short_hand(),
                 style.fg(task.priority.colour(theme)),
             );
 
@@ -137,7 +137,7 @@ fn render_current_tasks<B>(
         Block::default()
             .title("Current List")
             .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
+            .border_type(theme.border_style.border_type)
             .border_style(Style::default().fg(border_colour)),
     );
 
@@ -196,7 +196,7 @@ where
             Block::default()
                 .title("Completed")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
+                .border_type(theme.border_style.border_type)
                 .border_style(Style::default().fg(border_colour)),
         )
         .style(Style::default().fg(Color::White));
@@ -245,9 +245,9 @@ where
     let rows = Table::new(rows)
         .block(
             Block::default()
-                .title(task.title.as_str())
+                .title("Task information")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Rounded),
+                .border_type(theme.border_style.border_type),
         )
         .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)]);
     // .alignment(Alignment::Center)
