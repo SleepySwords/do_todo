@@ -8,23 +8,29 @@ use crate::{
     task::Task,
 };
 
+// Could be part of the event itself?
+// enum EventHandled {
+//     Handled,
+//     NotHandled,
+// }
+// On_selected and on_unselected
 pub trait Component {
     // Option should pribably be a custom enum
     fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()>;
 
-    // Could perhaps be a different trait
+    // Could perhaps be a different trait, Area should be removed?
     fn draw<B: Backend>(&self, app: &App, area: Rect, f: &mut Frame<B>);
 }
 
 pub fn handle_input(key_code: KeyCode, app: &mut App) {
-    if let Some(component) = app.popup_stack.pop_front() {
+    // This is pretty jank, components should remove themselves instead.
+    if let Some(component) = app.popup_stack.pop() {
         match component {
             PopUpComponents::InputBox(mut component) => {
                 if component.handle_event(app, key_code).is_none() {
                     return;
                 }
-                app.popup_stack
-                    .push_front(PopUpComponents::InputBox(component));
+                app.popup_stack.push(PopUpComponents::InputBox(component));
             }
             PopUpComponents::DialogBox(mut component) => {
                 if component.handle_event(app, key_code).is_none() {
@@ -35,8 +41,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) {
                         return;
                     }
                 }
-                app.popup_stack
-                    .push_front(PopUpComponents::DialogBox(component));
+                app.popup_stack.push(PopUpComponents::DialogBox(component));
             }
         }
         return;
@@ -46,7 +51,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) {
     match key_code {
         KeyCode::Char('a') => {
             app.popup_stack
-                .push_front(PopUpComponents::InputBox(InputBoxComponent::new(
+                .push(PopUpComponents::InputBox(InputBoxComponent::new(
                     String::from("Add a task"),
                     |app, mut word| {
                         app.task_data.tasks.push(Task::from_string(
@@ -76,7 +81,7 @@ pub fn handle_current_task(key_code: KeyCode, selected_index: usize, app: &mut A
     match key_code {
         KeyCode::Char('e') => {
             app.popup_stack
-                .push_front(PopUpComponents::InputBox(InputBoxComponent::filled(
+                .push(PopUpComponents::InputBox(InputBoxComponent::filled(
                     // TODO: cleanup this so it doesn't use clone
                     format!(
                         "Edit the task {}",

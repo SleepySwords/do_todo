@@ -12,11 +12,24 @@ use crate::{
     input::Component,
 };
 
+// Wait this has to communicate with the selected task viewer. How on earth are we going to do
+// that?! Ig we can store this in the app? Provide a reference to it maybe?
 pub struct TaskList {
     index: usize,
 }
 
-// Movement macro
+// pub struct Viewer<'a> {
+//     task: &'a usize
+// }
+
+// impl TaskList {
+//     pub fn new() -> TaskList {
+//         TaskList { index: 0 }
+//     }
+//     fn hey(&self) -> Viewer {
+//         Viewer { task: &TaskList::new().index }
+//     }
+// }
 
 impl Component for TaskList {
     fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
@@ -31,14 +44,13 @@ impl Component for TaskList {
         frame: &mut tui::Frame<B>,
     ) {
         let theme = &app.theme;
-        let selected_index = self.index;
         let tasks: Vec<ListItem> = app
             .task_data
             .tasks
             .iter()
             .enumerate()
             .map(|(i, task)| {
-                let style = if selected_index == i {
+                let style = if self.index == i {
                     Style::default().add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
@@ -46,7 +58,7 @@ impl Component for TaskList {
 
                 let progress = Span::styled(
                     if task.progress { "[-] " } else { "[ ] " },
-                    style.fg(if selected_index == i {
+                    style.fg(if self.index == i {
                         theme.selected_task_colour
                     } else {
                         Color::White
@@ -84,8 +96,8 @@ impl Component for TaskList {
 
         let mut state = ListState::default();
         state.select(
-            if let SelectedComponent::CurrentTasks(selected) = app.selected_window {
-                Some(selected)
+            if let SelectedComponent::CurrentTasks(_) = app.selected_window {
+                Some(self.index)
             } else {
                 None
             },

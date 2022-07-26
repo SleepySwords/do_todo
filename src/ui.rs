@@ -2,7 +2,7 @@ use crate::{
     app::{App, PopUpComponents, SelectedComponent},
     components::status_line::StatusLineComponent,
     input::Component,
-    task::Task,
+    task::{CompletedTask, Task},
     theme::Theme,
     utils,
 };
@@ -43,10 +43,23 @@ pub fn render_ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
                 render_tasks(app, f, main_body);
             }
         }
+        SelectedComponent::CompletedTasks(i) => {
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
+                .split(main_body);
+            render_tasks(app, f, chunks[0]);
+            render_selected_completed_task(
+                &app.task_data.completed_tasks[i],
+                &app.theme,
+                f,
+                chunks[1],
+            );
+        }
         _ => render_tasks(app, f, main_body),
     }
 
-    if let Some(component) = app.popup_stack.front() {
+    if let Some(component) = app.popup_stack.last() {
         let area = utils::centered_rect(
             Constraint::Percentage(70),
             Constraint::Percentage(20),
@@ -217,7 +230,7 @@ fn render_selected_task<B>(task: &Task, theme: &Theme, frame: &mut Frame<B>, lay
 where
     B: Backend,
 {
-    let constraints = &[Constraint::Percentage(20), Constraint::Percentage(80)];
+    let constraints = [Constraint::Percentage(30), Constraint::Percentage(70)];
 
     let items = vec![
         (Span::raw("Title"), &task.title as &str, Style::default()),
@@ -249,7 +262,59 @@ where
                 .borders(Borders::ALL)
                 .border_type(theme.border_style.border_type),
         )
-        .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)]);
+        .widths(&constraints);
+    // .alignment(Alignment::Center)
+    // .wrap(Wrap { trim: true });
+
+    frame.render_widget(rows, layout_chunk)
+}
+
+fn render_selected_completed_task<B>(
+    task: &CompletedTask,
+    theme: &Theme,
+    frame: &mut Frame<B>,
+    layout_chunk: Rect,
+) where
+    B: Backend,
+{
+    let constraints = [Constraint::Percentage(30), Constraint::Percentage(70)];
+    let time = &task
+        .time_completed
+        .format("%d/%m/%y %-I:%M:%S %p")
+        .to_string();
+
+    let items = vec![
+        (Span::raw("Title"), &task.title as &str, Style::default()),
+        (
+            Span::raw("Priority"),
+            task.priority.display_string(),
+            Style::default().fg(task.priority.colour(theme)),
+        ),
+        (Span::raw("Competed Date"), time, Style::default()),
+    ];
+
+    let rows = items.iter().map(|item| {
+        let text = textwrap::fill(
+            item.1,
+            constraints[1].apply(layout_chunk.width) as usize - 2,
+        );
+        let height = text.chars().filter(|c| *c == '\n').count() + 1;
+        // Clone (actually crying tho)
+        let cells = vec![
+            Cell::from(item.0.to_owned()),
+            Cell::from(Text::styled(text, item.2)),
+        ];
+        Row::new(cells).height(height as u16).bottom_margin(1)
+    });
+
+    let rows = Table::new(rows)
+        .block(
+            Block::default()
+                .title("Completed task information")
+                .borders(Borders::ALL)
+                .border_type(theme.border_style.border_type),
+        )
+        .widths(&constraints);
     // .alignment(Alignment::Center)
     // .wrap(Wrap { trim: true });
 

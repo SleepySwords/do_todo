@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Result<()> {
-    while !app.should_shutdown {
+    while !app.should_shutdown() {
         terminal.draw(|f| ui::render_ui(app, f))?;
 
         // This function blocks

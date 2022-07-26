@@ -48,7 +48,27 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
                 *index += 1;
             }
         }
+        KeyCode::Down => {
+            if max_items == 0 {
+                return;
+            }
+            if *index == max_items - 1 {
+                *index = 0;
+            } else {
+                *index += 1;
+            }
+        }
         KeyCode::Char('k') => {
+            if max_items == 0 {
+                return;
+            }
+            if *index == 0 {
+                *index = max_items - 1;
+            } else {
+                *index -= 1;
+            }
+        }
+        KeyCode::Up => {
             if max_items == 0 {
                 return;
             }

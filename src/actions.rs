@@ -6,11 +6,7 @@ use crate::{
     task::{CompletedTask, Task},
 };
 
-use lazy_static::lazy_static;
-
 // Action class maybe?!!
-
-lazy_static! {}
 
 pub fn open_help_menu(app: &mut App) {
     // Tasks that are universal
@@ -48,7 +44,7 @@ pub fn open_help_menu(app: &mut App) {
         ));
     }
     app.popup_stack
-        .push_front(PopUpComponents::DialogBox(DialogComponent::new(
+        .push(PopUpComponents::DialogBox(DialogComponent::new(
             String::from("Help Menu"),
             actions,
         )));
@@ -59,7 +55,7 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
         return;
     }
     app.popup_stack
-        .push_front(PopUpComponents::DialogBox(DialogComponent::new(
+        .push(PopUpComponents::DialogBox(DialogComponent::new(
             format!("Delete task {}", app.task_data.tasks[selected_task].title),
             vec![
                 Action::new(String::from("Delete"), move |app| {

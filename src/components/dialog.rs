@@ -7,7 +7,11 @@ use tui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
-use crate::{app::App, input::Component, utils::centered_rect};
+use crate::{
+    app::App,
+    input::Component,
+    utils::{self, centered_rect},
+};
 
 pub struct Action {
     name: String,
@@ -46,27 +50,12 @@ impl DialogComponent {
 
 impl Component for DialogComponent {
     fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
+        utils::handle_movement(key_code, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => {
                 (self.options[self.index].function)(app);
                 // app.popup_stack.retain(|x| x != PopUpComponents::DialogBox(self));
                 return None;
-            }
-            KeyCode::Char(char) => {
-                if char == 'j' {
-                    if self.index == self.options.len() - 1 {
-                        self.index = 0;
-                    } else {
-                        self.index += 1;
-                    }
-                }
-                if char == 'k' {
-                    if self.index == 0 {
-                        self.index = self.options.len() - 1;
-                    } else {
-                        self.index -= 1;
-                    }
-                }
             }
             KeyCode::Esc => {
                 // May be better to have a custom escape function

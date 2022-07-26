@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use serde::{Deserialize, Serialize};
 
 use crate::components::dialog::DialogComponent;
@@ -15,9 +13,8 @@ pub struct App {
     pub words: String,
     pub task_data: TaskData,
 
-    // Should be stack
-    pub popup_stack: VecDeque<PopUpComponents>,
-    pub should_shutdown: bool,
+    pub popup_stack: Vec<PopUpComponents>,
+    should_shutdown: bool,
 }
 
 pub enum PopUpComponents {
@@ -42,6 +39,10 @@ impl App {
 
     pub fn shutdown(&mut self) {
         self.should_shutdown = true
+    }
+
+    pub fn should_shutdown(&mut self) -> bool {
+        self.should_shutdown
     }
 }
 
