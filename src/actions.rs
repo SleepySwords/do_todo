@@ -2,7 +2,7 @@ use chrono::Local;
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
-    component::dialog::{Action, DialogComponent},
+    component::dialog::{DialogAction, DialogComponent},
     task::{CompletedTask, Task},
 };
 
@@ -10,11 +10,11 @@ use crate::{
 
 pub fn open_help_menu(app: &mut App) {
     // Tasks that are universal
-    let mut actions: Vec<Action> = vec![
-        Action::new(String::from("1    Change to current task window"), |app| {
+    let mut actions: Vec<DialogAction> = vec![
+        DialogAction::new(String::from("1    Change to current task window"), |app| {
             app.selected_component = SelectedComponent::CurrentTasks;
         }),
-        Action::new(
+        DialogAction::new(
             String::from("2    Change to completed task window"),
             |app| {
                 app.selected_component = SelectedComponent::CompletedTasks;
@@ -23,13 +23,13 @@ pub fn open_help_menu(app: &mut App) {
     ];
     if let SelectedComponent::CurrentTasks = app.selected_component {
         let selected_task = app.selected_task_index;
-        actions.push(Action::new(
+        actions.push(DialogAction::new(
             String::from("c    Complete selected task"),
             move |app| {
                 complete_task(app, selected_task);
             },
         ));
-        actions.push(Action::new(
+        actions.push(DialogAction::new(
             String::from("d    Delete selected task"),
             move |app| {
                 open_delete_task_menu(app, selected_task);
@@ -38,7 +38,7 @@ pub fn open_help_menu(app: &mut App) {
     }
     if let SelectedComponent::CompletedTasks = app.selected_component {
         let selected_task = app.selected_completed_task_index;
-        actions.push(Action::new(
+        actions.push(DialogAction::new(
             String::from("r    Restore current task"),
             move |app| {
                 restore_task(app, selected_task);
@@ -60,14 +60,14 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
         .push(PopUpComponents::DialogBox(DialogComponent::new(
             format!("Delete task {}", app.task_data.tasks[selected_task].title),
             vec![
-                Action::new(String::from("Delete"), move |app| {
+                DialogAction::new(String::from("Delete"), move |app| {
                     app.task_data.tasks.remove(selected_task);
                     if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty()
                     {
                         app.selected_task_index -= 1;
                     }
                 }),
-                Action::new(String::from("Cancel"), |_| {}),
+                DialogAction::new(String::from("Cancel"), |_| {}),
             ],
         )));
 }

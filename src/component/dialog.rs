@@ -12,17 +12,18 @@ use crate::{
     utils::{self, centered_rect},
 };
 
-pub struct Action {
+// Help Action
+pub struct DialogAction {
     name: String,
     function: Box<dyn Fn(&mut App)>,
 }
 
-impl Action {
-    pub fn new<F: 'static>(name: String, function: F) -> Action
+impl DialogAction {
+    pub fn new<F: 'static>(name: String, function: F) -> DialogAction
     where
         F: Fn(&mut App),
     {
-        Action {
+        DialogAction {
             name,
             function: Box::new(function),
         }
@@ -31,11 +32,11 @@ impl Action {
 pub struct DialogComponent {
     title: String,
     index: usize,
-    options: Vec<Action>,
+    options: Vec<DialogAction>,
 }
 
 impl DialogComponent {
-    pub fn new(title: String, options: Vec<Action>) -> DialogComponent {
+    pub fn new(title: String, options: Vec<DialogAction>) -> DialogComponent {
         if options.is_empty() {
             panic!("The size of the options is 0");
         }
