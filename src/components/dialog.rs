@@ -9,7 +9,6 @@ use tui::{
 
 use crate::{
     app::App,
-    input::Component,
     utils::{self, centered_rect},
 };
 
@@ -48,8 +47,8 @@ impl DialogComponent {
     }
 }
 
-impl Component for DialogComponent {
-    fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
+impl DialogComponent {
+    pub fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
         utils::handle_movement(key_code, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => {
@@ -66,7 +65,7 @@ impl Component for DialogComponent {
         Some(())
     }
 
-    fn draw<B: tui::backend::Backend>(&self, app: &App, _: Rect, f: &mut tui::Frame<B>) {
+    pub fn draw<B: tui::backend::Backend>(&self, app: &App, _: Rect, f: &mut tui::Frame<B>) {
         let area = centered_rect(
             Constraint::Percentage(70),
             Constraint::Length(self.options.len() as u16 + 2),

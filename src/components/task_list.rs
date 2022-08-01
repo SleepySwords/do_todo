@@ -3,42 +3,72 @@ use crossterm::event::KeyCode;
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
-use tui::widgets::{Block, Borders};
 use tui::widgets::{List, ListItem, ListState};
 
-use crate::utils;
-use crate::{
-    app::{App, SelectedComponent},
-    input::Component,
-};
+use crate::app::{App, PopUpComponents, SelectedComponent};
+use crate::{actions, utils};
 
-// Wait this has to communicate with the selected task viewer. How on earth are we going to do
-// that?! Ig we can store this in the app? Provide a reference to it maybe?
-pub struct TaskList {
-    index: usize,
-}
+use super::input_box::InputBoxComponent;
 
-// pub struct Viewer<'a> {
-//     task: &'a usize
-// }
+const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CurrentTasks;
 
-// impl TaskList {
-//     pub fn new() -> TaskList {
-//         TaskList { index: 0 }
-//     }
-//     fn hey(&self) -> Viewer {
-//         Viewer { task: &TaskList::new().index }
-//     }
-// }
+pub struct TaskList;
 
-impl Component for TaskList {
-    fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
-        utils::handle_movement(key_code, &mut self.index, app.task_data.tasks.len());
+impl TaskList {
+    fn selected(app: &App) -> &usize {
+        &app.selected_task_index
+    }
+
+    // return a function taht returns actions.
+
+    pub fn handle_event(app: &mut App, key_code: KeyCode) -> Option<()> {
+        utils::handle_movement(
+            key_code,
+            &mut app.selected_task_index,
+            app.task_data.tasks.len(),
+        );
+        let selected_index = *Self::selected(app);
+        match key_code {
+            KeyCode::Char('d') => actions::open_delete_task_menu(app, selected_index),
+            // todo proper deletion/popup
+            // app.action = Action::Delete(selected_index, 0)
+            KeyCode::Char('h') => {
+                if app.task_data.tasks.is_empty() {
+                    return Some(());
+                }
+                app.task_data.tasks[selected_index].priority =
+                    app.task_data.tasks[selected_index].priority.next_priority();
+            }
+            KeyCode::Char('e') => {
+                app.popup_stack
+                    .push(PopUpComponents::InputBox(InputBoxComponent::filled(
+                        // TODO: cleanup this so it doesn't use clone
+                        format!(
+                            "Edit the task {}",
+                            app.task_data.tasks[selected_index].title.clone()
+                        ),
+                        app.task_data.tasks[selected_index].title.clone(),
+                        // This move is kinda jank not too sure, may try to find a better way
+                        Box::new(move |app, mut word| {
+                            app.task_data.tasks[selected_index].title =
+                                word.drain(..).collect::<String>().trim().to_string();
+                        }),
+                    )))
+            }
+            KeyCode::Enter => {
+                if app.task_data.tasks.is_empty() {
+                    return Some(());
+                }
+                app.task_data.tasks[selected_index].progress =
+                    !app.task_data.tasks[selected_index].progress;
+            }
+            KeyCode::Char('c') => actions::complete_task(app, selected_index),
+            _ => {}
+        }
         Some(())
     }
 
-    fn draw<B: tui::backend::Backend>(
-        &self,
+    pub fn draw<B: tui::backend::Backend>(
         app: &App,
         layout_chunk: Rect,
         frame: &mut tui::Frame<B>,
@@ -50,7 +80,8 @@ impl Component for TaskList {
             .iter()
             .enumerate()
             .map(|(i, task)| {
-                let style = if self.index == i {
+                let style = if COMPONENT_TYPE == app.selected_component && *Self::selected(app) == i
+                {
                     Style::default().add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
@@ -58,11 +89,13 @@ impl Component for TaskList {
 
                 let progress = Span::styled(
                     if task.progress { "[-] " } else { "[ ] " },
-                    style.fg(if self.index == i {
-                        theme.selected_task_colour
-                    } else {
-                        Color::White
-                    }),
+                    style.fg(
+                        if COMPONENT_TYPE == app.selected_component && *Self::selected(app) == i {
+                            theme.selected_task_colour
+                        } else {
+                            Color::White
+                        },
+                    ),
                 );
 
                 let priority = Span::styled(
@@ -81,27 +114,15 @@ impl Component for TaskList {
             })
             .collect();
 
-        let border_colour = match app.selected_window {
-            SelectedComponent::CurrentTasks(_) => theme.selected_border_colour,
-            _ => theme.default_border_colour,
-        };
-
-        let current = List::new(tasks).block(
-            Block::default()
-                .title("Current List")
-                .borders(Borders::ALL)
-                .border_type(theme.border_style.border_type)
-                .border_style(Style::default().fg(border_colour)),
-        );
+        let current =
+            List::new(tasks).block(utils::generate_block("Current List", COMPONENT_TYPE, app));
 
         let mut state = ListState::default();
-        state.select(
-            if let SelectedComponent::CurrentTasks(_) = app.selected_window {
-                Some(self.index)
-            } else {
-                None
-            },
-        );
+        state.select(if COMPONENT_TYPE == app.selected_component {
+            Some(*Self::selected(app))
+        } else {
+            None
+        });
 
         frame.render_stateful_widget(current, layout_chunk, &mut state);
     }

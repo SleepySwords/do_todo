@@ -12,16 +12,17 @@ pub fn open_help_menu(app: &mut App) {
     // Tasks that are universal
     let mut actions: Vec<Action> = vec![
         Action::new(String::from("1    Change to current task window"), |app| {
-            app.selected_window = SelectedComponent::CurrentTasks(0);
+            app.selected_component = SelectedComponent::CurrentTasks;
         }),
         Action::new(
             String::from("2    Change to completed task window"),
             |app| {
-                app.selected_window = SelectedComponent::CompletedTasks(0);
+                app.selected_component = SelectedComponent::CompletedTasks;
             },
         ),
     ];
-    if let SelectedComponent::CurrentTasks(selected_task) = app.selected_window {
+    if let SelectedComponent::CurrentTasks = app.selected_component {
+        let selected_task = app.selected_task_index;
         actions.push(Action::new(
             String::from("c    Complete selected task"),
             move |app| {
@@ -35,7 +36,8 @@ pub fn open_help_menu(app: &mut App) {
             },
         ));
     }
-    if let SelectedComponent::CompletedTasks(selected_task) = app.selected_window {
+    if let SelectedComponent::CompletedTasks = app.selected_component {
+        let selected_task = app.selected_completed_task_index;
         actions.push(Action::new(
             String::from("r    Restore current task"),
             move |app| {
@@ -62,7 +64,7 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
                     app.task_data.tasks.remove(selected_task);
                     if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty()
                     {
-                        app.selected_window = SelectedComponent::CurrentTasks(selected_task - 1);
+                        app.selected_task_index -= 1;
                     }
                 }),
                 Action::new(String::from("Cancel"), |_| {}),
@@ -77,8 +79,10 @@ pub fn restore_task(app: &mut App, selected_task: usize) {
     app.task_data.tasks.push(Task::from_completed_task(
         app.task_data.completed_tasks.remove(selected_task),
     ));
-    if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-        app.selected_window = SelectedComponent::CompletedTasks(selected_task - 1);
+    if selected_task == app.task_data.completed_tasks.len()
+        && !app.task_data.completed_tasks.is_empty()
+    {
+        app.selected_completed_task_index -= 1;
     }
 }
 
@@ -93,6 +97,6 @@ pub fn complete_task(app: &mut App, selected_task: usize) {
         .completed_tasks
         .push(CompletedTask::from_task(task, time_completed));
     if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
-        app.selected_window = SelectedComponent::CurrentTasks(selected_task - 1);
+        app.selected_task_index -= 1;
     }
 }

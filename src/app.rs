@@ -5,15 +5,18 @@ use crate::components::input_box::InputBoxComponent;
 use crate::task::{CompletedTask, Task};
 use crate::theme::Theme;
 
+// Consider either putting all the data in app or using something such as Rc and RefCells?
 #[derive(Default)]
 pub struct App {
+    pub popup_stack: Vec<PopUpComponents>,
     pub theme: Theme,
-    pub selected_window: SelectedComponent,
-    pub action: Action,
+    pub selected_component: SelectedComponent,
     pub words: String,
     pub task_data: TaskData,
 
-    pub popup_stack: Vec<PopUpComponents>,
+    pub selected_task_index: usize,
+    pub selected_completed_task_index: usize,
+
     should_shutdown: bool,
 }
 
@@ -46,44 +49,15 @@ impl App {
     }
 }
 
+#[derive(PartialEq)]
 pub enum SelectedComponent {
-    CurrentTasks(usize),
-    CompletedTasks(usize),
+    CurrentTasks,
+    CompletedTasks,
     PopUpComponent,
-}
-
-// Should be written in a trait
-// ie:
-// trait Select {
-//  fn selected() -> usize;
-//  fn select(usize);
-// }
-impl SelectedComponent {
-    pub fn selected(&mut self) -> Option<&mut usize> {
-        match self {
-            SelectedComponent::CurrentTasks(index) => Some(index),
-            SelectedComponent::CompletedTasks(index) => Some(index),
-            SelectedComponent::PopUpComponent => None,
-        }
-    }
 }
 
 impl Default for SelectedComponent {
     fn default() -> Self {
-        Self::CurrentTasks(0)
-    }
-}
-
-pub enum Action {
-    Normal,
-    Add,
-    // Perhaps replace with a referance for clarity.
-    Edit(usize),
-    Delete(usize, usize),
-}
-
-impl Default for Action {
-    fn default() -> Self {
-        Self::Normal
+        Self::CurrentTasks
     }
 }

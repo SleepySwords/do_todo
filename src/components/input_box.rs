@@ -7,7 +7,7 @@ use tui::{
     widgets::{Block, Borders, Clear, Paragraph},
 };
 
-use crate::{app::App, input::Component, utils};
+use crate::{app::App, utils};
 
 pub struct InputBoxComponent {
     title: String,
@@ -41,8 +41,8 @@ impl InputBoxComponent {
 }
 
 // TODO: create an on_create event and probably an on_destroy event
-impl Component for InputBoxComponent {
-    fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
+impl InputBoxComponent {
+    pub fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
         match key_code {
             KeyCode::Enter => {
                 // Clone :(
@@ -77,7 +77,7 @@ impl Component for InputBoxComponent {
         Some(())
     }
 
-    fn draw<B: tui::backend::Backend>(&self, app: &App, _: Rect, f: &mut tui::Frame<B>) {
+    pub fn draw<B: tui::backend::Backend>(&self, app: &App, _: Rect, f: &mut tui::Frame<B>) {
         const PADDING: usize = 2;
         const CURSOR_SIZE: usize = 1;
         // Perhaps should respect the boundries of the draw rect?

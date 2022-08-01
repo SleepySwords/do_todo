@@ -1,4 +1,3 @@
-use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Style},
@@ -7,7 +6,7 @@ use tui::{
     Frame,
 };
 
-use crate::{app::App, input::Component};
+use crate::app::App;
 
 pub struct StatusLineComponent {
     status_line: String,
@@ -19,12 +18,9 @@ impl StatusLineComponent {
     }
 }
 
-impl Component for StatusLineComponent {
-    fn handle_event(&mut self, _: &mut App, _: KeyCode) -> Option<()> {
-        None
-    }
-
-    fn draw<B: tui::backend::Backend>(&self, _: &App, area: Rect, f: &mut Frame<B>) {
+impl StatusLineComponent {
+    // Should be able to do commands?!
+    pub fn draw<B: tui::backend::Backend>(&self, _: &App, area: Rect, f: &mut Frame<B>) {
         let help = Text::styled(self.status_line.as_str(), Style::default().fg(Color::White));
         let paragraph = Paragraph::new(help);
         f.render_widget(paragraph, area);

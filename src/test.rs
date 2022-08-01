@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod input {
+mod actions {
     use crossterm::event::KeyCode;
 
     use crate::{
@@ -63,5 +63,33 @@ mod input {
         input::handle_input(KeyCode::Char('j'), &mut app);
         input::handle_input(KeyCode::Enter, &mut app);
         assert_eq!(app.task_data.tasks.len(), 1)
+    }
+}
+
+#[cfg(test)]
+mod movement {
+    use crossterm::event::KeyCode;
+
+    use crate::{
+        app::{App, TaskData},
+        input,
+        task::Task,
+    };
+
+    #[test]
+    fn test_rollover() {
+        let mut app = App::new(
+            crate::theme::Theme::default(),
+            TaskData {
+                tasks: vec![
+                    Task::from_string(String::from("meme")),
+                    Task::from_string(String::from("based")),
+                ],
+                completed_tasks: vec![],
+            },
+        );
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 0)
     }
 }

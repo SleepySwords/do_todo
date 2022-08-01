@@ -1,5 +1,12 @@
 use crossterm::event::KeyCode;
-use tui::layout::{Constraint, Direction, Layout, Rect};
+use tui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    style::Style,
+    text::{Span, Text},
+    widgets::{Block, Borders, Cell, Row, Table},
+};
+
+use crate::app::{App, SelectedComponent};
 
 // Only available for percentages, ratios and length
 pub fn centered_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -80,4 +87,35 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
         }
         _ => {}
     }
+}
+
+pub fn generate_table<'a>(items: Vec<(Span<'a>, &str, Style)>, width: usize) -> Table<'a> {
+    Table::new(items.iter().map(|item| {
+        let text = textwrap::fill(item.1, width);
+        let height = text.chars().filter(|c| *c == '\n').count() + 1;
+        // Clone (actually crying tho)
+        let cells = vec![
+            Cell::from(item.0.to_owned()),
+            Cell::from(Text::styled(text, item.2)),
+        ];
+        Row::new(cells).height(height as u16).bottom_margin(1)
+    }))
+}
+
+pub fn generate_block<'a>(
+    title: &'a str,
+    selected_component: SelectedComponent,
+    app: &App,
+) -> Block<'a> {
+    let border_colour = if app.selected_component == selected_component {
+        app.theme.selected_border_colour
+    } else {
+        app.theme.default_border_colour
+    };
+
+    Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_type(app.theme.border_style.border_type)
+        .border_style(Style::default().fg(border_colour))
 }
