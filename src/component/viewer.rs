@@ -42,7 +42,7 @@ impl Viewer {
                 } else {
                     f.render_widget(block, layout_chunk);
                 }
-            }
+            },
             SelectedComponent::PopUpComponent => todo!(),
         }
     }

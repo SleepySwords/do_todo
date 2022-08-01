@@ -1,6 +1,6 @@
 mod actions;
 mod app;
-mod components;
+mod component;
 mod config;
 mod input;
 mod task;

@@ -1,6 +1,6 @@
 use crate::{
     app::{App, PopUpComponents},
-    components::{
+    component::{
         completed_list::CompletedList, status_line::StatusLineComponent, task_list::TaskList,
         viewer::Viewer,
     },

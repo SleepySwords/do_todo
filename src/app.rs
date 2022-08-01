@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::components::dialog::DialogComponent;
-use crate::components::input_box::InputBoxComponent;
+use crate::component::dialog::DialogComponent;
+use crate::component::input_box::InputBoxComponent;
 use crate::task::{CompletedTask, Task};
 use crate::theme::Theme;
 

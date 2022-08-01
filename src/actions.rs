@@ -2,7 +2,7 @@ use chrono::Local;
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
-    components::dialog::{Action, DialogComponent},
+    component::dialog::{Action, DialogComponent},
     task::{CompletedTask, Task},
 };
 

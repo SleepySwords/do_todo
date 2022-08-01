@@ -1,9 +1,9 @@
 use crossterm::event::KeyCode;
 
 use crate::actions;
-use crate::components::completed_list::CompletedList;
-use crate::components::input_box::InputBoxComponent;
-use crate::components::task_list::TaskList;
+use crate::component::completed_list::CompletedList;
+use crate::component::input_box::InputBoxComponent;
+use crate::component::task_list::TaskList;
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
     task::Task,
