@@ -30,20 +30,22 @@ impl Viewer {
 
         match app.selected_component {
             SelectedComponent::CurrentTasks => {
-                if app.task_data.tasks.is_empty() {
+                if !app.task_data.tasks.is_empty() {
                     draw_task_viewer(app, block, layout_chunk, f)
                 } else {
                     f.render_widget(block, layout_chunk);
                 }
             }
             SelectedComponent::CompletedTasks => {
-                if app.task_data.completed_tasks.is_empty() {
+                if !app.task_data.completed_tasks.is_empty() {
                     draw_completed_task_viewer(app, block, layout_chunk, f)
                 } else {
                     f.render_widget(block, layout_chunk);
                 }
             }
-            SelectedComponent::PopUpComponent => todo!(),
+            SelectedComponent::PopUpComponent => {
+                f.render_widget(block, layout_chunk);
+            }
         }
     }
 }
