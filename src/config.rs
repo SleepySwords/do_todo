@@ -1,8 +1,8 @@
 use std::{error::Error, fs, path::Path};
 
-use crate::{task::Task, theme::Theme};
+use crate::{app::TaskData, task::Task, theme::Theme};
 
-pub fn get_config() -> Result<(Theme, Vec<Task>), Box<dyn Error>> {
+pub fn get_config() -> Result<(Theme, TaskData), Box<dyn Error>> {
     match dirs::home_dir() {
         Some(home_dir) => {
             let config_path = Path::new(&home_dir).join(".config/dtb/config.yml");
@@ -19,18 +19,18 @@ pub fn get_config() -> Result<(Theme, Vec<Task>), Box<dyn Error>> {
                     }
                 },
                 match data_contents {
-                    Ok(file) => serde_json::from_str::<Vec<Task>>(&file)?,
+                    Ok(file) => serde_json::from_str::<TaskData>(&file)?,
                     Err(_) => {
                         let tasks: Vec<Task> = vec![];
                         fs::write(&data_path, serde_json::to_string(&tasks)?)?;
-                        vec![]
+                        TaskData::default()
                     }
                 },
             ))
         }
         None => {
             println!("Not found");
-            Ok((Theme::default(), vec![]))
+            Ok((Theme::default(), TaskData::default()))
         }
     }
 }

@@ -1,9 +1,13 @@
+mod actions;
 mod app;
+mod component;
 mod config;
 mod input;
 mod task;
+mod test;
 mod theme;
 mod ui;
+mod utils;
 
 use app::App;
 use crossterm::{
@@ -36,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     fs::write(
         dirs::home_dir().unwrap().join(".config/dtb/data.json"),
-        serde_json::to_string(&app.tasks)?,
+        serde_json::to_string(&app.task_data)?,
     )?;
 
     // Cleanup
@@ -51,17 +55,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Result<()> {
-    loop {
+    while !app.should_shutdown() {
         terminal.draw(|f| ui::render_ui(app, f))?;
 
         // This function blocks
+        // Perhaps should use poll so we could have a tick system
         if let Event::Key(key) = event::read()? {
             if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
-                return Ok(());
+                app.shutdown();
             }
-            if input::handle_input(key.code, app).is_none() {
-                return Ok(());
-            }
+            input::handle_input(key.code, app);
         }
     }
+    Ok(())
 }

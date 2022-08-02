@@ -1,61 +1,63 @@
+use serde::{Deserialize, Serialize};
+
+use crate::component::dialog::DialogComponent;
+use crate::component::input_box::InputBoxComponent;
 use crate::task::{CompletedTask, Task};
 use crate::theme::Theme;
 
+// Consider either putting all the data in app or using something such as Rc and RefCells?
 #[derive(Default)]
 pub struct App {
-    pub add_mode: bool,
+    pub popup_stack: Vec<PopUpComponents>,
     pub theme: Theme,
-    pub selected_window: Windows,
-    pub mode: Mode,
+    pub selected_component: SelectedComponent,
     pub words: String,
+    pub task_data: TaskData,
+
+    pub selected_task_index: usize,
+    pub selected_completed_task_index: usize,
+
+    should_shutdown: bool,
+}
+
+pub enum PopUpComponents {
+    InputBox(InputBoxComponent),
+    DialogBox(DialogComponent),
+}
+
+#[derive(Deserialize, Default, Serialize)]
+pub struct TaskData {
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
 }
 
 impl App {
-    pub fn new(theme: Theme, tasks: Vec<Task>) -> App {
+    pub fn new(theme: Theme, task_data: TaskData) -> App {
         App {
             theme,
-            tasks,
+            task_data,
             ..Default::default()
         }
     }
-}
 
-pub enum Windows {
-    CurrentTasks(usize),
-    CompletedTasks(usize),
-    // OptionPopUp(usize),
-    // InputBox
-}
+    pub fn shutdown(&mut self) {
+        self.should_shutdown = true
+    }
 
-impl Windows {
-    pub fn get_selected(&mut self) -> Option<&mut usize> {
-        match self {
-            Windows::CurrentTasks(index) => Some(index),
-            Windows::CompletedTasks(index) => Some(index),
-            // Windows::OptionPopUp(index) => Some(index),
-            // Windows::InputBox => None,
-        }
+    pub fn should_shutdown(&mut self) -> bool {
+        self.should_shutdown
     }
 }
 
-impl Default for Windows {
-    fn default() -> Self {
-        Self::CurrentTasks(0)
-    }
+#[derive(PartialEq)]
+pub enum SelectedComponent {
+    CurrentTasks,
+    CompletedTasks,
+    PopUpComponent,
 }
 
-pub enum Mode {
-    Normal,
-    Add,
-    // Perhaps replace with a referance for clarity.
-    Edit(usize),
-    Delete(usize, usize),
-}
-
-impl Default for Mode {
+impl Default for SelectedComponent {
     fn default() -> Self {
-        Self::Normal
+        Self::CurrentTasks
     }
 }

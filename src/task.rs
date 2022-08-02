@@ -1,5 +1,5 @@
 use crate::theme::Theme;
-use chrono::NaiveTime;
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tui::style::Color;
@@ -29,14 +29,15 @@ impl Task {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct CompletedTask {
     pub title: String,
-    pub time_completed: NaiveTime,
+    pub time_completed: NaiveDateTime,
     pub priority: Priority,
 }
 
 impl CompletedTask {
-    pub fn from_task(task: Task, time_completed: NaiveTime) -> Self {
+    pub fn from_task(task: Task, time_completed: NaiveDateTime) -> Self {
         CompletedTask {
             title: task.title,
             time_completed,
@@ -44,7 +45,7 @@ impl CompletedTask {
         }
     }
 
-    pub fn from_string(content: String, time_completed: NaiveTime) -> Self {
+    pub fn from_string(content: String, time_completed: NaiveDateTime) -> Self {
         CompletedTask {
             title: content,
             time_completed,
@@ -62,7 +63,7 @@ pub enum Priority {
 }
 
 impl Priority {
-    pub fn get_display_string(&self) -> &str {
+    pub fn display_string(&self) -> &str {
         match *self {
             Priority::None => "None",
             Priority::High => "High",
@@ -71,7 +72,7 @@ impl Priority {
         }
     }
 
-    pub(crate) fn get_short_hand(&self) -> &str {
+    pub fn short_hand(&self) -> &str {
         match *self {
             Priority::None => "    ",
             Priority::High => "!!! ",
@@ -93,7 +94,7 @@ impl Display for Priority {
 }
 
 impl Priority {
-    pub fn get_colour(&self, theme: &Theme) -> Color {
+    pub fn colour(&self, theme: &Theme) -> Color {
         match self {
             Priority::None => Color::White,
             Priority::High => theme.high_priority_colour,
@@ -102,7 +103,7 @@ impl Priority {
         }
     }
 
-    pub fn get_next(&self) -> Priority {
+    pub fn next_priority(&self) -> Priority {
         match self {
             Priority::None => Priority::High,
             Priority::High => Priority::Normal,
