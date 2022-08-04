@@ -58,7 +58,7 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
     }
     app.popup_stack
         .push(PopUpComponents::DialogBox(DialogComponent::new(
-            format!("Delete task {}", app.task_data.tasks[selected_task].title),
+            "Delete selected task".to_string(),
             vec![
                 DialogAction::new(String::from("Delete"), move |app| {
                     app.task_data.tasks.remove(selected_task);
