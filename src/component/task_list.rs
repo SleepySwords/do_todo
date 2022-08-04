@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
@@ -21,12 +21,8 @@ impl TaskList {
 
     // return a function taht returns actions.
 
-    pub fn handle_event(app: &mut App, key_code: KeyCode) -> Option<()> {
-        utils::handle_movement(
-            key_code,
-            &mut app.selected_task_index,
-            app.task_data.tasks.len(),
-        );
+    pub fn handle_event(app: &mut App, key_event: KeyEvent) -> Option<()> {
+        let key_code = key_event.code;
         let selected_index = *Self::selected(app);
         match key_code {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, selected_index),
@@ -39,14 +35,36 @@ impl TaskList {
                 app.task_data.tasks[selected_index].priority =
                     app.task_data.tasks[selected_index].priority.next_priority();
             }
+            KeyCode::Char('J') => {
+                // if key_event.modifiers.contains(KeyModifiers::CONTROL) {
+                let task_length = app.task_data.tasks.len();
+                let task = app.task_data.tasks.remove(app.selected_task_index);
+                app.task_data
+                    .tasks
+                    .insert((app.selected_task_index + 1) % task_length, task);
+                app.selected_task_index = (app.selected_task_index + 1) % task_length;
+                // }
+            }
+            KeyCode::Char('K') => {
+                // if key_event.modifiers.contains(KeyModifiers::CONTROL) {
+                let task_length = app.task_data.tasks.len();
+                let task = app.task_data.tasks.remove(app.selected_task_index);
+                if app.selected_task_index == 0 {
+                    app.task_data.tasks.insert(task_length - 1, task);
+                    app.selected_task_index = task_length - 1;
+                } else {
+                    app.task_data
+                        .tasks
+                        .insert((app.selected_task_index - 1) % task_length, task);
+                    app.selected_task_index = (app.selected_task_index - 1) % task_length;
+                }
+                // }
+            }
             KeyCode::Char('e') => {
                 app.popup_stack
                     .push(PopUpComponents::InputBox(InputBoxComponent::filled(
-                        // TODO: cleanup this so it doesn't use clone
-                        format!(
-                            "Edit the task {}",
-                            app.task_data.tasks[selected_index].title.clone()
-                        ),
+                        // TODO: cleanup this so it doesn't use clone, perhaps use references?
+                        String::from("Edit the  selected task"),
                         app.task_data.tasks[selected_index].title.clone(),
                         // This move is kinda jank not too sure, may try to find a better way
                         Box::new(move |app, mut word| {
@@ -65,6 +83,11 @@ impl TaskList {
             KeyCode::Char('c') => actions::complete_task(app, selected_index),
             _ => {}
         }
+        utils::handle_movement(
+            key_code,
+            &mut app.selected_task_index,
+            app.task_data.tasks.len(),
+        );
         Some(())
     }
 

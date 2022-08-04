@@ -45,6 +45,12 @@ fn generate_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint;
 // Should return if consumed input
 pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
     match key_code {
+        KeyCode::Char('g') => {
+            *index = 0;
+        }
+        KeyCode::Char('G') => {
+            *index = max_items - 1;
+        }
         KeyCode::Char('j') => {
             if max_items == 0 {
                 return;

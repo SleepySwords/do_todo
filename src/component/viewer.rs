@@ -83,7 +83,7 @@ fn draw_completed_task_viewer<B: Backend>(
         .format("%d/%m/%y %-I:%M:%S %p")
         .to_string();
 
-    let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
+    let constraints = [Constraint::Percentage(25), Constraint::Percentage(75)];
     let items = vec![
         (Span::raw("Title"), &task.title as &str, Style::default()),
         (

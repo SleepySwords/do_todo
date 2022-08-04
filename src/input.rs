@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::actions;
 use crate::component::completed_list::CompletedList;
@@ -11,9 +11,10 @@ use crate::{
 
 // Maybe we'll do a Component system if there is a way?
 
-pub fn handle_input(key_code: KeyCode, app: &mut App) {
+pub fn handle_input(key_event: KeyEvent, app: &mut App) {
     // Popping off the stack and the pushing back on is pretty jank just to avoid the errors from
-    // borrow checker
+    // borrow checker   
+    let key_code = key_event.code;
     if let Some(component) = app.popup_stack.pop() {
         match component {
             PopUpComponents::InputBox(mut component) => {
@@ -58,7 +59,7 @@ pub fn handle_input(key_code: KeyCode, app: &mut App) {
     }
 
     match app.selected_component {
-        SelectedComponent::CurrentTasks => TaskList::handle_event(app, key_code),
+        SelectedComponent::CurrentTasks => TaskList::handle_event(app, key_event),
         SelectedComponent::CompletedTasks => CompletedList::handle_event(app, key_code),
         SelectedComponent::PopUpComponent => None,
     };

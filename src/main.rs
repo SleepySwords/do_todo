@@ -64,7 +64,7 @@ pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::R
             if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
                 app.shutdown();
             }
-            input::handle_input(key.code, app);
+            input::handle_input(key, app);
         }
     }
     Ok(())
