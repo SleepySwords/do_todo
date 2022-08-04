@@ -125,3 +125,20 @@ pub fn generate_block<'a>(
         .border_type(app.theme.border_style.border_type)
         .border_style(Style::default().fg(border_colour))
 }
+
+#[cfg(test)]
+pub mod test {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    use crate::{app::App, input};
+
+    pub fn input_char(character: char, app: &mut App) {
+        input::handle_input(
+            KeyEvent {
+                code: KeyCode::Char(character),
+                modifiers: KeyModifiers::NONE,
+            },
+            app,
+        )
+    }
+}

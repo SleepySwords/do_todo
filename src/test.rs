@@ -1,22 +1,30 @@
 #[cfg(test)]
 mod actions {
-    use crossterm::event::KeyCode;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     use crate::{
         app::{App, TaskData},
         input,
         task::Task,
+        utils::test::input_char,
     };
+
+    fn generate_event(key_code: KeyCode) -> KeyEvent {
+        KeyEvent {
+            code: key_code,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
 
     #[test]
     fn test_add_task() {
         let mut app = App::new(crate::theme::Theme::default(), TaskData::default());
-        input::handle_input(KeyCode::Char('a'), &mut app);
-        input::handle_input(KeyCode::Char('p'), &mut app);
-        input::handle_input(KeyCode::Char('p'), &mut app);
-        input::handle_input(KeyCode::Char('y'), &mut app);
-        input::handle_input(KeyCode::Char('q'), &mut app);
-        input::handle_input(KeyCode::Enter, &mut app);
+        input_char('a', &mut app);
+        input_char('p', &mut app);
+        input_char('p', &mut app);
+        input_char('y', &mut app);
+        input_char('q', &mut app);
+        input::handle_input(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks[0].title, "ppyq")
     }
 
@@ -29,10 +37,10 @@ mod actions {
                 completed_tasks: vec![],
             },
         );
-        input::handle_input(KeyCode::Char('e'), &mut app);
-        input::handle_input(KeyCode::Char('r'), &mut app);
-        input::handle_input(KeyCode::Char('q'), &mut app);
-        input::handle_input(KeyCode::Enter, &mut app);
+        input_char('e', &mut app);
+        input_char('r', &mut app);
+        input_char('q', &mut app);
+        input::handle_input(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks[0].title, "memerq")
     }
 
@@ -45,8 +53,8 @@ mod actions {
                 completed_tasks: vec![],
             },
         );
-        input::handle_input(KeyCode::Char('d'), &mut app);
-        input::handle_input(KeyCode::Enter, &mut app);
+        input_char('d', &mut app);
+        input::handle_input(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks.len(), 0)
     }
 
@@ -59,21 +67,19 @@ mod actions {
                 completed_tasks: vec![],
             },
         );
-        input::handle_input(KeyCode::Char('d'), &mut app);
-        input::handle_input(KeyCode::Char('j'), &mut app);
-        input::handle_input(KeyCode::Enter, &mut app);
+        input_char('d', &mut app);
+        input_char('j', &mut app);
+        input::handle_input(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks.len(), 1)
     }
 }
 
 #[cfg(test)]
 mod movement {
-    use crossterm::event::KeyCode;
-
     use crate::{
         app::{App, TaskData},
-        input,
         task::Task,
+        utils::test::input_char,
     };
 
     #[test]
@@ -88,8 +94,8 @@ mod movement {
                 completed_tasks: vec![],
             },
         );
-        input::handle_input(KeyCode::Char('j'), &mut app);
-        input::handle_input(KeyCode::Char('j'), &mut app);
+        input_char('j', &mut app);
+        input_char('j', &mut app);
         assert_eq!(app.selected_task_index, 0)
     }
 }

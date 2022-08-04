@@ -13,7 +13,7 @@ use crate::{
 
 pub fn handle_input(key_event: KeyEvent, app: &mut App) {
     // Popping off the stack and the pushing back on is pretty jank just to avoid the errors from
-    // borrow checker   
+    // borrow checker
     let key_code = key_event.code;
     if let Some(component) = app.popup_stack.pop() {
         match component {
