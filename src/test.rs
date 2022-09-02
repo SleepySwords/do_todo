@@ -24,7 +24,7 @@ mod actions {
         input_char('p', &mut app);
         input_char('y', &mut app);
         input_char('q', &mut app);
-        input::handle_input(generate_event(KeyCode::Enter), &mut app);
+        input::handle_key(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks[0].title, "ppyq")
     }
 
@@ -40,7 +40,7 @@ mod actions {
         input_char('e', &mut app);
         input_char('r', &mut app);
         input_char('q', &mut app);
-        input::handle_input(generate_event(KeyCode::Enter), &mut app);
+        input::handle_key(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks[0].title, "memerq")
     }
 
@@ -54,7 +54,7 @@ mod actions {
             },
         );
         input_char('d', &mut app);
-        input::handle_input(generate_event(KeyCode::Enter), &mut app);
+        input::handle_key(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks.len(), 0)
     }
 
@@ -69,7 +69,7 @@ mod actions {
         );
         input_char('d', &mut app);
         input_char('j', &mut app);
-        input::handle_input(generate_event(KeyCode::Enter), &mut app);
+        input::handle_key(generate_event(KeyCode::Enter), &mut app);
         assert_eq!(app.task_data.tasks.len(), 1)
     }
 }

@@ -1,21 +1,25 @@
 use serde::{Deserialize, Serialize};
 
+use crate::actions::HelpAction;
+use crate::component::completed_list::CompletedList;
 use crate::component::dialog::DialogComponent;
 use crate::component::input_box::InputBoxComponent;
+use crate::component::task_list::TaskList;
 use crate::task::{CompletedTask, Task};
 use crate::theme::Theme;
 
 // Consider either putting all the data in app or using something such as Rc and RefCells?
+
 #[derive(Default)]
 pub struct App {
     pub popup_stack: Vec<PopUpComponents>,
     pub theme: Theme,
-    pub selected_component: SelectedComponent,
     pub words: String,
     pub task_data: TaskData,
 
     pub selected_task_index: usize,
     pub selected_completed_task_index: usize,
+    pub selected_component: SelectedComponent,
 
     should_shutdown: bool,
 }
@@ -49,7 +53,7 @@ impl App {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum SelectedComponent {
     CurrentTasks,
     CompletedTasks,
@@ -59,5 +63,15 @@ pub enum SelectedComponent {
 impl Default for SelectedComponent {
     fn default() -> Self {
         Self::CurrentTasks
+    }
+}
+
+impl SelectedComponent {
+    pub fn available_help_actions(&self) -> Vec<HelpAction> {
+        match self {
+            SelectedComponent::CurrentTasks => TaskList::available_actions(),
+            SelectedComponent::CompletedTasks => CompletedList::available_actions(),
+            SelectedComponent::PopUpComponent => vec![],
+        }
     }
 }

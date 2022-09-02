@@ -9,10 +9,12 @@ use tui::{
 
 use crate::{app::App, utils};
 
+type InputBoxCallback = Box<dyn Fn(&mut App, String)>;
+
 pub struct InputBoxComponent {
     title: String,
     words: Vec<String>,
-    callback: Box<dyn Fn(&mut App, String)>,
+    callback: InputBoxCallback,
 }
 
 impl InputBoxComponent {
@@ -27,11 +29,7 @@ impl InputBoxComponent {
         }
     }
 
-    pub fn filled(
-        title: String,
-        words: String,
-        callback: Box<dyn Fn(&mut App, String)>,
-    ) -> InputBoxComponent {
+    pub fn filled(title: String, words: String, callback: InputBoxCallback) -> InputBoxComponent {
         InputBoxComponent {
             title,
             words: vec![words],

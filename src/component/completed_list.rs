@@ -5,6 +5,7 @@ use tui::style::{Color, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::{List, ListItem, ListState};
 
+use crate::actions::HelpAction;
 use crate::app::{App, SelectedComponent};
 use crate::{actions, utils};
 
@@ -15,6 +16,14 @@ pub struct CompletedList;
 impl CompletedList {
     fn selected(app: &App) -> &usize {
         &app.selected_completed_task_index
+    }
+
+    pub fn available_actions() -> Vec<HelpAction<'static>> {
+        vec![HelpAction::new(
+            KeyCode::Char('r'),
+            "r",
+            "Restores the selected task",
+        )]
     }
 
     pub fn handle_event(app: &mut App, key_code: KeyCode) -> Option<()> {
