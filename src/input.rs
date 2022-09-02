@@ -11,7 +11,7 @@ use crate::{
 
 // Maybe we'll do a Component system if there is a way?
 
-pub fn handle_input(key_event: KeyEvent, app: &mut App) {
+pub fn handle_key(key_event: KeyEvent, app: &mut App) {
     // Popping off the stack and the pushing back on is pretty jank just to avoid the errors from
     // borrow checker
     let key_code = key_event.code;

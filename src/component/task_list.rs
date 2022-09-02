@@ -1,10 +1,11 @@
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, MouseEventKind};
 
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::{List, ListItem, ListState};
 
+use crate::actions::HelpAction;
 use crate::app::{App, PopUpComponents, SelectedComponent};
 use crate::{actions, utils};
 
@@ -19,7 +20,27 @@ impl TaskList {
         &app.selected_task_index
     }
 
-    // return a function taht returns actions.
+    pub fn available_actions() -> Vec<HelpAction<'static>> {
+        vec![
+            HelpAction::new(KeyCode::Char('d'), "d", "Delete the selected task"),
+            HelpAction::new(
+                KeyCode::Char('h'),
+                "h",
+                "Gives selected task lower priority",
+            ),
+            HelpAction::new(KeyCode::Char('c'), "c", "Completes the selected task"),
+            HelpAction::new(
+                KeyCode::Char('J'),
+                "J",
+                "Moves the task down on the task list",
+            ),
+            HelpAction::new(
+                KeyCode::Char('K'),
+                "K",
+                "Moves the task up on the task list",
+            ),
+        ]
+    }
 
     pub fn handle_event(app: &mut App, key_event: KeyEvent) -> Option<()> {
         let key_code = key_event.code;

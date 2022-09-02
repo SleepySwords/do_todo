@@ -1,12 +1,33 @@
 use chrono::Local;
+use crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
     component::dialog::{DialogAction, DialogComponent},
+    input::handle_key,
     task::{CompletedTask, Task},
 };
 
 // Action class maybe?!!
+pub struct HelpAction<'a> {
+    character: KeyCode,
+    short_hand: &'a str,
+    description: &'a str,
+}
+
+impl HelpAction<'_> {
+    pub fn new<'a>(
+        character: KeyCode,
+        short_hand: &'a str,
+        description: &'a str,
+    ) -> HelpAction<'a> {
+        HelpAction {
+            character,
+            short_hand,
+            description,
+        }
+    }
+}
 
 pub fn open_help_menu(app: &mut App) {
     // Tasks that are universal
@@ -21,30 +42,21 @@ pub fn open_help_menu(app: &mut App) {
             },
         ),
     ];
-    if let SelectedComponent::CurrentTasks = app.selected_component {
-        let selected_task = app.selected_task_index;
+    for ac in app.selected_component.available_help_actions() {
         actions.push(DialogAction::new(
-            String::from("c    Complete selected task"),
+            String::from(format!("{}    {}", ac.short_hand, ac.description)),
             move |app| {
-                complete_task(app, selected_task);
-            },
-        ));
-        actions.push(DialogAction::new(
-            String::from("d    Delete selected task"),
-            move |app| {
-                open_delete_task_menu(app, selected_task);
-            },
-        ));
-    }
-    if let SelectedComponent::CompletedTasks = app.selected_component {
-        let selected_task = app.selected_completed_task_index;
-        actions.push(DialogAction::new(
-            String::from("r    Restore current task"),
-            move |app| {
-                restore_task(app, selected_task);
+                handle_key(
+                    crossterm::event::KeyEvent {
+                        code: ac.character,
+                        modifiers: KeyModifiers::NONE,
+                    },
+                    app,
+                );
             },
         ));
     }
+
     app.popup_stack
         .push(PopUpComponents::DialogBox(DialogComponent::new(
             String::from("Help Menu"),

@@ -133,7 +133,7 @@ pub mod test {
     use crate::{app::App, input};
 
     pub fn input_char(character: char, app: &mut App) {
-        input::handle_input(
+        input::handle_key(
             KeyEvent {
                 code: KeyCode::Char(character),
                 modifiers: KeyModifiers::NONE,
