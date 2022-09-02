@@ -53,7 +53,7 @@ impl App {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum SelectedComponent {
     CurrentTasks,
     CompletedTasks,
