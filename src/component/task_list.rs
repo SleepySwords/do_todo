@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent, MouseEventKind};
+use crossterm::event::{KeyCode, KeyEvent};
 
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};

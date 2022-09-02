@@ -44,7 +44,7 @@ pub fn open_help_menu(app: &mut App) {
     ];
     for ac in app.selected_component.available_help_actions() {
         actions.push(DialogAction::new(
-            String::from(format!("{}    {}", ac.short_hand, ac.description)),
+            format!("{}    {}", ac.short_hand, ac.description),
             move |app| {
                 handle_key(
                     crossterm::event::KeyEvent {

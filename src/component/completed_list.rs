@@ -19,9 +19,11 @@ impl CompletedList {
     }
 
     pub fn available_actions() -> Vec<HelpAction<'static>> {
-        vec![
-            HelpAction::new(KeyCode::Char('r'), "r", "Restores the selected task"),
-        ]
+        vec![HelpAction::new(
+            KeyCode::Char('r'),
+            "r",
+            "Restores the selected task",
+        )]
     }
 
     pub fn handle_event(app: &mut App, key_code: KeyCode) -> Option<()> {
