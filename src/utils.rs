@@ -97,6 +97,7 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
 
 pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
     Table::new(items.into_iter().map(|(title, content)| {
+        // Spans are broken up even if they don't have a space
         let acc = content.0.into_iter().fold((0, Text::raw("")), |acc, span| {
             let mut current_width = acc.0;
             let mut text = acc.1;
@@ -105,20 +106,23 @@ pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Ta
                 add_to_text(&mut text, span);
                 (current_width, text)
             } else {
-                span.content.split(" ").for_each(|st| {
-                    if st.len() + current_width + 1 < width {
+                let mut iter = span.content.split(" ").peekable();
+                while let Some(str_conent) = iter.next() {
+                    let next_element = iter.peek().is_some();
+                    if str_conent.len() + current_width + if next_element { 1 } else { 0 } < width {
                         // To string?!?
-                        let mut stx = st.to_string();
-                        stx.push(' ');
+                        let mut stx = str_conent.to_string();
+                        if next_element { stx.push(' '); }
                         current_width = (current_width + stx.len()) % width;
                         add_to_text(&mut text, Span::styled(stx, span.style));
                     } else {
-                        let mut stx = st.to_string();
-                        stx.push(' ');
+                        let mut stx = str_conent.to_string();
+                        if next_element { stx.push(' '); }
                         current_width = (current_width + stx.len()) % width;
                         text.lines.push(Spans::from(Span::styled(stx, span.style)));
                     }
-                });
+
+                }
                 (current_width, text)
             }
         });
