@@ -1,11 +1,12 @@
 use chrono::Local;
 use crossterm::event::{KeyCode, KeyModifiers};
+use tui::style::Color;
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
     component::dialog::{DialogAction, DialogComponent},
     input::handle_key,
-    task::{CompletedTask, Task},
+    task::{CompletedTask, Tag, Task},
 };
 
 // Action class maybe?!!
@@ -64,7 +65,7 @@ pub fn open_help_menu(app: &mut App) {
         )));
 }
 
-pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
+pub fn open_delete_task_menu(app: &mut App, selected_index: usize) {
     if app.task_data.tasks.is_empty() {
         return;
     }
@@ -73,8 +74,8 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
             "Delete selected task".to_string(),
             vec![
                 DialogAction::new(String::from("Delete"), move |app| {
-                    app.task_data.tasks.remove(selected_task);
-                    if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty()
+                    app.task_data.tasks.remove(selected_index);
+                    if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty()
                     {
                         app.selected_task_index -= 1;
                     }
@@ -84,31 +85,55 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
         )));
 }
 
-pub fn restore_task(app: &mut App, selected_task: usize) {
+pub fn restore_task(app: &mut App, selected_index: usize) {
     if app.task_data.completed_tasks.is_empty() {
         return;
     }
     app.task_data.tasks.push(Task::from_completed_task(
-        app.task_data.completed_tasks.remove(selected_task),
+        app.task_data.completed_tasks.remove(selected_index),
     ));
-    if selected_task == app.task_data.completed_tasks.len()
+    if selected_index == app.task_data.completed_tasks.len()
         && !app.task_data.completed_tasks.is_empty()
     {
         app.selected_completed_task_index -= 1;
     }
 }
 
-pub fn complete_task(app: &mut App, selected_task: usize) {
+pub fn complete_task(app: &mut App, selected_index: usize) {
     if app.task_data.tasks.is_empty() {
         return;
     }
     let local = Local::now();
     let time_completed = local.naive_local();
-    let task = app.task_data.tasks.remove(selected_task);
+    let task = app.task_data.tasks.remove(selected_index);
     app.task_data
         .completed_tasks
         .push(CompletedTask::from_task(task, time_completed));
-    if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
+    if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
         app.selected_task_index -= 1;
     }
+}
+
+pub fn add_tag(app: &mut App, selected_index: usize) {
+    if app.task_data.tasks.is_empty() {
+        return;
+    }
+
+    let mut tags_options: Vec<DialogAction> = Vec::new();
+
+    for (i, tag) in app.task_data.tags.iter() {
+        let moved: u32 = *i;
+        tags_options.push(DialogAction::new(String::from(&tag.name), move |app| {
+            app.task_data.tasks[selected_index].tags.push(moved);
+        }));
+    }
+    tags_options.push(DialogAction::new(String::from("Clear"), move |app| {
+        app.task_data.tasks[selected_index].tags.clear();
+    }));
+    tags_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+    app.popup_stack
+        .push(PopUpComponents::DialogBox(DialogComponent::new(
+            "Delete selected task".to_string(),
+            tags_options,
+        )));
 }

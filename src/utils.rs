@@ -2,7 +2,7 @@ use crossterm::event::KeyCode;
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::Style,
-    text::{Span, Text},
+    text::{Span, Spans, Text},
     widgets::{Block, Borders, Cell, Row, Table},
 };
 
@@ -95,17 +95,46 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
     }
 }
 
-pub fn generate_table<'a>(items: Vec<(Span<'a>, &str, Style)>, width: usize) -> Table<'a> {
-    Table::new(items.iter().map(|item| {
-        let text = textwrap::fill(item.1, width);
-        let height = text.chars().filter(|c| *c == '\n').count() + 1;
-        // Clone (actually crying tho)
-        let cells = vec![
-            Cell::from(item.0.to_owned()),
-            Cell::from(Text::styled(text, item.2)),
-        ];
+pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
+    Table::new(items.into_iter().map(|(title, content)| {
+        let acc = content.0.into_iter().fold((0, Text::raw("")), |acc, span| {
+            let mut current_width = acc.0;
+            let mut text = acc.1;
+            if current_width + span.width() < width {
+                current_width = (current_width + span.width()) % width;
+                add_to_text(&mut text, span);
+                (current_width, text)
+            } else {
+                span.content.split(" ").for_each(|st| {
+                    if st.len() + current_width + 1 < width {
+                        // To string?!?
+                        let mut stx = st.to_string();
+                        stx.push(' ');
+                        current_width = (current_width + stx.len()) % width;
+                        add_to_text(&mut text, Span::styled(stx, span.style));
+                    } else {
+                        let mut stx = st.to_string();
+                        stx.push(' ');
+                        current_width = (current_width + stx.len()) % width;
+                        text.lines.push(Spans::from(Span::styled(stx, span.style)));
+                    }
+                });
+                (current_width, text)
+            }
+        });
+
+        let height = acc.1.height();
+        let cells = vec![Cell::from(title), Cell::from(acc.1)];
         Row::new(cells).height(height as u16).bottom_margin(1)
     }))
+}
+
+pub fn add_to_text<'a>(text: &mut Text<'a>, span: Span<'a>) {
+    if let Some(last) = text.lines.last_mut() {
+        last.0.push(span);
+    } else {
+        text.lines.push(Spans::from(span));
+    }
 }
 
 pub fn generate_block<'a>(

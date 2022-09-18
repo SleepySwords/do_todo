@@ -1,14 +1,22 @@
-use crate::theme::Theme;
+use crate::{theme::Theme, app::App};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tui::style::Color;
 
 #[derive(Deserialize, Serialize)]
+pub struct Tag {
+    pub name: String,
+    pub colour: Color
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Task {
     pub progress: bool,
     pub title: String,
     pub priority: Priority,
+
+    pub tags: Vec<u32>
 }
 
 impl Task {
@@ -17,7 +25,12 @@ impl Task {
             progress: false,
             title: content,
             priority: Priority::None,
+            tags: Vec::new()
         }
+    }
+
+    pub fn first_tag<'a>(&self, app: &'a App) -> Option<&'a Tag> {
+        app.task_data.tags.get(self.tags.first().unwrap())
     }
 
     pub fn from_completed_task(completed_task: CompletedTask) -> Self {
@@ -25,6 +38,7 @@ impl Task {
             progress: false,
             title: completed_task.title,
             priority: completed_task.priority,
+            tags: Vec::new()
         }
     }
 }
