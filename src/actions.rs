@@ -1,12 +1,11 @@
 use chrono::Local;
 use crossterm::event::{KeyCode, KeyModifiers};
-use tui::style::Color;
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
     component::dialog::{DialogAction, DialogComponent},
     input::handle_key,
-    task::{CompletedTask, Tag, Task},
+    task::{CompletedTask, Task},
 };
 
 // Action class maybe?!!
@@ -75,7 +74,8 @@ pub fn open_delete_task_menu(app: &mut App, selected_index: usize) {
             vec![
                 DialogAction::new(String::from("Delete"), move |app| {
                     app.task_data.tasks.remove(selected_index);
-                    if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty()
+                    if selected_index == app.task_data.tasks.len()
+                        && !app.task_data.tasks.is_empty()
                     {
                         app.selected_task_index -= 1;
                     }

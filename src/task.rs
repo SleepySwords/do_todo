@@ -1,4 +1,4 @@
-use crate::{theme::Theme, app::App};
+use crate::{app::App, theme::Theme};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -7,7 +7,7 @@ use tui::style::Color;
 #[derive(Deserialize, Serialize)]
 pub struct Tag {
     pub name: String,
-    pub colour: Color
+    pub colour: Color,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -16,7 +16,7 @@ pub struct Task {
     pub title: String,
     pub priority: Priority,
 
-    pub tags: Vec<u32>
+    pub tags: Vec<u32>,
 }
 
 impl Task {
@@ -25,7 +25,7 @@ impl Task {
             progress: false,
             title: content,
             priority: Priority::None,
-            tags: Vec::new()
+            tags: Vec::new(),
         }
     }
 
@@ -38,7 +38,7 @@ impl Task {
             progress: false,
             title: completed_task.title,
             priority: completed_task.priority,
-            tags: Vec::new()
+            tags: Vec::new(),
         }
     }
 }

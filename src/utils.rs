@@ -106,22 +106,25 @@ pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Ta
                 add_to_text(&mut text, span);
                 (current_width, text)
             } else {
-                let mut iter = span.content.split(" ").peekable();
+                let mut iter = span.content.split(' ').peekable();
                 while let Some(str_conent) = iter.next() {
                     let next_element = iter.peek().is_some();
                     if str_conent.len() + current_width + if next_element { 1 } else { 0 } < width {
                         // To string?!?
                         let mut stx = str_conent.to_string();
-                        if next_element { stx.push(' '); }
+                        if next_element {
+                            stx.push(' ');
+                        }
                         current_width = (current_width + stx.len()) % width;
                         add_to_text(&mut text, Span::styled(stx, span.style));
                     } else {
                         let mut stx = str_conent.to_string();
-                        if next_element { stx.push(' '); }
+                        if next_element {
+                            stx.push(' ');
+                        }
                         current_width = (current_width + stx.len()) % width;
                         text.lines.push(Spans::from(Span::styled(stx, span.style)));
                     }
-
                 }
                 (current_width, text)
             }

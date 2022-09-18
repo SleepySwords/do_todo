@@ -155,12 +155,10 @@ impl TaskList {
                 );
                 spans.push(content);
 
-                if task.tags.len() != 0 {
+                if !task.tags.is_empty() {
                     let tag = task.first_tag(app).unwrap();
-                    let tag_label = Span::styled(
-                        format!(" ({})", tag.name),
-                        Style::default().fg(tag.colour),
-                    );
+                    let tag_label =
+                        Span::styled(format!(" ({})", tag.name), Style::default().fg(tag.colour));
                     spans.push(tag_label);
                 }
 

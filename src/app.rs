@@ -7,7 +7,7 @@ use crate::component::completed_list::CompletedList;
 use crate::component::dialog::DialogComponent;
 use crate::component::input_box::InputBoxComponent;
 use crate::component::task_list::TaskList;
-use crate::task::{CompletedTask, Task, Tag};
+use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
 
 #[derive(Default)]
