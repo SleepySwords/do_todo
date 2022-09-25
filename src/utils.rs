@@ -97,7 +97,9 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
 
 pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
     Table::new(items.into_iter().map(|(title, content)| {
-        // Spans are broken up even if they don't have a space
+        // FIX: Spans are broken up even if they don't have a space
+        // This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
+        // HACK: Factorise this
         let acc = content.0.into_iter().fold((0, Text::raw("")), |acc, span| {
             let mut current_width = acc.0;
             let mut text = acc.1;
@@ -107,18 +109,19 @@ pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Ta
                 (current_width, text)
             } else {
                 let mut iter = span.content.split(' ').peekable();
-                while let Some(str_conent) = iter.next() {
+                while let Some(str_content) = iter.next() {
                     let next_element = iter.peek().is_some();
-                    if str_conent.len() + current_width + if next_element { 1 } else { 0 } < width {
+                    if str_content.len() + current_width + if next_element { 1 } else { 0 } < width
+                    {
                         // To string?!?
-                        let mut stx = str_conent.to_string();
+                        let mut stx = str_content.to_string();
                         if next_element {
                             stx.push(' ');
                         }
                         current_width = (current_width + stx.len()) % width;
                         add_to_text(&mut text, Span::styled(stx, span.style));
                     } else {
-                        let mut stx = str_conent.to_string();
+                        let mut stx = str_content.to_string();
                         if next_element {
                             stx.push(' ');
                         }

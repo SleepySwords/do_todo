@@ -90,7 +90,7 @@ impl TaskList {
                         }),
                     )))
             }
-            KeyCode::Char('t') => actions::add_tag(app, selected_index),
+            KeyCode::Char('t') => actions::tag_menu(app, selected_index),
             KeyCode::Enter => {
                 if app.task_data.tasks.is_empty() {
                     return Some(());

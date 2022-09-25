@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -32,12 +32,13 @@ pub enum PopUpComponents {
 #[derive(Deserialize, Default, Serialize)]
 pub struct TaskData {
     // eventually convert to vec
-    pub tags: HashMap<u32, Tag>,
+    pub tags: BTreeMap<u32, Tag>,
 
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
 }
 
+// TODO: Refactor drawing system to allow screens or something, more complex modules
 impl App {
     pub fn new(theme: Theme, task_data: TaskData) -> App {
         App {

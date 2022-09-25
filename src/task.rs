@@ -33,6 +33,15 @@ impl Task {
         app.task_data.tags.get(self.tags.first().unwrap())
     }
 
+    // PERF: Potentially expensive
+    pub fn flip_tag(&mut self, tag: u32) {
+        if !self.tags.contains(&tag) {
+            self.tags.push(tag)
+        } else {
+            self.tags.retain(|x| x != &tag);
+        }
+    }
+
     pub fn from_completed_task(completed_task: CompletedTask) -> Self {
         Task {
             progress: false,
