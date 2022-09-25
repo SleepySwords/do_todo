@@ -98,6 +98,7 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
 pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
     Table::new(items.into_iter().map(|(title, content)| {
         // FIX: Spans are broken up even if they don't have a space
+        // FIX: This is because we would split based on spans not spaces.
         // This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
         // HACK: Factorise this
         let acc = content.0.into_iter().fold((0, Text::raw("")), |acc, span| {
