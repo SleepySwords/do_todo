@@ -30,7 +30,7 @@ impl Task {
     }
 
     pub fn first_tag<'a>(&self, app: &'a App) -> Option<&'a Tag> {
-        app.task_data.tags.get(self.tags.first().unwrap())
+        app.task_store.tags.get(self.tags.first().unwrap())
     }
 
     // PERF: Potentially expensive

@@ -30,21 +30,25 @@ impl Viewer {
 
         match app.selected_component {
             SelectedComponent::CurrentTasks => {
-                if !app.task_data.tasks.is_empty() {
+                if !app.task_store.tasks.is_empty() {
                     draw_task_viewer(app, block, layout_chunk, f)
                 } else {
                     f.render_widget(block, layout_chunk);
                 }
             }
             SelectedComponent::CompletedTasks => {
-                if !app.task_data.completed_tasks.is_empty() {
+                if !app.task_store.completed_tasks.is_empty() {
                     draw_completed_task_viewer(app, block, layout_chunk, f)
                 } else {
                     f.render_widget(block, layout_chunk);
                 }
             }
             SelectedComponent::PopUpComponent => {
-                f.render_widget(block, layout_chunk);
+                if !app.task_store.tasks.is_empty() {
+                    draw_task_viewer(app, block, layout_chunk, f)
+                } else {
+                    f.render_widget(block, layout_chunk);
+                }
             }
         }
     }
@@ -52,7 +56,7 @@ impl Viewer {
 
 fn draw_task_viewer<B: Backend>(app: &App, block: Block, layout_chunk: Rect, f: &mut Frame<B>) {
     let theme = &app.theme;
-    let task = &app.task_data.tasks[app.selected_task_index];
+    let task = &app.task_store.tasks[app.selected_task_index];
 
     let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
     let tags_name = if task.tags.is_empty() {
@@ -64,8 +68,8 @@ fn draw_task_viewer<B: Backend>(app: &App, block: Block, layout_chunk: Rect, f: 
             .iter()
             .enumerate()
             .fold(Vec::new(), |mut acc, (i, tag)| {
-                let colour = Style::default().fg(app.task_data.tags[tag].colour);
-                let name = app.task_data.tags[tag].name.to_owned();
+                let colour = Style::default().fg(app.task_store.tags[tag].colour);
+                let name = app.task_store.tags[tag].name.to_owned();
                 acc.push(Span::styled(name, colour));
                 if i != size - 1 {
                     acc.push(Span::raw(", "));
@@ -100,8 +104,8 @@ fn draw_completed_task_viewer<B: Backend>(
     layout_chunk: Rect,
     f: &mut Frame<B>,
 ) {
-    let task = &app.task_data.completed_tasks[app.selected_completed_task_index];
-    let completed_time = app.task_data.completed_tasks[app.selected_completed_task_index]
+    let task = &app.task_store.completed_tasks[app.selected_completed_task_index];
+    let completed_time = app.task_store.completed_tasks[app.selected_completed_task_index]
         .time_completed
         .format("%d/%m/%y %-I:%M:%S %p")
         .to_string();

@@ -1,15 +1,15 @@
 use crossterm::event::KeyCode;
 
 use tui::{
-    layout::{Constraint, Rect},
+    layout::Rect,
     style::{Modifier, Style},
     text::Spans,
     widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
 use crate::{
-    app::App,
-    utils::{self, centered_rect},
+    app::{App, PopUpComponents},
+    utils,
 };
 
 // Help Action
@@ -32,7 +32,7 @@ impl DialogAction {
 pub struct DialogComponent {
     title: String,
     index: usize,
-    options: Vec<DialogAction>,
+    pub options: Vec<DialogAction>,
 }
 
 impl DialogComponent {
@@ -49,30 +49,38 @@ impl DialogComponent {
 }
 
 impl DialogComponent {
-    pub fn handle_event(&mut self, app: &mut App, key_code: KeyCode) -> Option<()> {
-        utils::handle_movement(key_code, &mut self.index, self.options.len());
+    pub fn handle_event(app: &mut App, key_code: KeyCode) {
+        let context = if let Some(PopUpComponents::DialogBox(context)) = app.popup_context_mut() {
+            context
+        } else {
+            return;
+        };
+        if let KeyCode::Char(char) = key_code {
+            if char == 'q' {
+                return;
+            }
+        }
+        utils::handle_movement(key_code, &mut context.index, context.options.len());
         match key_code {
             KeyCode::Enter => {
-                (self.options[self.index].function)(app);
-                // app.popup_stack.retain(|x| x != PopUpComponents::DialogBox(self));
-                return None;
+                if let Some(PopUpComponents::DialogBox(context)) = app.pop_popup() {
+                    (context.options[context.index].function)(app);
+                }
             }
             KeyCode::Esc => {
                 // May be better to have a custom escape function
-                return None;
+                app.pop_popup();
             }
             _ => {}
         }
-        Some(())
     }
 
-    pub fn draw<B: tui::backend::Backend>(&self, app: &App, _: Rect, f: &mut tui::Frame<B>) {
-        let area = centered_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.options.len() as u16 + 2),
-            f.size(),
-        );
-
+    pub fn draw<B: tui::backend::Backend>(
+        &self,
+        app: &App,
+        draw_area: Rect,
+        f: &mut tui::Frame<B>,
+    ) {
         // Clone is not the best :(
         let list = List::new(
             self.options
@@ -92,7 +100,7 @@ impl DialogComponent {
         let mut list_state = ListState::default();
         list_state.select(Some(self.index));
 
-        f.render_widget(Clear, area);
-        f.render_stateful_widget(list, area, &mut list_state);
+        f.render_widget(Clear, draw_area);
+        f.render_stateful_widget(list, draw_area, &mut list_state);
     }
 }

@@ -1,8 +1,11 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use tui::style::Color;
 
 use crate::actions;
 use crate::component::completed_list::CompletedList;
+use crate::component::dialog::DialogComponent;
 use crate::component::input_box::InputBoxComponent;
+use crate::component::message_box::MessageBoxComponent;
 use crate::component::task_list::TaskList;
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
@@ -12,28 +15,21 @@ use crate::{
 // PERF: Maybe we'll do a Component system if there is a way?
 
 pub fn handle_key(key_event: KeyEvent, app: &mut App) {
-    // HACK: Popping off the stack and the pushing back on is pretty jank just to avoid the errors from
-    // borrow checker
     let key_code = key_event.code;
-    if let Some(component) = app.popup_stack.pop() {
+    if let Some(component) = app.popup_stack.last() {
         match component {
-            PopUpComponents::InputBox(mut component) => {
-                if component.handle_event(app, key_code).is_none() {
-                    return;
+            PopUpComponents::InputBox(_) => {
+                let err = InputBoxComponent::handle_event(app, key_code);
+                if err.is_err() {
+                    app.append_layer(PopUpComponents::MessageBox(MessageBoxComponent::new(
+                            String::from("Error"),
+                            err.err().unwrap().to_string(),
+                            Color::Red
+                        )))
                 }
-                app.popup_stack.push(PopUpComponents::InputBox(component));
             }
-            PopUpComponents::DialogBox(mut component) => {
-                if component.handle_event(app, key_code).is_none() {
-                    return;
-                }
-                if let KeyCode::Char(char) = key_code {
-                    if char == 'q' {
-                        return;
-                    }
-                }
-                app.popup_stack.push(PopUpComponents::DialogBox(component));
-            }
+            PopUpComponents::DialogBox(_) => DialogComponent::handle_event(app, key_code),
+            PopUpComponents::MessageBox(_) => MessageBoxComponent::handle_event(app, key_code),
         }
         return;
     }
@@ -41,13 +37,13 @@ pub fn handle_key(key_event: KeyEvent, app: &mut App) {
     // Universal keyboard shortcuts (should also be customisable)
     match key_code {
         KeyCode::Char('a') => {
-            app.popup_stack
-                .push(PopUpComponents::InputBox(InputBoxComponent::new(
+            app.append_layer(PopUpComponents::InputBox(InputBoxComponent::new(
                     String::from("Add a task"),
                     |app, mut word| {
-                        app.task_data.tasks.push(Task::from_string(
+                        app.task_store.tasks.push(Task::from_string(
                             word.drain(..).collect::<String>().trim().to_string(),
                         ));
+                        Ok(())
                     },
                 )))
         }

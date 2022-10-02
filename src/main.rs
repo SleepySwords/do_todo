@@ -2,7 +2,9 @@ mod actions;
 mod app;
 mod component;
 mod config;
+mod error;
 mod input;
+mod screens;
 mod task;
 mod test;
 mod theme;
@@ -40,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     fs::write(
         dirs::home_dir().unwrap().join(".config/dtb/data.json"),
-        serde_json::to_string(&app.task_data)?,
+        serde_json::to_string(&app.task_store)?,
     )?;
 
     // Cleanup

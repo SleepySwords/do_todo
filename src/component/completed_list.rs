@@ -30,7 +30,7 @@ impl CompletedList {
         utils::handle_movement(
             key_code,
             &mut app.selected_completed_task_index,
-            app.task_data.completed_tasks.len(),
+            app.task_store.completed_tasks.len(),
         );
         let selected_index = *Self::selected(app);
         if let KeyCode::Char('r') = key_code {
@@ -47,7 +47,7 @@ impl CompletedList {
         let theme = &app.theme;
 
         let completed_tasks: Vec<ListItem> = app
-            .task_data
+            .task_store
             .completed_tasks
             .iter()
             .enumerate()
@@ -83,10 +83,10 @@ impl CompletedList {
             .style(Style::default().fg(Color::White));
 
         let mut completed_state = ListState::default();
-        if !app.task_data.completed_tasks.is_empty() {
+        if !app.task_store.completed_tasks.is_empty() {
             let index = match app.selected_component {
                 SelectedComponent::CompletedTasks => app.selected_completed_task_index,
-                _ => app.task_data.completed_tasks.len() - 1,
+                _ => app.task_store.completed_tasks.len() - 1,
             };
             completed_state.select(Some(index));
         }
