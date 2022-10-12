@@ -8,11 +8,10 @@ use tui::{
 };
 
 use crate::{
-    app::{App, PopUpComponents},
+    app::{App, UserInputType},
     utils,
 };
 
-// Help Action
 pub struct DialogAction {
     name: String,
     function: Box<dyn Fn(&mut App)>,
@@ -29,18 +28,18 @@ impl DialogAction {
         }
     }
 }
-pub struct DialogComponent {
+pub struct DialogBox {
     title: String,
     index: usize,
     pub options: Vec<DialogAction>,
 }
 
-impl DialogComponent {
-    pub fn new(title: String, options: Vec<DialogAction>) -> DialogComponent {
+impl DialogBox {
+    pub fn new(title: String, options: Vec<DialogAction>) -> DialogBox {
         if options.is_empty() {
             panic!("The size of the options is 0");
         }
-        DialogComponent {
+        DialogBox {
             title,
             index: 0,
             options,
@@ -48,9 +47,10 @@ impl DialogComponent {
     }
 }
 
-impl DialogComponent {
+impl DialogBox {
     pub fn handle_event(app: &mut App, key_code: KeyCode) {
-        let context = if let Some(PopUpComponents::DialogBox(context)) = app.popup_context_mut() {
+        // TODO: This is somewhat ugly, and pretty weird to get.
+        let context = if let Some(UserInputType::DialogBox(context)) = app.popup_context_mut() {
             context
         } else {
             return;
@@ -63,7 +63,7 @@ impl DialogComponent {
         utils::handle_movement(key_code, &mut context.index, context.options.len());
         match key_code {
             KeyCode::Enter => {
-                if let Some(PopUpComponents::DialogBox(context)) = app.pop_popup() {
+                if let Some(UserInputType::DialogBox(context)) = app.pop_popup() {
                     (context.options[context.index].function)(app);
                 }
             }

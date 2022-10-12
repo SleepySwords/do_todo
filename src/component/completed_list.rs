@@ -39,11 +39,7 @@ impl CompletedList {
         Some(())
     }
 
-    pub fn draw<B: tui::backend::Backend>(
-        app: &App,
-        layout_chunk: Rect,
-        frame: &mut tui::Frame<B>,
-    ) {
+    pub fn draw<B: tui::backend::Backend>(app: &App, draw_area: Rect, frame: &mut tui::Frame<B>) {
         let theme = &app.theme;
 
         let completed_tasks: Vec<ListItem> = app
@@ -66,7 +62,7 @@ impl CompletedList {
                     format!(
                         "{} {}",
                         task.time_completed.format("%d/%m/%y %-I:%M:%S %p"),
-                        task.title
+                        task.task.title
                     ),
                     Style::default().fg(colour),
                 ));
@@ -91,6 +87,6 @@ impl CompletedList {
             completed_state.select(Some(index));
         }
 
-        frame.render_stateful_widget(recently_competed, layout_chunk, &mut completed_state);
+        frame.render_stateful_widget(recently_competed, draw_area, &mut completed_state);
     }
 }

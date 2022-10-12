@@ -6,10 +6,10 @@ use tui::text::{Span, Spans};
 use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::HelpAction;
-use crate::app::{App, PopUpComponents, SelectedComponent};
+use crate::app::{App, SelectedComponent, UserInputType};
 use crate::{actions, utils};
 
-use super::input_box::InputBoxComponent;
+use super::input::input_box::InputBox;
 
 const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CurrentTasks;
 
@@ -80,17 +80,17 @@ impl TaskList {
                 }
             }
             KeyCode::Char('e') => {
-                app.append_layer(PopUpComponents::InputBox(InputBoxComponent::filled(
-                        // TODO: cleanup this so it doesn't use clone, perhaps use references?
-                        String::from("Edit the  selected task"),
-                        app.task_store.tasks[selected_index].title.clone(),
-                        // This move is kinda jank not too sure, may try to find a better way
-                        Box::new(move |app, mut word| {
-                            app.task_store.tasks[selected_index].title =
-                                word.drain(..).collect::<String>().trim().to_string();
-                            Ok(())
-                        }),
-                    )))
+                app.append_layer(UserInputType::InputBox(InputBox::filled(
+                    // TODO: cleanup this so it doesn't use clone, perhaps use references?
+                    String::from("Edit the  selected task"),
+                    app.task_store.tasks[selected_index].title.clone(),
+                    // This move is kinda jank not too sure, may try to find a better way
+                    Box::new(move |app, mut word| {
+                        app.task_store.tasks[selected_index].title =
+                            word.drain(..).collect::<String>().trim().to_string();
+                        Ok(())
+                    }),
+                )))
             }
             KeyCode::Char('t') => actions::tag_menu(app, selected_index),
             KeyCode::Enter => {
@@ -129,7 +129,7 @@ impl TaskList {
                 };
 
                 let progress = Span::styled(
-                    if task.progress { "[-] " } else { "[ ] " },
+                    if task.progress { "[~] " } else { "[ ] " },
                     style.fg(
                         if COMPONENT_TYPE == app.selected_component && *Self::selected(app) == i {
                             theme.selected_task_colour

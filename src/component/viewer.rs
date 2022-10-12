@@ -19,7 +19,7 @@ pub struct Viewer;
 impl Viewer {
     pub fn draw<B: tui::backend::Backend>(
         app: &App,
-        layout_chunk: tui::layout::Rect,
+        draw_area: tui::layout::Rect,
         f: &mut tui::Frame<B>,
     ) {
         let theme = &app.theme;
@@ -31,30 +31,30 @@ impl Viewer {
         match app.selected_component {
             SelectedComponent::CurrentTasks => {
                 if !app.task_store.tasks.is_empty() {
-                    draw_task_viewer(app, block, layout_chunk, f)
+                    draw_task_viewer(app, block, draw_area, f)
                 } else {
-                    f.render_widget(block, layout_chunk);
+                    f.render_widget(block, draw_area);
                 }
             }
             SelectedComponent::CompletedTasks => {
                 if !app.task_store.completed_tasks.is_empty() {
-                    draw_completed_task_viewer(app, block, layout_chunk, f)
+                    draw_completed_task_viewer(app, block, draw_area, f)
                 } else {
-                    f.render_widget(block, layout_chunk);
+                    f.render_widget(block, draw_area);
                 }
             }
             SelectedComponent::PopUpComponent => {
                 if !app.task_store.tasks.is_empty() {
-                    draw_task_viewer(app, block, layout_chunk, f)
+                    draw_task_viewer(app, block, draw_area, f)
                 } else {
-                    f.render_widget(block, layout_chunk);
+                    f.render_widget(block, draw_area);
                 }
             }
         }
     }
 }
 
-fn draw_task_viewer<B: Backend>(app: &App, block: Block, layout_chunk: Rect, f: &mut Frame<B>) {
+fn draw_task_viewer<B: Backend>(app: &App, block: Block, draw_area: Rect, f: &mut Frame<B>) {
     let theme = &app.theme;
     let task = &app.task_store.tasks[app.selected_task_index];
 
@@ -91,17 +91,17 @@ fn draw_task_viewer<B: Backend>(app: &App, block: Block, layout_chunk: Rect, f: 
         (Span::raw("Tags"), tags_name),
     ];
 
-    let table = utils::generate_table(items, constraints[1].apply(layout_chunk.width) as usize - 2)
+    let table = utils::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
         .block(block)
         .widths(&constraints);
 
-    f.render_widget(table, layout_chunk)
+    f.render_widget(table, draw_area)
 }
 
 fn draw_completed_task_viewer<B: Backend>(
     app: &App,
     block: Block,
-    layout_chunk: Rect,
+    draw_area: Rect,
     f: &mut Frame<B>,
 ) {
     let task = &app.task_store.completed_tasks[app.selected_completed_task_index];
@@ -112,16 +112,16 @@ fn draw_completed_task_viewer<B: Backend>(
 
     let constraints = [Constraint::Percentage(25), Constraint::Percentage(75)];
     let items = vec![
-        (Span::raw("Title"), Spans::from(&task.title as &str)),
+        (Span::raw("Title"), Spans::from(&task.task.title as &str)),
         (
             Span::raw("Date Completed"),
             Spans::from(&completed_time as &str),
         ),
     ];
 
-    let table = utils::generate_table(items, constraints[1].apply(layout_chunk.width) as usize - 2)
+    let table = utils::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
         .block(block)
         .widths(&constraints);
 
-    f.render_widget(table, layout_chunk)
+    f.render_widget(table, draw_area)
 }

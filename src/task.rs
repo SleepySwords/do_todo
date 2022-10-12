@@ -43,36 +43,33 @@ impl Task {
     }
 
     pub fn from_completed_task(completed_task: CompletedTask) -> Self {
-        Task {
-            progress: false,
-            title: completed_task.title,
-            priority: completed_task.priority,
-            tags: Vec::new(),
-        }
+        completed_task.task
     }
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct CompletedTask {
-    pub title: String,
+    pub task: Task,
     pub time_completed: NaiveDateTime,
-    pub priority: Priority,
 }
 
 impl CompletedTask {
     pub fn from_task(task: Task, time_completed: NaiveDateTime) -> Self {
         CompletedTask {
-            title: task.title,
+            task,
             time_completed,
-            priority: task.priority,
         }
     }
 
     pub fn from_string(content: String, time_completed: NaiveDateTime) -> Self {
         CompletedTask {
-            title: content,
+            task: Task {
+                progress: false,
+                title: content,
+                priority: Priority::None,
+                tags: Vec::new(),
+            },
             time_completed,
-            priority: Priority::None,
         }
     }
 }

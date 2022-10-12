@@ -21,6 +21,7 @@ pub fn centered_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect
         .split(popup_layout[1])[1]
 }
 
+// TODO: Analyse why we return 3 values here.
 fn generate_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3] {
     match constraint {
         Constraint::Percentage(percent) => [

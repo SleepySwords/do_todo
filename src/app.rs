@@ -1,25 +1,35 @@
 use std::collections::BTreeMap;
 
+use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
+use tui::style::Color;
 
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
-use crate::component::dialog::DialogComponent;
-use crate::component::input_box::InputBoxComponent;
-use crate::component::message_box::MessageBoxComponent;
-use crate::component::status_line::StatusLineComponent;
+use crate::component::input::dialog::DialogBox;
+use crate::component::input::form::Form;
+use crate::component::input::input_box::InputBox;
+use crate::component::message_box::MessageBox;
+use crate::component::status_line::StatusLine;
 use crate::component::task_list::TaskList;
 use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
 
+// PERF: Wow the technical debt is insane, have to rewrite all this :(
+// Basic structure
+// Renderer -> Calls individual render on each section, pass the context
+// Where should the context be stored? Perhaps there is all the context with an is_visable tag?
+// Universal variables should be in app (Tasks, themes)
+
+// TODO: Refactor drawing system to allow screens or something, more complex modules
+
 #[derive(Default)]
 pub struct App {
-    pub popup_stack: Vec<PopUpComponents>,
+    pub popup_stack: Vec<UserInputType>,
     pub theme: Theme,
-    pub words: String,
     pub task_store: TaskStore,
 
-    pub status_line: StatusLineComponent,
+    pub status_line: StatusLine,
 
     pub selected_task_index: usize,
     pub selected_completed_task_index: usize,
@@ -28,30 +38,12 @@ pub struct App {
     should_shutdown: bool,
 }
 
-pub enum PopUpComponents {
-    InputBox(InputBoxComponent),
-    DialogBox(DialogComponent),
-    MessageBox(MessageBoxComponent),
-}
-
-#[derive(Deserialize, Default, Serialize)]
-pub struct TaskStore {
-    // eventually convert to vec
-    pub tags: BTreeMap<u32, Tag>,
-
-    pub tasks: Vec<Task>,
-    pub completed_tasks: Vec<CompletedTask>,
-}
-
-// TODO: Refactor drawing system to allow screens or something, more complex modules
 impl App {
     pub fn new(theme: Theme, task_data: TaskStore) -> App {
         App {
             theme,
             task_store: task_data,
-            status_line: StatusLineComponent::new(String::from(
-                "Press x for help. Press q to exit.",
-            )),
+            status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
             ..Default::default()
         }
     }
@@ -64,25 +56,62 @@ impl App {
         self.should_shutdown
     }
 
-    pub fn popup_context(&self) -> Option<&PopUpComponents> {
+    pub fn popup_context(&self) -> Option<&UserInputType> {
         self.popup_stack.last()
     }
 
-    pub fn popup_context_mut(&mut self) -> Option<&mut PopUpComponents> {
+    pub fn popup_context_mut(&mut self) -> Option<&mut UserInputType> {
         self.popup_stack.last_mut()
     }
 
-    pub fn append_layer(&mut self, popup: PopUpComponents) {
+    pub fn append_layer(&mut self, popup: UserInputType) {
         self.popup_stack.push(popup);
         self.selected_component = SelectedComponent::PopUpComponent;
     }
 
-    pub fn pop_popup(&mut self) -> Option<PopUpComponents> {
+    pub fn pop_popup(&mut self) -> Option<UserInputType> {
         if self.popup_stack.len() == 1 {
             self.selected_component = SelectedComponent::CurrentTasks;
         }
         self.popup_stack.pop()
     }
+}
+
+pub enum UserInputType {
+    InputBox(InputBox),
+    DialogBox(DialogBox),
+    MessageBox(MessageBox),
+    Form(Form),
+}
+
+impl UserInputType {
+    pub fn handle_event(&self, app: &mut App, key_code: KeyCode) {
+        match self {
+            UserInputType::InputBox(_) => {
+                // TODO: more generalised error handling
+                let err = InputBox::handle_event(app, key_code);
+                if err.is_err() {
+                    app.append_layer(UserInputType::MessageBox(MessageBox::new(
+                        String::from("Error"),
+                        err.err().unwrap().to_string(),
+                        Color::Red,
+                    )))
+                }
+            }
+            UserInputType::DialogBox(_) => DialogBox::handle_event(app, key_code),
+            UserInputType::MessageBox(_) => MessageBox::handle_event(app, key_code),
+            UserInputType::Form(_) => Form::handle_event(app, key_code),
+        }
+    }
+}
+
+#[derive(Deserialize, Default, Serialize)]
+pub struct TaskStore {
+    // eventually convert to vec
+    pub tags: BTreeMap<u32, Tag>,
+
+    pub tasks: Vec<Task>,
+    pub completed_tasks: Vec<CompletedTask>,
 }
 
 #[derive(PartialEq, Eq)]

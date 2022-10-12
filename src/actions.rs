@@ -3,10 +3,10 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use tui::style::Color;
 
 use crate::{
-    app::{App, PopUpComponents, SelectedComponent},
+    app::{App, SelectedComponent, UserInputType},
     component::{
-        dialog::{DialogAction, DialogComponent},
-        input_box::InputBoxComponent,
+        input::dialog::{DialogAction, DialogBox},
+        input::input_box::InputBox,
     },
     input::handle_key,
     task::{CompletedTask, Task},
@@ -61,7 +61,7 @@ pub fn open_help_menu(app: &mut App) {
         ));
     }
 
-    app.append_layer(PopUpComponents::DialogBox(DialogComponent::new(
+    app.append_layer(UserInputType::DialogBox(DialogBox::new(
         String::from("Help Menu"),
         actions,
     )));
@@ -71,20 +71,19 @@ pub fn open_delete_task_menu(app: &mut App, selected_index: usize) {
     if app.task_store.tasks.is_empty() {
         return;
     }
-    app.append_layer(PopUpComponents::DialogBox(DialogComponent::new(
-            "Delete selected task".to_string(),
-            vec![
-                DialogAction::new(String::from("Delete"), move |app| {
-                    app.task_store.tasks.remove(selected_index);
-                    if selected_index == app.task_store.tasks.len()
-                        && !app.task_store.tasks.is_empty()
-                    {
-                        app.selected_task_index -= 1;
-                    }
-                }),
-                DialogAction::new(String::from("Cancel"), |_| {}),
-            ],
-        )));
+    app.append_layer(UserInputType::DialogBox(DialogBox::new(
+        "Delete selected task".to_string(),
+        vec![
+            DialogAction::new(String::from("Delete"), move |app| {
+                app.task_store.tasks.remove(selected_index);
+                if selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty()
+                {
+                    app.selected_task_index -= 1;
+                }
+            }),
+            DialogAction::new(String::from("Cancel"), |_| {}),
+        ],
+    )));
 }
 
 pub fn restore_task(app: &mut App, selected_index: usize) {
@@ -135,64 +134,64 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
 
     // Menu to add a new tag
     tags_options.push(DialogAction::new(String::from("New tag"), |app| {
-        app.append_layer(PopUpComponents::InputBox(InputBoxComponent::new(
-                String::from("Tag name"),
-                |app, tag_name| {
-                    app.append_layer(PopUpComponents::InputBox(InputBoxComponent::new(
-                            String::from("Tag colour"),
-                            move |app, tag_colour| {
-                                // FIX: Actually have proper error handling with an error enum
-                                // TODO: Add colour word support (ie: green, blue, red, orange)
-                                let red = u8::from_str_radix(&tag_colour[0..2], 16)?;
-                                let green = u8::from_str_radix(&tag_colour[2..4], 16)?;
-                                let blue = u8::from_str_radix(&tag_colour[4..6], 16)?;
-                                let last_key = app.task_store.tags.keys().last().unwrap();
-                                app.task_store.tags.insert(
-                                    *last_key + 1,
-                                    crate::task::Tag {
-                                        // FIX: I can't be bothered fixing this ownership problem
-                                        name: tag_name.to_owned(),
-                                        colour: Color::Rgb(red, green, blue),
-                                    },
-                                );
-                                Ok(())
+        app.append_layer(UserInputType::InputBox(InputBox::new(
+            String::from("Tag name"),
+            |app, tag_name| {
+                app.append_layer(UserInputType::InputBox(InputBox::new(
+                    String::from("Tag colour"),
+                    move |app, tag_colour| {
+                        // FIX: Actually have proper error handling with an error enum
+                        // TODO: Add colour word support (ie: green, blue, red, orange)
+                        let red = u8::from_str_radix(&tag_colour[0..2], 16)?;
+                        let green = u8::from_str_radix(&tag_colour[2..4], 16)?;
+                        let blue = u8::from_str_radix(&tag_colour[4..6], 16)?;
+                        let last_key = app.task_store.tags.keys().last().unwrap();
+                        app.task_store.tags.insert(
+                            *last_key + 1,
+                            crate::task::Tag {
+                                // FIX: I can't be bothered fixing this ownership problem
+                                name: tag_name.to_owned(),
+                                colour: Color::Rgb(red, green, blue),
                             },
-                        )));
-                    Ok(())
-                },
-            )));
+                        );
+                        Ok(())
+                    },
+                )));
+                Ok(())
+            },
+        )));
     }));
     tags_options.push(DialogAction::new(String::from("Clear tags"), move |app| {
         app.task_store.tasks[selected_index].tags.clear();
     }));
     tags_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
-    app.append_layer(PopUpComponents::DialogBox(DialogComponent::new(
-            "Add or remove a tag".to_string(),
-            tags_options,
-        )));
+    app.append_layer(UserInputType::DialogBox(DialogBox::new(
+        "Add or remove a tag".to_string(),
+        tags_options,
+    )));
 }
 
 // TODO: Maybe later
-fn remove_tag(app: &mut App) {
-    if app.task_store.tasks.is_empty() {
-        return;
-    }
+// fn remove_tag(app: &mut App) {
+//     if app.task_store.tasks.is_empty() {
+//         return;
+//     }
 
-    let mut tags_options: Vec<DialogAction> = Vec::new();
+//     let mut tags_options: Vec<DialogAction> = Vec::new();
 
-    // Loops through the tags and adds them to the menu.
-    for (i, tag) in app.task_store.tags.iter() {
-        let moved: u32 = *i;
-        tags_options.push(DialogAction::new(tag.name.to_owned(), move |app| {
-            // app.task_data.tags.retain(|k, v| v != tag);
-            // FIX: Very unsafe, need more error handling
-            for x in &mut app.task_store.tasks {
-                x.tags.remove(moved.try_into().unwrap());
-            }
-        }));
-    }
-    app.append_layer(PopUpComponents::DialogBox(DialogComponent::new(
-            "Delete a tag".to_string(),
-            tags_options,
-        )));
-}
+//     // Loops through the tags and adds them to the menu.
+//     for (i, tag) in app.task_store.tags.iter() {
+//         let moved: u32 = *i;
+//         tags_options.push(DialogAction::new(tag.name.to_owned(), move |app| {
+//             // app.task_data.tags.retain(|k, v| v != tag);
+//             // FIX: Very unsafe, need more error handling
+//             for x in &mut app.task_store.tasks {
+//                 x.tags.remove(moved.try_into().unwrap());
+//             }
+//         }));
+//     }
+//     app.append_layer(UserInputType::DialogBox(DialogBox::new(
+//         "Delete a tag".to_string(),
+//         tags_options,
+//     )));
+// }

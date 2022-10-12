@@ -1,6 +1,8 @@
 use crate::{
-    app::{App, PopUpComponents},
-    component::{completed_list::CompletedList, input_box, task_list::TaskList, viewer::Viewer},
+    app::{App, UserInputType},
+    component::{
+        completed_list::CompletedList, input::input_box, task_list::TaskList, viewer::Viewer,
+    },
     utils,
 };
 use tui::{
@@ -47,17 +49,17 @@ impl MainScreenLayer {
 
         if let Some(component) = app.popup_stack.last() {
             match component {
-                PopUpComponents::InputBox(component) => {
+                UserInputType::InputBox(component) => {
                     let layout_chunk = utils::centered_rect(
                         Constraint::Percentage(70),
                         Constraint::Length(
-                            (component.words.len() as u16).max(1) + input_box::PADDING as u16,
+                            (component.user_input.len() as u16).max(1) + input_box::PADDING as u16,
                         ),
                         f.size(),
                     );
                     component.draw(app, layout_chunk, f)
                 }
-                PopUpComponents::DialogBox(component) => {
+                UserInputType::DialogBox(component) => {
                     let layout_chunk = utils::centered_rect(
                         Constraint::Percentage(70),
                         Constraint::Length(component.options.len() as u16 + 2),
@@ -65,7 +67,7 @@ impl MainScreenLayer {
                     );
                     component.draw(app, layout_chunk, f)
                 }
-                PopUpComponents::MessageBox(component) => {
+                UserInputType::MessageBox(component) => {
                     let layout_chunk = utils::centered_rect(
                         Constraint::Percentage(70),
                         Constraint::Percentage(30),
@@ -73,6 +75,7 @@ impl MainScreenLayer {
                     );
                     component.draw(app, layout_chunk, f)
                 }
+                UserInputType::Form(_) => {}
             }
         }
     }
