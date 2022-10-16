@@ -37,6 +37,12 @@ pub fn handle_key(key_event: KeyEvent, app: &mut App) {
         return;
     }
 
+    match app.selected_component {
+        SelectedComponent::CurrentTasks => TaskList::handle_event(app, key_event),
+        SelectedComponent::CompletedTasks => CompletedList::handle_event(app, key_code),
+        SelectedComponent::PopUpComponent => None,
+    };
+
     // Universal keyboard shortcuts (should also be customisable)
     match key_code {
         KeyCode::Char('a') => app.append_layer(UserInputType::InputBox(InputBox::new(
@@ -54,10 +60,4 @@ pub fn handle_key(key_event: KeyEvent, app: &mut App) {
         KeyCode::Char('q') => app.shutdown(),
         _ => {}
     }
-
-    match app.selected_component {
-        SelectedComponent::CurrentTasks => TaskList::handle_event(app, key_event),
-        SelectedComponent::CompletedTasks => CompletedList::handle_event(app, key_code),
-        SelectedComponent::PopUpComponent => None,
-    };
 }

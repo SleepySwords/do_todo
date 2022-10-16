@@ -32,10 +32,13 @@ impl CompletedList {
             &mut app.selected_completed_task_index,
             app.task_store.completed_tasks.len(),
         );
+
         let selected_index = *Self::selected(app);
+
         if let KeyCode::Char('r') = key_code {
             actions::restore_task(app, selected_index)
         }
+
         Some(())
     }
 

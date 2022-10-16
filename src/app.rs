@@ -105,7 +105,7 @@ impl UserInputType {
     }
 }
 
-#[derive(Deserialize, Default, Serialize)]
+#[derive(Default, Deserialize, Serialize)]
 pub struct TaskStore {
     // eventually convert to vec
     pub tags: BTreeMap<u32, Tag>,

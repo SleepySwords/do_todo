@@ -61,7 +61,7 @@ pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::R
         terminal.draw(|f| ui::render_ui(app, f))?;
 
         // This function blocks
-        // Perhaps should use poll so we could have a tick system
+        // TODO: We are probably going to have to implement a Tick system eventually.
         if let Event::Key(key) = event::read()? {
             if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
                 app.shutdown();

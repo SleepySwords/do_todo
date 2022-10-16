@@ -34,7 +34,7 @@ impl HelpAction<'_> {
 }
 
 pub fn open_help_menu(app: &mut App) {
-    // Tasks that are universal, should use a table?
+    // Actions that are universal, should use a table?
     let mut actions: Vec<DialogAction> = vec![
         DialogAction::new(String::from("1    Change to current task window"), |app| {
             app.selected_component = SelectedComponent::CurrentTasks;
