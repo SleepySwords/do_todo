@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 
-use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
-use tui::style::Color;
 
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
@@ -84,25 +82,23 @@ pub enum UserInputType {
     Message(MessageBox),
 }
 
-impl UserInputType {
-    pub fn handle_event(&self, app: &mut App, key_code: KeyCode) {
-        match self {
-            UserInputType::Input(_) => {
-                // TODO: more generalised error handling
-                let err = InputBox::handle_event(app, key_code);
-                if err.is_err() {
-                    app.append_layer(UserInputType::Message(MessageBox::new(
-                        String::from("Error"),
-                        err.err().unwrap().to_string(),
-                        Color::Red,
-                    )))
-                }
-            }
-            UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
-            UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
-        }
-    }
-}
+// TODO: This currently does not work due to how the component system is setup.
+// impl UserInputType {
+//     pub fn handle_event(&self, app: &mut App, key_code: KeyCode) {
+//         let err = match self {
+//             UserInputType::Input(_) => InputBox::handle_event(app, key_code),
+//             UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
+//             UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
+//         };
+//         if err.is_err() {
+//             app.append_layer(UserInputType::Message(MessageBox::new(
+//                 String::from("Error"),
+//                 err.err().unwrap().to_string(),
+//                 Color::Red,
+//             )))
+//         }
+//     }
+// }
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct TaskStore {

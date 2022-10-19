@@ -6,6 +6,7 @@ use tui::text::Span;
 use tui::widgets::{Block, Borders, Clear, Paragraph};
 
 use crate::app::{App, UserInputType};
+use crate::error::AppError;
 use crate::utils::{centered_rect, wrap_text};
 
 pub struct MessageBox {
@@ -23,10 +24,12 @@ impl MessageBox {
         }
     }
 
-    pub fn handle_event(app: &mut App, _: KeyCode) {
+    pub fn handle_event(app: &mut App, _: KeyCode) -> Result<(), AppError> {
         if let Some(UserInputType::Message(_)) = app.popup_context_mut() {
             app.pop_popup();
+            return Ok(());
         }
+        Err(AppError::InvalidContext)
     }
 
     pub fn draw<B: tui::backend::Backend>(

@@ -17,20 +17,17 @@ use crate::{
 pub fn handle_key(key_event: KeyEvent, app: &mut App) {
     let key_code = key_event.code;
     if let Some(component) = app.popup_stack.last() {
-        match component {
-            UserInputType::Input(_) => {
-                // TODO: more generalised error handling
-                let err = InputBox::handle_event(app, key_code);
-                if err.is_err() {
-                    app.append_layer(UserInputType::Message(MessageBox::new(
-                        String::from("Error"),
-                        err.err().unwrap().to_string(),
-                        Color::Red,
-                    )))
-                }
-            }
+        let err = match component {
+            UserInputType::Input(_) => InputBox::handle_event(app, key_code),
             UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
             UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
+        };
+        if err.is_err() {
+            app.append_layer(UserInputType::Message(MessageBox::new(
+                String::from("Error"),
+                err.err().unwrap().to_string(),
+                Color::Red,
+            )))
         }
         return;
     }

@@ -9,6 +9,7 @@ use tui::{
 
 use crate::{
     app::{App, UserInputType},
+    error::AppError,
     utils,
 };
 
@@ -48,16 +49,16 @@ impl DialogBox {
 }
 
 impl DialogBox {
-    pub fn handle_event(app: &mut App, key_code: KeyCode) {
+    pub fn handle_event(app: &mut App, key_code: KeyCode) -> Result<(), AppError> {
         // TODO: This is somewhat ugly, and pretty weird to get.
         let context = if let Some(UserInputType::Dialog(context)) = app.popup_context_mut() {
             context
         } else {
-            return;
+            return Err(AppError::InvalidContext);
         };
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
-                return;
+                return Ok(());
             }
         }
         utils::handle_movement(key_code, &mut context.index, context.options.len());
@@ -73,6 +74,7 @@ impl DialogBox {
             }
             _ => {}
         }
+        Ok(())
     }
 
     pub fn draw<B: tui::backend::Backend>(
