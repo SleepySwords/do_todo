@@ -21,6 +21,7 @@ pub fn centered_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect
         .split(popup_layout[1])[1]
 }
 
+// TODO: Why do we have three values for this again? Ideally it would just be two right?
 fn generate_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3] {
     match constraint {
         Constraint::Percentage(percent) => [
@@ -97,11 +98,23 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) {
 
 pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
     Table::new(items.into_iter().map(|(title, content)| {
-        // FIX: Spans are broken up even if they don't have a space
-        // FIX: This is because we would split based on spans not spaces.
-        // This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
-        // HACK: Factorise this
-        let acc = content.0.into_iter().fold((0, Text::raw("")), |acc, span| {
+        let text = wrap_text(content, width);
+
+        let height = text.height();
+        let cells = vec![Cell::from(title), Cell::from(text)];
+        Row::new(cells).height(height as u16).bottom_margin(1)
+    }))
+}
+
+// FIX: Spans are broken up even if they don't have a space
+// FIX: This is because we would split based on spans not spaces.
+// This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
+// HACK: Factorise this
+pub fn wrap_text(spans: Spans, width: usize) -> Text {
+    spans
+        .0
+        .into_iter()
+        .fold((0, Text::raw("")), |acc, span| {
             let mut current_width = acc.0;
             let mut text = acc.1;
             if current_width + span.width() < width {
@@ -132,12 +145,8 @@ pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Ta
                 }
                 (current_width, text)
             }
-        });
-
-        let height = acc.1.height();
-        let cells = vec![Cell::from(title), Cell::from(acc.1)];
-        Row::new(cells).height(height as u16).bottom_margin(1)
-    }))
+        })
+        .1
 }
 
 pub fn add_to_text<'a>(text: &mut Text<'a>, span: Span<'a>) {

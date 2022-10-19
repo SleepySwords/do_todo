@@ -1,61 +1,35 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use tui::style::Color;
 
 use crate::actions;
 use crate::component::completed_list::CompletedList;
-use crate::component::input_box::InputBoxComponent;
+use crate::component::input::dialog::DialogBox;
+use crate::component::input::input_box::InputBox;
+use crate::component::message_box::MessageBox;
 use crate::component::task_list::TaskList;
 use crate::{
-    app::{App, PopUpComponents, SelectedComponent},
+    app::{App, SelectedComponent, UserInputType},
     task::Task,
 };
 
 // PERF: Maybe we'll do a Component system if there is a way?
 
 pub fn handle_key(key_event: KeyEvent, app: &mut App) {
-    // HACK: Popping off the stack and the pushing back on is pretty jank just to avoid the errors from
-    // borrow checker
     let key_code = key_event.code;
-    if let Some(component) = app.popup_stack.pop() {
-        match component {
-            PopUpComponents::InputBox(mut component) => {
-                if component.handle_event(app, key_code).is_none() {
-                    return;
-                }
-                app.popup_stack.push(PopUpComponents::InputBox(component));
-            }
-            PopUpComponents::DialogBox(mut component) => {
-                if component.handle_event(app, key_code).is_none() {
-                    return;
-                }
-                if let KeyCode::Char(char) = key_code {
-                    if char == 'q' {
-                        return;
-                    }
-                }
-                app.popup_stack.push(PopUpComponents::DialogBox(component));
-            }
+    if let Some(component) = app.popup_stack.last() {
+        let err = match component {
+            UserInputType::Input(_) => InputBox::handle_event(app, key_code),
+            UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
+            UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
+        };
+        if err.is_err() {
+            app.append_layer(UserInputType::Message(MessageBox::new(
+                String::from("Error"),
+                err.err().unwrap().to_string(),
+                Color::Red,
+            )))
         }
         return;
-    }
-
-    // Universal keyboard shortcuts (should also be customisable)
-    match key_code {
-        KeyCode::Char('a') => {
-            app.popup_stack
-                .push(PopUpComponents::InputBox(InputBoxComponent::new(
-                    String::from("Add a task"),
-                    |app, mut word| {
-                        app.task_data.tasks.push(Task::from_string(
-                            word.drain(..).collect::<String>().trim().to_string(),
-                        ));
-                    },
-                )))
-        }
-        KeyCode::Char('1') => app.selected_component = SelectedComponent::CurrentTasks,
-        KeyCode::Char('2') => app.selected_component = SelectedComponent::CompletedTasks,
-        KeyCode::Char('x') => actions::open_help_menu(app),
-        KeyCode::Char('q') => app.shutdown(),
-        _ => {}
     }
 
     match app.selected_component {
@@ -63,4 +37,22 @@ pub fn handle_key(key_event: KeyEvent, app: &mut App) {
         SelectedComponent::CompletedTasks => CompletedList::handle_event(app, key_code),
         SelectedComponent::PopUpComponent => None,
     };
+
+    // Universal keyboard shortcuts (should also be customisable)
+    match key_code {
+        KeyCode::Char('a') => app.append_layer(UserInputType::Input(InputBox::new(
+            String::from("Add a task"),
+            |app, mut word| {
+                app.task_store.tasks.push(Task::from_string(
+                    word.drain(..).collect::<String>().trim().to_string(),
+                ));
+                Ok(())
+            },
+        ))),
+        KeyCode::Char('1') => app.selected_component = SelectedComponent::CurrentTasks,
+        KeyCode::Char('2') => app.selected_component = SelectedComponent::CompletedTasks,
+        KeyCode::Char('x') => actions::open_help_menu(app),
+        KeyCode::Char('q') => app.shutdown(),
+        _ => {}
+    }
 }

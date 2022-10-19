@@ -6,10 +6,10 @@ use tui::text::{Span, Spans};
 use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::HelpAction;
-use crate::app::{App, PopUpComponents, SelectedComponent};
+use crate::app::{App, SelectedComponent, UserInputType};
 use crate::{actions, utils};
 
-use super::input_box::InputBoxComponent;
+use super::input::input_box::InputBox;
 
 const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CurrentTasks;
 
@@ -22,13 +22,14 @@ impl TaskList {
 
     pub fn available_actions() -> Vec<HelpAction<'static>> {
         vec![
+            HelpAction::new(KeyCode::Char('c'), "c", "Completes the selected task"),
             HelpAction::new(KeyCode::Char('d'), "d", "Delete the selected task"),
+            HelpAction::new(KeyCode::Char('e'), "e", "Edits the selected task"),
             HelpAction::new(
                 KeyCode::Char('h'),
                 "h",
                 "Gives selected task lower priority",
             ),
-            HelpAction::new(KeyCode::Char('c'), "c", "Completes the selected task"),
             HelpAction::new(
                 KeyCode::Char('J'),
                 "J",
@@ -50,53 +51,55 @@ impl TaskList {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, selected_index),
             // Move this to the actions class
             KeyCode::Char('h') => {
-                if app.task_data.tasks.is_empty() {
+                if app.task_store.tasks.is_empty() {
                     return Some(());
                 }
-                app.task_data.tasks[selected_index].priority =
-                    app.task_data.tasks[selected_index].priority.next_priority();
+                app.task_store.tasks[selected_index].priority = app.task_store.tasks
+                    [selected_index]
+                    .priority
+                    .next_priority();
             }
             KeyCode::Char('J') => {
-                let task_length = app.task_data.tasks.len();
-                let task = app.task_data.tasks.remove(app.selected_task_index);
-                app.task_data
+                let task_length = app.task_store.tasks.len();
+                let task = app.task_store.tasks.remove(app.selected_task_index);
+                app.task_store
                     .tasks
                     .insert((app.selected_task_index + 1) % task_length, task);
                 app.selected_task_index = (app.selected_task_index + 1) % task_length;
             }
             KeyCode::Char('K') => {
-                let task_length = app.task_data.tasks.len();
-                let task = app.task_data.tasks.remove(app.selected_task_index);
+                let task_length = app.task_store.tasks.len();
+                let task = app.task_store.tasks.remove(app.selected_task_index);
                 if app.selected_task_index == 0 {
-                    app.task_data.tasks.insert(task_length - 1, task);
+                    app.task_store.tasks.insert(task_length - 1, task);
                     app.selected_task_index = task_length - 1;
                 } else {
-                    app.task_data
+                    app.task_store
                         .tasks
                         .insert((app.selected_task_index - 1) % task_length, task);
                     app.selected_task_index = (app.selected_task_index - 1) % task_length;
                 }
             }
             KeyCode::Char('e') => {
-                app.popup_stack
-                    .push(PopUpComponents::InputBox(InputBoxComponent::filled(
-                        // TODO: cleanup this so it doesn't use clone, perhaps use references?
-                        String::from("Edit the  selected task"),
-                        app.task_data.tasks[selected_index].title.clone(),
-                        // This move is kinda jank not too sure, may try to find a better way
-                        Box::new(move |app, mut word| {
-                            app.task_data.tasks[selected_index].title =
-                                word.drain(..).collect::<String>().trim().to_string();
-                        }),
-                    )))
+                app.append_layer(UserInputType::Input(InputBox::filled(
+                    // TODO: cleanup this so it doesn't use clone, perhaps use references?
+                    String::from("Edit the  selected task"),
+                    app.task_store.tasks[selected_index].title.clone(),
+                    // This move is kinda jank not too sure, may try to find a better way
+                    Box::new(move |app, mut word| {
+                        app.task_store.tasks[selected_index].title =
+                            word.drain(..).collect::<String>().trim().to_string();
+                        Ok(())
+                    }),
+                )))
             }
             KeyCode::Char('t') => actions::tag_menu(app, selected_index),
             KeyCode::Enter => {
-                if app.task_data.tasks.is_empty() {
+                if app.task_store.tasks.is_empty() {
                     return Some(());
                 }
-                app.task_data.tasks[selected_index].progress =
-                    !app.task_data.tasks[selected_index].progress;
+                app.task_store.tasks[selected_index].progress =
+                    !app.task_store.tasks[selected_index].progress;
             }
             KeyCode::Char('c') => actions::complete_task(app, selected_index),
             _ => {}
@@ -104,19 +107,15 @@ impl TaskList {
         utils::handle_movement(
             key_code,
             &mut app.selected_task_index,
-            app.task_data.tasks.len(),
+            app.task_store.tasks.len(),
         );
         Some(())
     }
 
-    pub fn draw<B: tui::backend::Backend>(
-        app: &App,
-        layout_chunk: Rect,
-        frame: &mut tui::Frame<B>,
-    ) {
+    pub fn draw<B: tui::backend::Backend>(app: &App, draw_area: Rect, frame: &mut tui::Frame<B>) {
         let theme = &app.theme;
         let tasks: Vec<ListItem> = app
-            .task_data
+            .task_store
             .tasks
             .iter()
             .enumerate()
@@ -131,7 +130,7 @@ impl TaskList {
                 };
 
                 let progress = Span::styled(
-                    if task.progress { "[-] " } else { "[ ] " },
+                    if task.progress { "[~] " } else { "[ ] " },
                     style.fg(
                         if COMPONENT_TYPE == app.selected_component && *Self::selected(app) == i {
                             theme.selected_task_colour
@@ -177,6 +176,6 @@ impl TaskList {
             None
         });
 
-        frame.render_stateful_widget(current, layout_chunk, &mut state);
+        frame.render_stateful_widget(current, draw_area, &mut state);
     }
 }

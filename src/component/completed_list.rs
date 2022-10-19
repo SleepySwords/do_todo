@@ -30,24 +30,23 @@ impl CompletedList {
         utils::handle_movement(
             key_code,
             &mut app.selected_completed_task_index,
-            app.task_data.completed_tasks.len(),
+            app.task_store.completed_tasks.len(),
         );
+
         let selected_index = *Self::selected(app);
+
         if let KeyCode::Char('r') = key_code {
             actions::restore_task(app, selected_index)
         }
+
         Some(())
     }
 
-    pub fn draw<B: tui::backend::Backend>(
-        app: &App,
-        layout_chunk: Rect,
-        frame: &mut tui::Frame<B>,
-    ) {
+    pub fn draw<B: tui::backend::Backend>(app: &App, draw_area: Rect, frame: &mut tui::Frame<B>) {
         let theme = &app.theme;
 
         let completed_tasks: Vec<ListItem> = app
-            .task_data
+            .task_store
             .completed_tasks
             .iter()
             .enumerate()
@@ -66,7 +65,7 @@ impl CompletedList {
                     format!(
                         "{} {}",
                         task.time_completed.format("%d/%m/%y %-I:%M:%S %p"),
-                        task.title
+                        task.task.title
                     ),
                     Style::default().fg(colour),
                 ));
@@ -83,14 +82,14 @@ impl CompletedList {
             .style(Style::default().fg(Color::White));
 
         let mut completed_state = ListState::default();
-        if !app.task_data.completed_tasks.is_empty() {
+        if !app.task_store.completed_tasks.is_empty() {
             let index = match app.selected_component {
                 SelectedComponent::CompletedTasks => app.selected_completed_task_index,
-                _ => app.task_data.completed_tasks.len() - 1,
+                _ => app.task_store.completed_tasks.len() - 1,
             };
             completed_state.select(Some(index));
         }
 
-        frame.render_stateful_widget(recently_competed, layout_chunk, &mut completed_state);
+        frame.render_stateful_widget(recently_competed, draw_area, &mut completed_state);
     }
 }

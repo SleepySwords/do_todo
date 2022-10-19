@@ -2,7 +2,9 @@ mod actions;
 mod app;
 mod component;
 mod config;
+mod error;
 mod input;
+mod screens;
 mod task;
 mod test;
 mod theme;
@@ -40,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     fs::write(
         dirs::home_dir().unwrap().join(".config/dtb/data.json"),
-        serde_json::to_string(&app.task_data)?,
+        serde_json::to_string(&app.task_store)?,
     )?;
 
     // Cleanup
@@ -59,7 +61,7 @@ pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::R
         terminal.draw(|f| ui::render_ui(app, f))?;
 
         // This function blocks
-        // Perhaps should use poll so we could have a tick system
+        // TODO: We are probably going to have to implement a Tick system eventually.
         if let Event::Key(key) = event::read()? {
             if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
                 app.shutdown();
