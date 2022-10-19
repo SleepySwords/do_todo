@@ -1,9 +1,13 @@
 use chrono::Local;
 use crossterm::event::{KeyCode, KeyModifiers};
+use tui::style::Color;
 
 use crate::{
     app::{App, PopUpComponents, SelectedComponent},
-    component::dialog::{DialogAction, DialogComponent},
+    component::{
+        dialog::{DialogAction, DialogComponent},
+        input_box::InputBoxComponent,
+    },
     input::handle_key,
     task::{CompletedTask, Task},
 };
@@ -30,7 +34,7 @@ impl HelpAction<'_> {
 }
 
 pub fn open_help_menu(app: &mut App) {
-    // Tasks that are universal
+    // Tasks that are universal, should use a table?
     let mut actions: Vec<DialogAction> = vec![
         DialogAction::new(String::from("1    Change to current task window"), |app| {
             app.selected_component = SelectedComponent::CurrentTasks;
@@ -64,7 +68,7 @@ pub fn open_help_menu(app: &mut App) {
         )));
 }
 
-pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
+pub fn open_delete_task_menu(app: &mut App, selected_index: usize) {
     if app.task_data.tasks.is_empty() {
         return;
     }
@@ -73,8 +77,9 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
             "Delete selected task".to_string(),
             vec![
                 DialogAction::new(String::from("Delete"), move |app| {
-                    app.task_data.tasks.remove(selected_task);
-                    if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty()
+                    app.task_data.tasks.remove(selected_index);
+                    if selected_index == app.task_data.tasks.len()
+                        && !app.task_data.tasks.is_empty()
                     {
                         app.selected_task_index -= 1;
                     }
@@ -84,31 +89,117 @@ pub fn open_delete_task_menu(app: &mut App, selected_task: usize) {
         )));
 }
 
-pub fn restore_task(app: &mut App, selected_task: usize) {
+pub fn restore_task(app: &mut App, selected_index: usize) {
     if app.task_data.completed_tasks.is_empty() {
         return;
     }
     app.task_data.tasks.push(Task::from_completed_task(
-        app.task_data.completed_tasks.remove(selected_task),
+        app.task_data.completed_tasks.remove(selected_index),
     ));
-    if selected_task == app.task_data.completed_tasks.len()
+    if selected_index == app.task_data.completed_tasks.len()
         && !app.task_data.completed_tasks.is_empty()
     {
         app.selected_completed_task_index -= 1;
     }
 }
 
-pub fn complete_task(app: &mut App, selected_task: usize) {
+pub fn complete_task(app: &mut App, selected_index: usize) {
     if app.task_data.tasks.is_empty() {
         return;
     }
     let local = Local::now();
     let time_completed = local.naive_local();
-    let task = app.task_data.tasks.remove(selected_task);
+    let task = app.task_data.tasks.remove(selected_index);
     app.task_data
         .completed_tasks
         .push(CompletedTask::from_task(task, time_completed));
-    if selected_task == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
+    if selected_index == app.task_data.tasks.len() && !app.task_data.tasks.is_empty() {
         app.selected_task_index -= 1;
     }
+}
+
+// TODO: Add a way to remove tags
+pub fn tag_menu(app: &mut App, selected_index: usize) {
+    if app.task_data.tasks.is_empty() {
+        return;
+    }
+
+    let mut tags_options: Vec<DialogAction> = Vec::new();
+
+    // Loops through the tags and adds them to the menu.
+    for (i, tag) in app.task_data.tags.iter() {
+        let moved: u32 = *i;
+        // TODO: Allow for DialogBox to support colours.
+        tags_options.push(DialogAction::new(String::from(&tag.name), move |app| {
+            app.task_data.tasks[selected_index].flip_tag(moved);
+        }));
+    }
+
+    // Menu to add a new tag
+    tags_options.push(DialogAction::new(String::from("New tag"), |app| {
+        app.popup_stack
+            .push(PopUpComponents::InputBox(InputBoxComponent::new(
+                String::from("Tag name"),
+                |app, tag_name| {
+                    app.popup_stack
+                        .push(PopUpComponents::InputBox(InputBoxComponent::new(
+                            String::from("Tag colour"),
+                            move |app, tag_colour| {
+                                // FIX: Actually have proper error handling with an error enum
+                                // TODO: Add colour word support (ie: green, blue, red, orange)
+                                let red = u8::from_str_radix(&tag_colour[0..2], 16).unwrap();
+                                let green = u8::from_str_radix(&tag_colour[2..4], 16).unwrap();
+                                let blue = u8::from_str_radix(&tag_colour[4..6], 16).unwrap();
+                                let last_key = app.task_data.tags.keys().last().unwrap();
+                                app.task_data.tags.insert(
+                                    *last_key + 1,
+                                    crate::task::Tag {
+                                        // FIX: I can't be bothered fixing this ownership problem
+                                        name: tag_name.to_owned(),
+                                        colour: Color::Rgb(red, green, blue),
+                                    },
+                                );
+                            },
+                        )));
+                },
+            )));
+    }));
+    tags_options.push(DialogAction::new(String::from("Clear tags"), move |app| {
+        app.task_data.tasks[selected_index].tags.clear();
+    }));
+    tags_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+    app.popup_stack
+        .push(PopUpComponents::DialogBox(DialogComponent::new(
+            "Add or remove a tag".to_string(),
+            tags_options,
+        )));
+}
+
+// TODO: Maybe later
+fn remove_tag(app: &mut App) {
+    if app.task_data.tasks.is_empty() {
+        return;
+    }
+
+    let mut tags_options: Vec<DialogAction> = Vec::new();
+
+    // Loops through the tags and adds them to the menu.
+    for (i, tag) in app.task_data.tags.iter() {
+        let moved: u32 = *i;
+        tags_options.push(DialogAction::new(
+            String::from(tag.name.to_owned()),
+            move |app| {
+                // app.task_data.tags.retain(|k, v| v != tag);
+                // FIX: Very unsafe, need more error handling
+                for x in &mut app.task_data.tasks {
+                    x.tags.remove(moved.try_into().unwrap());
+                }
+            },
+        ));
+    }
+    app.popup_stack
+        .push(PopUpComponents::DialogBox(DialogComponent::new(
+            "Delete a tag".to_string(),
+            tags_options,
+        )));
 }

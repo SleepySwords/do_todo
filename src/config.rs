@@ -2,6 +2,7 @@ use std::{error::Error, fs, path::Path};
 
 use crate::{app::TaskData, task::Task, theme::Theme};
 
+// FIX: Proper handling
 pub fn get_config() -> Result<(Theme, TaskData), Box<dyn Error>> {
     match dirs::home_dir() {
         Some(home_dir) => {

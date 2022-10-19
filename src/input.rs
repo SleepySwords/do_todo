@@ -9,10 +9,10 @@ use crate::{
     task::Task,
 };
 
-// Maybe we'll do a Component system if there is a way?
+// PERF: Maybe we'll do a Component system if there is a way?
 
 pub fn handle_key(key_event: KeyEvent, app: &mut App) {
-    // Popping off the stack and the pushing back on is pretty jank just to avoid the errors from
+    // HACK: Popping off the stack and the pushing back on is pretty jank just to avoid the errors from
     // borrow checker
     let key_code = key_event.code;
     if let Some(component) = app.popup_stack.pop() {

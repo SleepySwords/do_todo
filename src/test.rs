@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod actions {
+    use std::collections::BTreeMap;
+
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     use crate::{
@@ -35,6 +37,7 @@ mod actions {
             TaskData {
                 tasks: vec![Task::from_string(String::from("meme"))],
                 completed_tasks: vec![],
+                tags: BTreeMap::new(),
             },
         );
         input_char('e', &mut app);
@@ -51,6 +54,7 @@ mod actions {
             TaskData {
                 tasks: vec![Task::from_string(String::from("meme"))],
                 completed_tasks: vec![],
+                tags: BTreeMap::new(),
             },
         );
         input_char('d', &mut app);
@@ -65,6 +69,7 @@ mod actions {
             TaskData {
                 tasks: vec![Task::from_string(String::from("meme"))],
                 completed_tasks: vec![],
+                tags: BTreeMap::new(),
             },
         );
         input_char('d', &mut app);
@@ -76,6 +81,8 @@ mod actions {
 
 #[cfg(test)]
 mod movement {
+    use std::collections::BTreeMap;
+
     use crate::{
         app::{App, TaskData},
         task::Task,
@@ -92,6 +99,7 @@ mod movement {
                     Task::from_string(String::from("based")),
                 ],
                 completed_tasks: vec![],
+                tags: BTreeMap::new(),
             },
         );
         input_char('j', &mut app);

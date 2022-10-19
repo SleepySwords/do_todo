@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::actions::HelpAction;
@@ -5,10 +7,8 @@ use crate::component::completed_list::CompletedList;
 use crate::component::dialog::DialogComponent;
 use crate::component::input_box::InputBoxComponent;
 use crate::component::task_list::TaskList;
-use crate::task::{CompletedTask, Task};
+use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
-
-// Consider either putting all the data in app or using something such as Rc and RefCells?
 
 #[derive(Default)]
 pub struct App {
@@ -31,10 +31,14 @@ pub enum PopUpComponents {
 
 #[derive(Deserialize, Default, Serialize)]
 pub struct TaskData {
+    // eventually convert to vec
+    pub tags: BTreeMap<u32, Tag>,
+
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
 }
 
+// TODO: Refactor drawing system to allow screens or something, more complex modules
 impl App {
     pub fn new(theme: Theme, task_data: TaskData) -> App {
         App {

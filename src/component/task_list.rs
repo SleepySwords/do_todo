@@ -39,6 +39,7 @@ impl TaskList {
                 "K",
                 "Moves the task up on the task list",
             ),
+            HelpAction::new(KeyCode::Char('t'), "t", "Add tags to the task"),
         ]
     }
 
@@ -47,8 +48,7 @@ impl TaskList {
         let selected_index = *Self::selected(app);
         match key_code {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, selected_index),
-            // todo proper deletion/popup
-            // app.action = Action::Delete(selected_index, 0)
+            // Move this to the actions class
             KeyCode::Char('h') => {
                 if app.task_data.tasks.is_empty() {
                     return Some(());
@@ -57,17 +57,14 @@ impl TaskList {
                     app.task_data.tasks[selected_index].priority.next_priority();
             }
             KeyCode::Char('J') => {
-                // if key_event.modifiers.contains(KeyModifiers::CONTROL) {
                 let task_length = app.task_data.tasks.len();
                 let task = app.task_data.tasks.remove(app.selected_task_index);
                 app.task_data
                     .tasks
                     .insert((app.selected_task_index + 1) % task_length, task);
                 app.selected_task_index = (app.selected_task_index + 1) % task_length;
-                // }
             }
             KeyCode::Char('K') => {
-                // if key_event.modifiers.contains(KeyModifiers::CONTROL) {
                 let task_length = app.task_data.tasks.len();
                 let task = app.task_data.tasks.remove(app.selected_task_index);
                 if app.selected_task_index == 0 {
@@ -79,7 +76,6 @@ impl TaskList {
                         .insert((app.selected_task_index - 1) % task_length, task);
                     app.selected_task_index = (app.selected_task_index - 1) % task_length;
                 }
-                // }
             }
             KeyCode::Char('e') => {
                 app.popup_stack
@@ -94,6 +90,7 @@ impl TaskList {
                         }),
                     )))
             }
+            KeyCode::Char('t') => actions::tag_menu(app, selected_index),
             KeyCode::Enter => {
                 if app.task_data.tasks.is_empty() {
                     return Some(());
@@ -124,6 +121,8 @@ impl TaskList {
             .iter()
             .enumerate()
             .map(|(i, task)| {
+                let mut spans = Vec::new();
+
                 let style = if COMPONENT_TYPE == app.selected_component && *Self::selected(app) == i
                 {
                     Style::default().add_modifier(Modifier::BOLD)
@@ -141,19 +140,29 @@ impl TaskList {
                         },
                     ),
                 );
+                spans.push(progress);
 
                 let priority = Span::styled(
                     task.priority.short_hand(),
                     style.fg(task.priority.colour(theme)),
                 );
+                spans.push(priority);
 
                 let content = Span::styled(
                     task.title.as_str(),
                     // style.fg(task.priority.colour(theme)),
                     style,
                 );
+                spans.push(content);
 
-                let content = Spans::from(vec![progress, priority, content]);
+                if !task.tags.is_empty() {
+                    let tag = task.first_tag(app).unwrap();
+                    let tag_label =
+                        Span::styled(format!(" ({})", tag.name), Style::default().fg(tag.colour));
+                    spans.push(tag_label);
+                }
+
+                let content = Spans::from(spans);
                 ListItem::new(content)
             })
             .collect();

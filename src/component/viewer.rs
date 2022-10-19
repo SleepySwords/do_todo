@@ -2,7 +2,7 @@ use tui::{
     backend::Backend,
     layout::{Constraint, Rect},
     style::Style,
-    text::Span,
+    text::{Span, Spans},
     widgets::{Block, Borders},
     Frame,
 };
@@ -55,13 +55,36 @@ fn draw_task_viewer<B: Backend>(app: &App, block: Block, layout_chunk: Rect, f: 
     let task = &app.task_data.tasks[app.selected_task_index];
 
     let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
+    let tags_name = if task.tags.is_empty() {
+        Spans::from("None")
+    } else {
+        let size = task.tags.len();
+        let spans = task
+            .tags
+            .iter()
+            .enumerate()
+            .fold(Vec::new(), |mut acc, (i, tag)| {
+                let colour = Style::default().fg(app.task_data.tags[tag].colour);
+                let name = app.task_data.tags[tag].name.to_owned();
+                acc.push(Span::styled(name, colour));
+                if i != size - 1 {
+                    acc.push(Span::raw(", "));
+                }
+                acc
+            });
+        Spans::from(spans)
+    };
+
     let items = vec![
-        (Span::raw("Title"), &task.title as &str, Style::default()),
+        (Span::raw("Title"), Spans::from(&task.title as &str)),
         (
             Span::raw("Priority"),
-            task.priority.display_string(),
-            Style::default().fg(task.priority.colour(theme)),
+            Spans::from(Span::styled(
+                task.priority.display_string(),
+                Style::default().fg(task.priority.colour(theme)),
+            )),
         ),
+        (Span::raw("Tags"), tags_name),
     ];
 
     let table = utils::generate_table(items, constraints[1].apply(layout_chunk.width) as usize - 2)
@@ -85,11 +108,10 @@ fn draw_completed_task_viewer<B: Backend>(
 
     let constraints = [Constraint::Percentage(25), Constraint::Percentage(75)];
     let items = vec![
-        (Span::raw("Title"), &task.title as &str, Style::default()),
+        (Span::raw("Title"), Spans::from(&task.title as &str)),
         (
             Span::raw("Date Completed"),
-            &completed_time,
-            Style::default(),
+            Spans::from(&completed_time as &str),
         ),
     ];
 
