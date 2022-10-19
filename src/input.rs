@@ -4,7 +4,6 @@ use tui::style::Color;
 use crate::actions;
 use crate::component::completed_list::CompletedList;
 use crate::component::input::dialog::DialogBox;
-use crate::component::input::form::Form;
 use crate::component::input::input_box::InputBox;
 use crate::component::message_box::MessageBox;
 use crate::component::task_list::TaskList;
@@ -19,20 +18,19 @@ pub fn handle_key(key_event: KeyEvent, app: &mut App) {
     let key_code = key_event.code;
     if let Some(component) = app.popup_stack.last() {
         match component {
-            UserInputType::InputBox(_) => {
+            UserInputType::Input(_) => {
                 // TODO: more generalised error handling
                 let err = InputBox::handle_event(app, key_code);
                 if err.is_err() {
-                    app.append_layer(UserInputType::MessageBox(MessageBox::new(
+                    app.append_layer(UserInputType::Message(MessageBox::new(
                         String::from("Error"),
                         err.err().unwrap().to_string(),
                         Color::Red,
                     )))
                 }
             }
-            UserInputType::DialogBox(_) => DialogBox::handle_event(app, key_code),
-            UserInputType::MessageBox(_) => MessageBox::handle_event(app, key_code),
-            UserInputType::Form(_) => Form::handle_event(app, key_code),
+            UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
+            UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
         }
         return;
     }
@@ -45,7 +43,7 @@ pub fn handle_key(key_event: KeyEvent, app: &mut App) {
 
     // Universal keyboard shortcuts (should also be customisable)
     match key_code {
-        KeyCode::Char('a') => app.append_layer(UserInputType::InputBox(InputBox::new(
+        KeyCode::Char('a') => app.append_layer(UserInputType::Input(InputBox::new(
             String::from("Add a task"),
             |app, mut word| {
                 app.task_store.tasks.push(Task::from_string(

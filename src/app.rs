@@ -7,7 +7,6 @@ use tui::style::Color;
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
 use crate::component::input::dialog::DialogBox;
-use crate::component::input::form::Form;
 use crate::component::input::input_box::InputBox;
 use crate::component::message_box::MessageBox;
 use crate::component::status_line::StatusLine;
@@ -22,6 +21,8 @@ use crate::theme::Theme;
 // Universal variables should be in app (Tasks, themes)
 
 // TODO: Refactor drawing system to allow screens or something, more complex modules
+// Use a queue like system to basically ensure that no modules are removed.
+// IDs? But that's a bit excessive.
 
 #[derive(Default)]
 pub struct App {
@@ -78,29 +79,27 @@ impl App {
 }
 
 pub enum UserInputType {
-    InputBox(InputBox),
-    DialogBox(DialogBox),
-    MessageBox(MessageBox),
-    Form(Form),
+    Input(InputBox),
+    Dialog(DialogBox),
+    Message(MessageBox),
 }
 
 impl UserInputType {
     pub fn handle_event(&self, app: &mut App, key_code: KeyCode) {
         match self {
-            UserInputType::InputBox(_) => {
+            UserInputType::Input(_) => {
                 // TODO: more generalised error handling
                 let err = InputBox::handle_event(app, key_code);
                 if err.is_err() {
-                    app.append_layer(UserInputType::MessageBox(MessageBox::new(
+                    app.append_layer(UserInputType::Message(MessageBox::new(
                         String::from("Error"),
                         err.err().unwrap().to_string(),
                         Color::Red,
                     )))
                 }
             }
-            UserInputType::DialogBox(_) => DialogBox::handle_event(app, key_code),
-            UserInputType::MessageBox(_) => MessageBox::handle_event(app, key_code),
-            UserInputType::Form(_) => Form::handle_event(app, key_code),
+            UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
+            UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
         }
     }
 }

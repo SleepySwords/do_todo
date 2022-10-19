@@ -49,7 +49,7 @@ impl MainScreenLayer {
 
         if let Some(component) = app.popup_stack.last() {
             match component {
-                UserInputType::InputBox(component) => {
+                UserInputType::Input(component) => {
                     let layout_chunk = utils::centered_rect(
                         Constraint::Percentage(70),
                         Constraint::Length(
@@ -59,7 +59,7 @@ impl MainScreenLayer {
                     );
                     component.draw(app, layout_chunk, f)
                 }
-                UserInputType::DialogBox(component) => {
+                UserInputType::Dialog(component) => {
                     let layout_chunk = utils::centered_rect(
                         Constraint::Percentage(70),
                         Constraint::Length(component.options.len() as u16 + 2),
@@ -67,7 +67,7 @@ impl MainScreenLayer {
                     );
                     component.draw(app, layout_chunk, f)
                 }
-                UserInputType::MessageBox(component) => {
+                UserInputType::Message(component) => {
                     let layout_chunk = utils::centered_rect(
                         Constraint::Percentage(70),
                         Constraint::Percentage(30),
@@ -75,7 +75,6 @@ impl MainScreenLayer {
                     );
                     component.draw(app, layout_chunk, f)
                 }
-                UserInputType::Form(_) => {}
             }
         }
     }

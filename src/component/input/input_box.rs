@@ -42,7 +42,7 @@ impl InputBox {
     }
 
     pub fn handle_event(app: &mut App, key_code: KeyCode) -> Result<(), AppError> {
-        let context = if let Some(UserInputType::InputBox(context)) = app.popup_context_mut() {
+        let context = if let Some(UserInputType::Input(context)) = app.popup_context_mut() {
             context
         } else {
             return Ok(());
@@ -50,10 +50,10 @@ impl InputBox {
         match key_code {
             KeyCode::Enter => {
                 if !context.user_input.join("\n").is_empty() {
-                    if let Some(UserInputType::InputBox(context)) = app.pop_popup() {
+                    if let Some(UserInputType::Input(context)) = app.pop_popup() {
                         let err = (context.callback)(app, context.user_input.join("\n"));
                         if err.is_err() {
-                            app.append_layer(UserInputType::InputBox(context));
+                            app.append_layer(UserInputType::Input(context));
                             return err;
                         }
                     }

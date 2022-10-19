@@ -80,7 +80,7 @@ impl TaskList {
                 }
             }
             KeyCode::Char('e') => {
-                app.append_layer(UserInputType::InputBox(InputBox::filled(
+                app.append_layer(UserInputType::Input(InputBox::filled(
                     // TODO: cleanup this so it doesn't use clone, perhaps use references?
                     String::from("Edit the  selected task"),
                     app.task_store.tasks[selected_index].title.clone(),

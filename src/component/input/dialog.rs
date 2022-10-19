@@ -50,7 +50,7 @@ impl DialogBox {
 impl DialogBox {
     pub fn handle_event(app: &mut App, key_code: KeyCode) {
         // TODO: This is somewhat ugly, and pretty weird to get.
-        let context = if let Some(UserInputType::DialogBox(context)) = app.popup_context_mut() {
+        let context = if let Some(UserInputType::Dialog(context)) = app.popup_context_mut() {
             context
         } else {
             return;
@@ -63,7 +63,7 @@ impl DialogBox {
         utils::handle_movement(key_code, &mut context.index, context.options.len());
         match key_code {
             KeyCode::Enter => {
-                if let Some(UserInputType::DialogBox(context)) = app.pop_popup() {
+                if let Some(UserInputType::Dialog(context)) = app.pop_popup() {
                     (context.options[context.index].function)(app);
                 }
             }

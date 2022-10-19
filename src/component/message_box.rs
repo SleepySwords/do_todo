@@ -24,7 +24,7 @@ impl MessageBox {
     }
 
     pub fn handle_event(app: &mut App, _: KeyCode) {
-        if let Some(UserInputType::MessageBox(_)) = app.popup_context_mut() {
+        if let Some(UserInputType::Message(_)) = app.popup_context_mut() {
             app.pop_popup();
         }
     }
