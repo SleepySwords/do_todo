@@ -133,10 +133,11 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
     }
 
     // Menu to add a new tag
-    tags_options.push(DialogAction::new(String::from("New tag"), |app| {
+    // FIX: ooof this is some ugly ass code
+    tags_options.push(DialogAction::new(String::from("New tag"), move |app| {
         app.append_layer(UserInputType::Input(InputBox::new(
             String::from("Tag name"),
-            |app, tag_name| {
+            move |app, tag_name| {
                 app.append_layer(UserInputType::Input(InputBox::new(
                     String::from("Tag colour"),
                     move |app, tag_colour| {
@@ -145,15 +146,16 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
                         let red = u8::from_str_radix(&tag_colour[0..2], 16)?;
                         let green = u8::from_str_radix(&tag_colour[2..4], 16)?;
                         let blue = u8::from_str_radix(&tag_colour[4..6], 16)?;
-                        let last_key = app.task_store.tags.keys().last().unwrap();
+                        let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
                         app.task_store.tags.insert(
-                            *last_key + 1,
+                            tag_id,
                             crate::task::Tag {
                                 // FIX: I can't be bothered fixing this ownership problem
                                 name: tag_name.to_owned(),
                                 colour: Color::Rgb(red, green, blue),
                             },
                         );
+                        app.task_store.tasks[selected_index].flip_tag(tag_id);
                         Ok(())
                     },
                 )));
@@ -170,28 +172,3 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
         tags_options,
     )));
 }
-
-// TODO: Maybe later
-// fn remove_tag(app: &mut App) {
-//     if app.task_store.tasks.is_empty() {
-//         return;
-//     }
-
-//     let mut tags_options: Vec<DialogAction> = Vec::new();
-
-//     // Loops through the tags and adds them to the menu.
-//     for (i, tag) in app.task_store.tags.iter() {
-//         let moved: u32 = *i;
-//         tags_options.push(DialogAction::new(tag.name.to_owned(), move |app| {
-//             // app.task_data.tags.retain(|k, v| v != tag);
-//             // FIX: Very unsafe, need more error handling
-//             for x in &mut app.task_store.tasks {
-//                 x.tags.remove(moved.try_into().unwrap());
-//             }
-//         }));
-//     }
-//     app.append_layer(UserInputType::DialogBox(DialogBox::new(
-//         "Delete a tag".to_string(),
-//         tags_options,
-//     )));
-// }
