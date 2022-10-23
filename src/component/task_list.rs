@@ -22,6 +22,7 @@ impl TaskList {
 
     pub fn available_actions() -> Vec<HelpAction<'static>> {
         vec![
+            HelpAction::new(KeyCode::Char('a'), "a", "Adds a task"),
             HelpAction::new(KeyCode::Char('c'), "c", "Completes the selected task"),
             HelpAction::new(KeyCode::Char('d'), "d", "Delete the selected task"),
             HelpAction::new(KeyCode::Char('e'), "e", "Edits the selected task"),

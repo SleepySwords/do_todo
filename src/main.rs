@@ -19,7 +19,7 @@ use crossterm::{
 };
 
 use std::error::Error;
-use std::{fs, io};
+use std::io;
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -32,7 +32,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let (theme, tasks) = config::get_config()?;
+    // TODO: Should try and recover if it fails
+    let (theme, tasks) = config::get_data()?;
     let mut app = App::new(theme, tasks);
     let result = start_app(&mut app, &mut terminal);
 
@@ -40,12 +41,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{:?}", err)
     }
 
-    fs::write(
-        dirs::home_dir().unwrap().join(".config/dtb/data.json"),
-        serde_json::to_string(&app.task_store)?,
-    )?;
+    // Shutting down application
 
-    // Cleanup
+    config::save_data(&app.theme, &app.task_store)?;
+
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
