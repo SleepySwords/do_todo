@@ -2,8 +2,9 @@ use std::{error::Error, fs, path::Path};
 
 use crate::{app::TaskStore, task::Task, theme::Theme};
 
-// FIX: Proper handling
-pub fn get_config() -> Result<(Theme, TaskStore), Box<dyn Error>> {
+// FIX: Proper handling, data should not be stored in the config file and needes testing
+// Add a swp file.
+pub fn get_data() -> Result<(Theme, TaskStore), Box<dyn Error>> {
     match dirs::home_dir() {
         Some(home_dir) => {
             let config_path = Path::new(&home_dir).join(".config/dtb/config.yml");

@@ -1,14 +1,17 @@
 use crossterm::event::KeyCode;
 
-use tui::layout::Rect;
+use tui::layout::{Constraint, Rect};
 use tui::style::Style;
 use tui::{
     text::Text,
     widgets::{Block, Borders, Clear, Paragraph},
 };
 
-use crate::app::{App, UserInputType};
+use crate::app::App;
+use crate::component::message_box::MessageBox;
 use crate::error::AppError;
+use crate::utils;
+use crate::view::{DrawableComponent, EventResult};
 
 type InputBoxCallback = Box<dyn Fn(&mut App, String) -> Result<(), AppError>>;
 
@@ -40,57 +43,15 @@ impl InputBox {
             callback,
         }
     }
+}
 
-    pub fn handle_event(app: &mut App, key_code: KeyCode) -> Result<(), AppError> {
-        let context = if let Some(UserInputType::Input(context)) = app.popup_context_mut() {
-            context
-        } else {
-            return Ok(());
-        };
-        match key_code {
-            KeyCode::Enter => {
-                if !context.user_input.join("\n").is_empty() {
-                    if let Some(UserInputType::Input(context)) = app.pop_popup() {
-                        let err = (context.callback)(app, context.user_input.join("\n"));
-                        if err.is_err() {
-                            app.append_layer(UserInputType::Input(context));
-                            return err;
-                        }
-                    }
-                }
-            }
-            KeyCode::Char(char) => {
-                if let Some(x) = context.user_input.last_mut() {
-                    x.push(char);
-                }
-            }
-            KeyCode::Backspace => {
-                if let Some(x) = context.user_input.last_mut() {
-                    if x.is_empty() {
-                        if context.user_input.len() > 1 {
-                            context.user_input.pop();
-                        }
-                    } else {
-                        x.pop();
-                    }
-                }
-            }
-            KeyCode::Tab => context.user_input.push(String::default()),
-            KeyCode::Esc => {
-                app.pop_popup();
-            }
-            _ => {}
-        }
-
-        Ok(())
-    }
-
-    pub fn draw<B: tui::backend::Backend>(
-        &self,
-        app: &App,
-        draw_area: Rect,
-        f: &mut tui::Frame<B>,
-    ) {
+impl DrawableComponent for InputBox {
+    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
+        let draw_area = utils::centre_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.user_input.len() as u16 + 2),
+            draw_area,
+        );
         let lines = self
             .user_input
             .iter()
@@ -118,13 +79,58 @@ impl InputBox {
                 .border_type(app.theme.border_style.border_type)
                 .title(self.title.as_ref()),
         );
-        f.render_widget(Clear, draw_area);
-        f.render_widget(input_box, draw_area);
+        drawer.draw_widget(Clear, draw_area);
+        drawer.draw_widget(input_box, draw_area);
 
         let current_line = lines.len() - 1;
-        f.set_cursor(
+        drawer.set_cursor(
             draw_area.x + 1 + lines[current_line].len() as u16,
             draw_area.y + 1 + current_line as u16,
         )
+    }
+
+    fn event(
+        &mut self,
+        app: &mut App,
+        key_code: crossterm::event::KeyCode,
+    ) -> crate::view::EventResult {
+        match key_code {
+            KeyCode::Enter => {
+                if !self.user_input.join("\n").is_empty() {
+                    app.pop_stack();
+                    let err = (self.callback)(app, self.user_input.join("\n"));
+                    if err.is_err() {
+                        app.append_stack(Box::new(MessageBox::new(
+                            String::from("Error"),
+                            err.err().unwrap().to_string(),
+                            tui::style::Color::Red,
+                        )));
+                    }
+                    return EventResult::Consumed;
+                }
+            }
+            KeyCode::Char(char) => {
+                if let Some(x) = self.user_input.last_mut() {
+                    x.push(char);
+                }
+            }
+            KeyCode::Backspace => {
+                if let Some(x) = self.user_input.last_mut() {
+                    if x.is_empty() {
+                        if self.user_input.len() > 1 {
+                            self.user_input.pop();
+                        }
+                    } else {
+                        x.pop();
+                    }
+                }
+            }
+            KeyCode::Tab => self.user_input.push(String::default()),
+            KeyCode::Esc => {
+                app.pop_stack();
+            }
+            _ => {}
+        }
+        EventResult::Consumed
     }
 }

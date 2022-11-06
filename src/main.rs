@@ -10,6 +10,7 @@ mod test;
 mod theme;
 mod ui;
 mod utils;
+mod view;
 
 use app::App;
 use crossterm::{
@@ -17,11 +18,13 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use screens::main_screen::MainScreenLayer;
+use view::{DrawBackend, StackLayout, Drawer, DrawableComponent};
 
-use std::error::Error;
-use std::{fs, io};
+use std::{error::Error, io::Stdout};
+use std::io;
 use tui::{
-    backend::{Backend, CrosstermBackend},
+    backend::CrosstermBackend,
     Terminal,
 };
 
@@ -32,9 +35,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let (theme, tasks) = config::get_config()?;
+    let (theme, tasks) = config::get_data()?;
     let mut app = App::new(theme, tasks);
+    terminal.draw(|f| {
+        DrawBackend::CrosstermRenderer(f);
+    })?;
     let result = start_app(&mut app, &mut terminal);
+    // let result = start_app(&mut app, &mut terminal);
 
     if let Err(err) = result {
         println!("{:?}", err)
@@ -56,17 +63,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn start_app<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> io::Result<()> {
-    while !app.should_shutdown() {
-        terminal.draw(|f| ui::render_ui(app, f))?;
+pub fn start_app(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> io::Result<()> {
+    let mut layout = StackLayout {
+        children: vec![Box::new(MainScreenLayer::new())],
+    };
 
-        // This function blocks
-        // TODO: We are probably going to have to implement a Tick system eventually.
-        if let Event::Key(key) = event::read()? {
-            if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
-                app.shutdown();
+    while !app.should_shutdown() {
+        terminal.draw(|f| {
+            let draw_size = f.size();
+            let mut renderbackend = DrawBackend::CrosstermRenderer(f);
+            let mut renderer = Drawer::new(
+                draw_size,
+                &mut renderbackend,
+            );
+            layout.draw(app, draw_size, &mut renderer);
+        })?;
+
+        if let Event::Key(event) = event::read()? {
+            if event.code == KeyCode::Char('c') && event.modifiers.contains(KeyModifiers::CONTROL) {
+                return Ok(());
             }
-            input::handle_key(key, app);
+            layout.event(app, event.code);
+
+            while let Some(callback) = app.callbacks.pop_front() {
+                callback(app, &mut layout);
+            }
         }
     }
     Ok(())

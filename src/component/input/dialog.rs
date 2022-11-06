@@ -1,16 +1,16 @@
 use crossterm::event::KeyCode;
 
 use tui::{
-    layout::Rect,
+    layout::{Constraint, Rect},
     style::{Modifier, Style},
     text::Spans,
     widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
 use crate::{
-    app::{App, UserInputType},
-    error::AppError,
+    app::App,
     utils,
+    view::{DrawableComponent, EventResult},
 };
 
 pub struct DialogAction {
@@ -29,6 +29,7 @@ impl DialogAction {
         }
     }
 }
+
 pub struct DialogBox {
     title: String,
     index: usize,
@@ -48,46 +49,17 @@ impl DialogBox {
     }
 }
 
-impl DialogBox {
-    pub fn handle_event(app: &mut App, key_code: KeyCode) -> Result<(), AppError> {
-        // TODO: This is somewhat ugly, and pretty weird to get.
-        let context = if let Some(UserInputType::Dialog(context)) = app.popup_context_mut() {
-            context
-        } else {
-            return Err(AppError::InvalidContext);
-        };
-        if let KeyCode::Char(char) = key_code {
-            if char == 'q' {
-                return Ok(());
-            }
-        }
-        utils::handle_movement(key_code, &mut context.index, context.options.len());
-        match key_code {
-            KeyCode::Enter => {
-                if let Some(UserInputType::Dialog(context)) = app.pop_popup() {
-                    (context.options[context.index].function)(app);
-                }
-            }
-            KeyCode::Esc => {
-                // May be better to have a custom escape function
-                app.pop_popup();
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    pub fn draw<B: tui::backend::Backend>(
-        &self,
-        app: &App,
-        draw_area: Rect,
-        f: &mut tui::Frame<B>,
-    ) {
-        // Clone is not the best :(
+impl DrawableComponent for DialogBox {
+    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
+        let draw_area = utils::centre_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.options.len() as u16 + 2),
+            draw_area,
+        );
         let list = List::new(
             self.options
                 .iter()
-                .map(|action| ListItem::new(Spans::from(action.name.clone())))
+                .map(|action| ListItem::new(Spans::from(action.name.as_str())))
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
@@ -95,14 +67,35 @@ impl DialogBox {
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(app.theme.border_style.border_type)
-                .title(self.title.clone())
+                .title(self.title.as_str())
                 .border_style(Style::default().fg(tui::style::Color::Green)),
         );
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.index));
 
-        f.render_widget(Clear, draw_area);
-        f.render_stateful_widget(list, draw_area, &mut list_state);
+        drawer.draw_widget(Clear, draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, draw_area);
+    }
+
+    fn event(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+        if let KeyCode::Char(char) = key_code {
+            if char == 'q' {
+                return EventResult::Consumed;
+            }
+        }
+        utils::handle_movement(key_code, &mut self.index, self.options.len());
+        match key_code {
+            KeyCode::Enter => {
+                app.pop_stack();
+                (self.options[self.index].function)(app);
+            }
+            KeyCode::Esc => {
+                // May be better to have a custom escape function
+                app.pop_stack();
+            }
+            _ => {}
+        }
+        EventResult::Consumed
     }
 }

@@ -1,16 +1,15 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
+use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
 
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
-use crate::component::input::dialog::DialogBox;
-use crate::component::input::input_box::InputBox;
-use crate::component::message_box::MessageBox;
 use crate::component::status_line::StatusLine;
 use crate::component::task_list::TaskList;
 use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
+use crate::view::{DrawableComponent, StackLayout};
 
 // PERF: Wow the technical debt is insane, have to rewrite all this :(
 // Basic structure
@@ -20,18 +19,18 @@ use crate::theme::Theme;
 
 // TODO: Refactor drawing system to allow screens or something, more complex modules
 // Use a queue like system to basically ensure that no modules are removed.
-// IDs? But that's a bit excessive.
+// IDs?
+//
+// Maybe a root node system with children would be better.
 
 #[derive(Default)]
 pub struct App {
-    pub popup_stack: Vec<UserInputType>,
     pub theme: Theme,
     pub task_store: TaskStore,
 
     pub status_line: StatusLine,
 
-    pub selected_task_index: usize,
-    pub selected_completed_task_index: usize,
+    pub callbacks: VecDeque<Box<dyn FnOnce(&mut App, &mut StackLayout) -> ()>>,
     pub selected_component: SelectedComponent,
 
     should_shutdown: bool,
@@ -55,50 +54,21 @@ impl App {
         self.should_shutdown
     }
 
-    pub fn popup_context(&self) -> Option<&UserInputType> {
-        self.popup_stack.last()
+    pub fn pop_stack(&mut self) {
+        self.callbacks.push_back(Box::new(|_, x| x.pop_layer()));
     }
 
-    pub fn popup_context_mut(&mut self) -> Option<&mut UserInputType> {
-        self.popup_stack.last_mut()
+    pub fn append_stack(&mut self, component: Box<dyn DrawableComponent>) {
+        self.callbacks
+            .push_back(Box::new(|_, x| x.append_layer(component)));
     }
 
-    pub fn append_layer(&mut self, popup: UserInputType) {
-        self.popup_stack.push(popup);
-        self.selected_component = SelectedComponent::PopUpComponent;
-    }
-
-    pub fn pop_popup(&mut self) -> Option<UserInputType> {
-        if self.popup_stack.len() == 1 {
-            self.selected_component = SelectedComponent::CurrentTasks;
-        }
-        self.popup_stack.pop()
+    pub fn execute_event(&mut self, key_code: KeyCode) {
+        self.callbacks.push_back(Box::new(move |app, x| {
+            x.event(app, key_code);
+        }));
     }
 }
-
-pub enum UserInputType {
-    Input(InputBox),
-    Dialog(DialogBox),
-    Message(MessageBox),
-}
-
-// TODO: This currently does not work due to how the component system is setup.
-// impl UserInputType {
-//     pub fn handle_event(&self, app: &mut App, key_code: KeyCode) {
-//         let err = match self {
-//             UserInputType::Input(_) => InputBox::handle_event(app, key_code),
-//             UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
-//             UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
-//         };
-//         if err.is_err() {
-//             app.append_layer(UserInputType::Message(MessageBox::new(
-//                 String::from("Error"),
-//                 err.err().unwrap().to_string(),
-//                 Color::Red,
-//             )))
-//         }
-//     }
-// }
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct TaskStore {
