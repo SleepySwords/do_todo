@@ -30,10 +30,9 @@ pub trait DrawableComponent {
     // Something to consider in the next refactor
     fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer);
 
-    fn event(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult;
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult;
 }
 
-// #[derive(Default)]
 pub struct StackLayout {
     pub children: Vec<Box<dyn DrawableComponent>>,
 }
@@ -55,9 +54,9 @@ impl DrawableComponent for StackLayout {
         }
     }
 
-    fn event(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
         for child in &mut self.children.iter_mut().rev() {
-            if child.event(app, key_code) == EventResult::Consumed {
+            if child.key_pressed(app, key_code) == EventResult::Consumed {
                 return EventResult::Consumed;
             }
         }
@@ -177,7 +176,7 @@ impl DrawableComponent for WidgetComponent {
         renderer.draw_widget(widget, self.rect);
     }
 
-    fn event(&mut self, _: &mut App, _: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, _: &mut App, _: crossterm::event::KeyCode) -> EventResult {
         EventResult::Ignored
     }
 }
@@ -210,7 +209,7 @@ impl DrawableComponent for BiLayout {
         renderer.draw_component(app, self.second.as_ref(), layout_chunk[1]);
     }
 
-    fn event(&mut self, _: &mut App, _: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, _: &mut App, _: crossterm::event::KeyCode) -> EventResult {
         EventResult::Ignored
     }
 }
@@ -252,7 +251,7 @@ pub fn test_render(
             if event.code == KeyCode::Char('c') && event.modifiers.contains(KeyModifiers::CONTROL) {
                 return Ok(());
             }
-            layout.event(app, event.code);
+            layout.key_pressed(app, event.code);
 
             while let Some(callback) = app.callbacks.pop_front() {
                 callback(app, &mut layout);

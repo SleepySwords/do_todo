@@ -65,7 +65,7 @@ impl App {
 
     pub fn execute_event(&mut self, key_code: KeyCode) {
         self.callbacks.push_back(Box::new(move |app, x| {
-            x.event(app, key_code);
+            x.key_pressed(app, key_code);
         }));
     }
 }
@@ -83,7 +83,7 @@ pub struct TaskStore {
 pub enum SelectedComponent {
     CurrentTasks,
     CompletedTasks,
-    PopUpComponent,
+    Overlay,
 }
 
 impl Default for SelectedComponent {
@@ -97,7 +97,7 @@ impl SelectedComponent {
         match self {
             SelectedComponent::CurrentTasks => TaskList::available_actions(),
             SelectedComponent::CompletedTasks => CompletedList::available_actions(),
-            SelectedComponent::PopUpComponent => vec![],
+            SelectedComponent::Overlay => vec![],
         }
     }
 }

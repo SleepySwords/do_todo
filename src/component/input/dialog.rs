@@ -78,7 +78,7 @@ impl DrawableComponent for DialogBox {
         drawer.draw_stateful_widget(list, &mut list_state, draw_area);
     }
 
-    fn event(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
                 return EventResult::Consumed;

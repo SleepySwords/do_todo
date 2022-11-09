@@ -29,7 +29,7 @@ impl DrawableComponent for MessageBox {
         let style = Style::default().fg(self.colour);
         let text = wrap_text(
             tui::text::Spans(vec![Span::styled(&self.message, style)]),
-            (draw_area.width - 2).into(),
+            (Constraint::Percentage(70).apply(draw_area.width) - 2).into(),
         );
         let height = text.height();
         let message_box = Paragraph::new(text);
@@ -41,7 +41,7 @@ impl DrawableComponent for MessageBox {
                 .title(self.title.as_ref()),
         );
         let draw_area = centre_rect(
-            Constraint::Length(draw_area.width),
+            Constraint::Percentage(70),
             Constraint::Length((height + 2).try_into().unwrap()),
             draw_area,
         );
@@ -49,7 +49,7 @@ impl DrawableComponent for MessageBox {
         drawer.draw_widget(message_box, draw_area);
     }
 
-    fn event(&mut self, app: &mut App, _: crossterm::event::KeyCode) -> crate::view::EventResult {
+    fn key_pressed(&mut self, app: &mut App, _: crossterm::event::KeyCode) -> crate::view::EventResult {
         app.pop_stack();
         crate::view::EventResult::Consumed
     }

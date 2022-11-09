@@ -119,7 +119,7 @@ impl DrawableComponent for Viewer {
                     drawer.draw_widget(block, draw_area);
                 }
             }
-            SelectedComponent::PopUpComponent => {
+            SelectedComponent::Overlay => {
                 if !app.task_store.tasks.is_empty() {
                     self.draw_task_viewer(app, block, draw_area, drawer)
                 } else {
@@ -129,7 +129,7 @@ impl DrawableComponent for Viewer {
         }
     }
 
-    fn event(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
         EventResult::Ignored
     }
 }

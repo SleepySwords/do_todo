@@ -124,7 +124,7 @@ impl DrawableComponent for TaskList {
         drawer.draw_stateful_widget(current, &mut state, draw_area);
     }
 
-    fn event(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
         match key_code {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
                 _ => {}
@@ -133,6 +133,7 @@ impl DrawableComponent for TaskList {
         match key_code {
             // Move this to the actions class
             KeyCode::Char('h') => {
+                *self.selected_mut() -= 1;
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;
                 }

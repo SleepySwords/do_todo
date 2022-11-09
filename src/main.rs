@@ -3,16 +3,15 @@ mod app;
 mod component;
 mod config;
 mod error;
-mod input;
 mod screens;
 mod task;
 mod test;
 mod theme;
-mod ui;
 mod utils;
 mod view;
 
 use app::App;
+use config::save_data;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
@@ -35,22 +34,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let (theme, tasks) = config::get_data()?;
+    let (theme, tasks) = config::get_data().expect("Could not get data");
     let mut app = App::new(theme, tasks);
-    terminal.draw(|f| {
-        DrawBackend::CrosstermRenderer(f);
-    })?;
     let result = start_app(&mut app, &mut terminal);
-    // let result = start_app(&mut app, &mut terminal);
-
-    if let Err(err) = result {
-        println!("{:?}", err)
-    }
-
-    fs::write(
-        dirs::home_dir().unwrap().join(".config/dtb/data.json"),
-        serde_json::to_string(&app.task_store)?,
-    )?;
 
     // Cleanup
     disable_raw_mode()?;
@@ -60,6 +46,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
+    
+    if let Err(err) = result {
+        println!("{:?}", err);
+        return Err(Box::new(err));
+    }
+
+    save_data(&mut app)?;
+
     Ok(())
 }
 
@@ -83,7 +77,7 @@ pub fn start_app(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>
             if event.code == KeyCode::Char('c') && event.modifiers.contains(KeyModifiers::CONTROL) {
                 return Ok(());
             }
-            layout.event(app, event.code);
+            layout.key_pressed(app, event.code);
 
             while let Some(callback) = app.callbacks.pop_front() {
                 callback(app, &mut layout);

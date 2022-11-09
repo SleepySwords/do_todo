@@ -1,9 +1,14 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
+    actions,
     app::{App, SelectedComponent},
-    component::{completed_list::CompletedList, task_list::TaskList, viewer::Viewer, input::input_box::InputBox},
-    view::{DrawableComponent, Drawer, EventResult, WidgetComponent}, actions, task::Task,
+    component::{
+        completed_list::CompletedList, input::input_box::InputBox, task_list::TaskList,
+        viewer::Viewer,
+    },
+    task::Task,
+    view::{DrawableComponent, Drawer, EventResult, WidgetComponent},
 };
 use crossterm::event::KeyCode;
 use tui::{
@@ -16,23 +21,18 @@ pub struct MainScreenLayer {
     task_list: TaskList,
     completed_list: CompletedList,
     viewer: Viewer,
-
-    /// The use of a RefCell means that we have to be more carefull in where we borrow this
-    /// variable. Ie: No storing borrowed references.
-    task_index: Rc<RefCell<usize>>,
-    completed_task_index: Rc<RefCell<usize>>,
 }
 
 impl MainScreenLayer {
     pub fn new() -> MainScreenLayer {
+        // The use of a RefCell means that we have to be more carefull in where we borrow this
+        // variable. Ie: No storing borrowed references.
         let task_index = Rc::new(RefCell::new(0));
         let completed_task_index = Rc::new(RefCell::new(0));
         MainScreenLayer {
             task_list: TaskList::new(task_index.clone()),
             completed_list: CompletedList::new(completed_task_index.clone()),
             viewer: Viewer::new(task_index.clone(), completed_task_index.clone()),
-            task_index,
-            completed_task_index,
         }
     }
 
@@ -117,14 +117,18 @@ impl DrawableComponent for MainScreenLayer {
         drawer.draw_component(app, &self.viewer, layout_chunk[1]);
     }
 
-    fn event(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
         let result = match app.selected_component {
-            crate::app::SelectedComponent::CurrentTasks => self.task_list.event(app, key_code),
+            crate::app::SelectedComponent::CurrentTasks => {
+                self.task_list.key_pressed(app, key_code)
+            }
             crate::app::SelectedComponent::CompletedTasks => {
-                self.completed_list.event(app, key_code)
+                self.completed_list.key_pressed(app, key_code)
             }
             _ => crate::view::EventResult::Ignored,
         };
+
+        // TODO: Simplify logic here.
 
         if result == EventResult::Consumed {
             return result;

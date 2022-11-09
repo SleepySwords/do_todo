@@ -89,7 +89,7 @@ impl DrawableComponent for InputBox {
         )
     }
 
-    fn event(
+    fn key_pressed(
         &mut self,
         app: &mut App,
         key_code: crossterm::event::KeyCode,
