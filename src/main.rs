@@ -21,9 +21,12 @@ use crossterm::{
 use screens::main_screen::MainScreenLayer;
 use view::{DrawBackend, DrawableComponent, Drawer, WidgetComponent};
 
+use std::error::Error;
 use std::io;
-use std::{error::Error, io::Stdout};
-use tui::{backend::CrosstermBackend, Terminal};
+use tui::{
+    backend::{Backend, CrosstermBackend},
+    Terminal,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
@@ -32,11 +35,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // TODO: Should try and recover if it fails
     let (theme, tasks) = config::get_data().expect("Could not get data");
     let mut app = App::new(theme, tasks);
     let result = start_app(&mut app, &mut terminal);
 
-    // Cleanup
+    if let Err(err) = result {
+        println!("{:?}", err)
+    }
+
+    // Shutting down application
+
+    config::save_data(&app.theme, &app.task_store)?;
+
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
