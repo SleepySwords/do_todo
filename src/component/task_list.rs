@@ -126,10 +126,6 @@ impl DrawableComponent for TaskList {
     }
 
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
-        match key_code {
-            KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
-            _ => {}
-        }
         let mut selected_index = self.selected_mut();
         match key_code {
             // Move this to the actions class
@@ -164,6 +160,7 @@ impl DrawableComponent for TaskList {
                     *selected_index = (*selected_index - 1) % task_length;
                 }
             }
+            KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
             KeyCode::Char('e') => {
                 let index = *selected_index;
                 app.append_stack(InputBox::filled(

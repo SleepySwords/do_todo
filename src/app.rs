@@ -12,17 +12,7 @@ use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
 use crate::view::DrawableComponent;
 
-// PERF: Wow the technical debt is insane, have to rewrite all this :(
-// Basic structure
-// Renderer -> Calls individual render on each section, pass the context
-// Where should the context be stored? Perhaps there is all the context with an is_visable tag?
-// Universal variables should be in app (Tasks, themes)
-
-// TODO: Refactor drawing system to allow screens or something, more complex modules
-// Use a queue like system to basically ensure that no modules are removed.
-// IDs?
-//
-// Maybe a root node system with children would be better.
+type Callback = dyn FnOnce(&mut App, &mut StackLayout);
 
 #[derive(Default)]
 pub struct App {
@@ -31,7 +21,7 @@ pub struct App {
 
     pub status_line: StatusLine,
 
-    pub callbacks: VecDeque<Box<dyn FnOnce(&mut App, &mut StackLayout)>>,
+    pub callbacks: VecDeque<Box<Callback>>,
     pub selected_component: SelectedComponent,
 
     should_shutdown: bool,
@@ -60,7 +50,7 @@ impl App {
     }
 
     // FIX: use generics?!
-    pub fn append_stack<'a, T: DrawableComponent + 'static>(&mut self, component: T) {
+    pub fn append_stack<T: DrawableComponent + 'static>(&mut self, component: T) {
         self.callbacks
             .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
     }

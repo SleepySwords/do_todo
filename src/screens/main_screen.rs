@@ -11,14 +11,10 @@ use crate::{
         viewer::Viewer,
     },
     task::Task,
-    view::{DrawableComponent, Drawer, EventResult, WidgetComponent},
+    view::{DrawableComponent, Drawer, EventResult},
 };
 use crossterm::event::KeyCode;
-use tui::{
-    backend::Backend,
-    layout::{Constraint, Direction, Rect},
-    Frame,
-};
+use tui::layout::{Constraint, Direction, Rect};
 
 pub struct MainScreenLayer {
     task_list: TaskList,
@@ -99,14 +95,6 @@ impl DrawableComponent for MainScreenLayer {
             _ => {}
         }
 
-        if key_code == KeyCode::Char('-') {
-            app.append_stack(WidgetComponent::new(Rect::new(5, 5, 5, 5)));
-            return EventResult::Consumed;
-        }
-        if key_code == KeyCode::Char('0') {
-            app.pop_stack();
-            return EventResult::Consumed;
-        }
         EventResult::Consumed
     }
 }

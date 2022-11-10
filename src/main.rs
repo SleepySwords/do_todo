@@ -11,7 +11,7 @@ mod utils;
 mod view;
 
 use app::App;
-use component::layout::{stack_layout::StackLayout, adjacent_layout::AdjacentLayout};
+use component::layout::stack_layout::StackLayout;
 use config::save_data;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
@@ -19,14 +19,11 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use screens::main_screen::MainScreenLayer;
-use view::{DrawBackend, DrawableComponent, Drawer, WidgetComponent};
+use view::{DrawBackend, DrawableComponent, Drawer};
 
-use std::error::Error;
 use std::io;
-use tui::{
-    backend::{Backend, CrosstermBackend},
-    Terminal,
-};
+use std::{error::Error, io::Stdout};
+use tui::{backend::CrosstermBackend, Terminal};
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
@@ -39,10 +36,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (theme, tasks) = config::get_data().expect("Could not get data");
     let mut app = App::new(theme, tasks);
     let result = start_app(&mut app, &mut terminal);
-
-    if let Err(err) = result {
-        println!("{:?}", err)
-    }
 
     // Shutting down application
 
@@ -61,7 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err(Box::new(err));
     }
 
-    save_data(&mut app)?;
+    save_data(&app.theme, &app.task_store)?;
 
     Ok(())
 }

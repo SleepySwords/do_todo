@@ -187,7 +187,7 @@ pub fn generate_default_block<'a>(
 
 #[cfg(test)]
 pub mod test {
-    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use crossterm::event::KeyCode;
 
     use crate::{
         app::{App, TaskStore},
@@ -212,13 +212,6 @@ pub mod test {
         };
 
         (app, stack_layout)
-    }
-
-    pub fn generate_event(key_code: KeyCode) -> KeyEvent {
-        KeyEvent {
-            code: key_code,
-            modifiers: KeyModifiers::NONE,
-        }
     }
 
     pub fn execute_callbacks(app: &mut App, stack_layout: &mut StackLayout) {

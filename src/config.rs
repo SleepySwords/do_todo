@@ -1,10 +1,6 @@
 use std::{error::Error, fs, path::Path};
 
-use crate::{
-    app::{App, TaskStore},
-    task::Task,
-    theme::Theme,
-};
+use crate::{app::TaskStore, task::Task, theme::Theme};
 
 // FIX: Proper handling, data should not be stored in the config file and needes testing
 // Add a swp file.

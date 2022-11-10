@@ -2,9 +2,8 @@ use std::io::Stdout;
 
 use tui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    widgets::{Block, Borders, StatefulWidget, Widget},
+    layout::Rect,
+    widgets::{StatefulWidget, Widget},
     Frame,
 };
 
@@ -124,60 +123,3 @@ impl DrawBackend<'_, '_> {
         }
     }
 }
-
-pub struct WidgetComponent {
-    rect: Rect,
-    colour: Color,
-}
-
-impl DrawableComponent for WidgetComponent {
-    fn draw(&self, _: &App, _: Rect, renderer: &mut Drawer) {
-        let widget = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(self.colour));
-        renderer.draw_widget(widget, self.rect);
-    }
-
-    fn key_pressed(&mut self, _: &mut App, _: crossterm::event::KeyCode) -> EventResult {
-        EventResult::Ignored
-    }
-}
-
-impl WidgetComponent {
-    pub fn new(rect: Rect) -> WidgetComponent {
-        WidgetComponent {
-            rect,
-            colour: Color::White,
-        }
-    }
-
-    fn new_colour(rect: Rect, colour: Color) -> WidgetComponent {
-        WidgetComponent { rect, colour }
-    }
-}
-
-struct BiLayout {
-    first: Box<dyn DrawableComponent>,
-    second: Box<dyn DrawableComponent>,
-}
-
-impl DrawableComponent for BiLayout {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
-        let layout_chunk = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-            .split(draw_area);
-
-        drawer.draw_component(app, self.first.as_ref(), layout_chunk[0]);
-        drawer.draw_component(app, self.second.as_ref(), layout_chunk[1]);
-    }
-
-    fn key_pressed(&mut self, _: &mut App, _: crossterm::event::KeyCode) -> EventResult {
-        EventResult::Ignored
-    }
-}
-
-// FIX: Rc + Refcell give overhead
-// FIX: Maybe just chuck everything in the App class, which also solves the bottom problem to an
-// extent.
-// FIX: Everything inside a box -> heap allocated -> More overhead :(

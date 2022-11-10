@@ -68,25 +68,26 @@ mod movement {
     use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
     use crate::{
-        app::{TaskStore, App},
-        component::{
-            layout::stack_layout::StackLayout,
-            task_list::TaskList,
-        },
+        app::{App, TaskStore},
+        component::{layout::stack_layout::StackLayout, task_list::TaskList},
         task::Task,
-        utils::test::input_char, theme::Theme,
+        theme::Theme,
+        utils::test::input_char,
     };
 
     #[test]
     fn test_rollover() {
-        let mut app = App::new(Theme::default(), TaskStore {
-            tasks: vec![
-                Task::from_string(String::from("meme")),
-                Task::from_string(String::from("based")),
-            ],
-            completed_tasks: vec![],
-            tags: BTreeMap::new(),
-        });
+        let mut app = App::new(
+            Theme::default(),
+            TaskStore {
+                tasks: vec![
+                    Task::from_string(String::from("meme")),
+                    Task::from_string(String::from("based")),
+                ],
+                completed_tasks: vec![],
+                tags: BTreeMap::new(),
+            },
+        );
         let index = Rc::new(RefCell::new(0));
         let task_list = TaskList::new(index.clone());
 

@@ -15,7 +15,7 @@ impl Element<'_> {
         Element::Owned(Box::new(drawable))
     }
 
-    pub fn borrow<'a, T: DrawableComponent>(drawable: &'a T) -> Element<'a> {
+    pub fn borrow<T: DrawableComponent>(drawable: &T) -> Element {
         Element::Borrow(drawable)
     }
 }
@@ -46,8 +46,8 @@ impl DrawableComponent for AdjacentLayout<'_> {
             )
             .split(draw_area);
 
-        for i in 0..self.children.len() {
-            let drawable = match &self.children[i].1 {
+        for (i, drawable) in self.children.iter().enumerate() {
+            let drawable = match &drawable.1 {
                 Element::Owned(a) => a.as_ref().to_owned(),
                 Element::Borrow(a) => a.to_owned(),
             };

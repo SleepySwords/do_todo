@@ -39,10 +39,6 @@ impl CompletedList {
             "Restores the selected task",
         )]
     }
-
-    pub fn handle_event(_app: &mut App, _key_code: KeyCode) -> Option<()> {
-        Some(())
-    }
 }
 
 impl DrawableComponent for CompletedList {
