@@ -1,18 +1,14 @@
-use std::{
-    io::{self, Stdout},
-    vec,
-};
+use std::io::Stdout;
 
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, StatefulWidget, Widget},
-    Frame, Terminal,
+    Frame,
 };
 
-use crate::{app::App, screens::main_screen::MainScreenLayer};
+use crate::app::App;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum EventResult {
@@ -33,37 +29,6 @@ pub trait DrawableComponent {
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult;
 }
 
-pub struct StackLayout {
-    pub children: Vec<Box<dyn DrawableComponent>>,
-}
-
-impl StackLayout {
-    pub fn pop_layer(&mut self) {
-        self.children.pop();
-    }
-
-    pub fn append_layer(&mut self, component: Box<dyn DrawableComponent>) {
-        self.children.push(component);
-    }
-}
-
-impl DrawableComponent for StackLayout {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
-        for layout in &self.children {
-            drawer.draw_component(app, layout.as_ref(), draw_area);
-        }
-    }
-
-    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
-        for child in &mut self.children.iter_mut().rev() {
-            if child.key_pressed(app, key_code) == EventResult::Consumed {
-                return EventResult::Consumed;
-            }
-        }
-        EventResult::Ignored
-    }
-}
-
 // How does this even work, mind blown, wait does it give back ownership when it's done, if so
 // that's just really fucking cool.
 pub struct Drawer<'a, 'b, 'c> {
@@ -76,10 +41,7 @@ impl Drawer<'_, '_, '_> {
         draw_area: Rect,
         backend: &'a mut DrawBackend<'b, 'c>,
     ) -> Drawer<'a, 'b, 'c> {
-        Drawer {
-            draw_area,
-            backend,
-        }
+        Drawer { draw_area, backend }
     }
 
     pub fn draw_component(&mut self, app: &App, drawable: &dyn DrawableComponent, draw_area: Rect) {
@@ -108,7 +70,7 @@ impl Drawer<'_, '_, '_> {
         self.backend.draw_widget(widget, draw_area);
     }
 
-    /// Todo does not acknowledge the area
+    // TODO: does not acknowledge the area
     pub fn draw_stateful_widget<T: StatefulWidget>(
         &mut self,
         widget: T,
@@ -188,6 +150,7 @@ impl WidgetComponent {
             colour: Color::White,
         }
     }
+
     fn new_colour(rect: Rect, colour: Color) -> WidgetComponent {
         WidgetComponent { rect, colour }
     }
@@ -199,66 +162,19 @@ struct BiLayout {
 }
 
 impl DrawableComponent for BiLayout {
-    fn draw(&self, app: &App, draw_area: Rect, renderer: &mut Drawer) {
+    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
         let layout_chunk = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
             .split(draw_area);
 
-        renderer.draw_component(app, self.first.as_ref(), layout_chunk[0]);
-        renderer.draw_component(app, self.second.as_ref(), layout_chunk[1]);
+        drawer.draw_component(app, self.first.as_ref(), layout_chunk[0]);
+        drawer.draw_component(app, self.second.as_ref(), layout_chunk[1]);
     }
 
     fn key_pressed(&mut self, _: &mut App, _: crossterm::event::KeyCode) -> EventResult {
         EventResult::Ignored
     }
-}
-
-/// Maybe it would be better to do this in the traditional style, ie: calling draw in each
-/// individual component so there is no need for the DrawableComponent trait, something to consider
-/// i guess.
-pub fn test_render(
-    app: &mut App,
-    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-) -> io::Result<()> {
-    let mut layout = StackLayout {
-        children: vec![
-            Box::new(MainScreenLayer::new()),
-            Box::new(WidgetComponent::new(Rect::new(0, 0, 50, 50))),
-            Box::new(BiLayout {
-                first: Box::new(WidgetComponent::new(Rect::new(10, 10, 10, 10))),
-                second: Box::new(WidgetComponent::new(Rect::new(0, 0, 10, 10))),
-            }),
-            Box::new(WidgetComponent::new_colour(
-                Rect::new(10, 10, 10, 10),
-                Color::Red,
-            )),
-        ],
-    };
-
-    while !app.should_shutdown() {
-        terminal.draw(|f| {
-            let draw_size = f.size();
-            let mut renderbackend = DrawBackend::CrosstermRenderer(f);
-            let mut renderer = Drawer {
-                draw_area: draw_size,
-                backend: &mut renderbackend,
-            };
-            layout.draw(app, draw_size, &mut renderer);
-        })?;
-
-        if let Event::Key(event) = event::read()? {
-            if event.code == KeyCode::Char('c') && event.modifiers.contains(KeyModifiers::CONTROL) {
-                return Ok(());
-            }
-            layout.key_pressed(app, event.code);
-
-            while let Some(callback) = app.callbacks.pop_front() {
-                callback(app, &mut layout);
-            }
-        }
-    }
-    Ok(())
 }
 
 // FIX: Rc + Refcell give overhead

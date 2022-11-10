@@ -1,5 +1,3 @@
-use std::cell::Ref;
-
 use crossterm::event::KeyCode;
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -187,37 +185,45 @@ pub fn generate_default_block<'a>(
         .border_style(Style::default().fg(border_colour))
 }
 
-pub fn generate_default_block_string<'a>(
-    title: String,
-    selected_component: SelectedComponent,
-    app: &App,
-) -> Block<'a> {
-    let border_colour = if app.selected_component == selected_component {
-        app.theme.selected_border_colour
-    } else {
-        app.theme.default_border_colour
-    };
-
-    Block::default()
-        .title(title)
-        .borders(Borders::ALL)
-        .border_type(app.theme.border_style.border_type)
-        .border_style(Style::default().fg(border_colour))
-}
-
 #[cfg(test)]
 pub mod test {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-    use crate::{app::App, input};
+    use crate::{
+        app::{App, TaskStore},
+        component::layout::stack_layout::StackLayout,
+        screens::main_screen::MainScreenLayer,
+    };
 
-    pub fn input_char(character: char, app: &mut App) {
-        input::handle_key(
-            KeyEvent {
-                code: KeyCode::Char(character),
-                modifiers: KeyModifiers::NONE,
-            },
-            app,
-        )
+    pub fn input_char(character: char, app: &mut App, stack_layout: &mut StackLayout) {
+        app.execute_event(KeyCode::Char(character));
+        execute_callbacks(app, stack_layout);
+    }
+
+    pub fn input_code(key: KeyCode, app: &mut App, stack_layout: &mut StackLayout) {
+        app.execute_event(key);
+        execute_callbacks(app, stack_layout);
+    }
+
+    pub fn setup(task_store: TaskStore) -> (App, StackLayout) {
+        let app = App::new(crate::theme::Theme::default(), task_store);
+        let stack_layout = StackLayout {
+            children: vec![Box::new(MainScreenLayer::new())],
+        };
+
+        (app, stack_layout)
+    }
+
+    pub fn generate_event(key_code: KeyCode) -> KeyEvent {
+        KeyEvent {
+            code: key_code,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn execute_callbacks(app: &mut App, stack_layout: &mut StackLayout) {
+        while let Some(callback) = app.callbacks.pop_front() {
+            callback(app, stack_layout);
+        }
     }
 }

@@ -11,6 +11,7 @@ mod utils;
 mod view;
 
 use app::App;
+use component::layout::{stack_layout::StackLayout, adjacent_layout::AdjacentLayout};
 use config::save_data;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
@@ -18,14 +19,11 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use screens::main_screen::MainScreenLayer;
-use view::{DrawBackend, StackLayout, Drawer, DrawableComponent};
+use view::{DrawBackend, DrawableComponent, Drawer, WidgetComponent};
 
-use std::{error::Error, io::Stdout};
 use std::io;
-use tui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
+use std::{error::Error, io::Stdout};
+use tui::{backend::CrosstermBackend, Terminal};
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
@@ -46,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
-    
+
     if let Err(err) = result {
         println!("{:?}", err);
         return Err(Box::new(err));
@@ -57,7 +55,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn start_app(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> io::Result<()> {
+pub fn start_app(
+    app: &mut App,
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+) -> io::Result<()> {
     let mut layout = StackLayout {
         children: vec![Box::new(MainScreenLayer::new())],
     };
@@ -66,10 +67,7 @@ pub fn start_app(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>
         terminal.draw(|f| {
             let draw_size = f.size();
             let mut renderbackend = DrawBackend::CrosstermRenderer(f);
-            let mut renderer = Drawer::new(
-                draw_size,
-                &mut renderbackend,
-            );
+            let mut renderer = Drawer::new(draw_size, &mut renderbackend);
             layout.draw(app, draw_size, &mut renderer);
         })?;
 

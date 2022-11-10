@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell};
+use std::{cell::RefCell, rc::Rc};
 
 use chrono::Local;
 use crossterm::event::KeyCode;
@@ -56,17 +56,14 @@ pub fn open_help_menu(app: &mut App) {
         ));
     }
 
-    app.append_stack(Box::new(DialogBox::new(
-        String::from("Help Menu"),
-        actions,
-    )));
+    app.append_stack(DialogBox::new(String::from("Help Menu"), actions));
 }
 
 pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
     if app.task_store.tasks.is_empty() {
         return;
     }
-    app.append_stack(Box::new(DialogBox::new(
+    app.append_stack(DialogBox::new(
         "Delete selected task".to_string(),
         vec![
             DialogAction::new(String::from("Delete"), move |app| {
@@ -79,7 +76,7 @@ pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) 
             }),
             DialogAction::new(String::from("Cancel"), |_| {}),
         ],
-    )));
+    ));
 }
 
 pub fn restore_task(app: &mut App, selected_index: &mut usize) {
@@ -131,10 +128,10 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
     // Menu to add a new tag
     // FIX: ooof this is some ugly ass code
     tags_options.push(DialogAction::new(String::from("New tag"), move |app| {
-        app.append_stack(Box::new(InputBox::new(
+        app.append_stack(InputBox::new(
             String::from("Tag name"),
             move |app, tag_name| {
-                app.append_stack(Box::new(InputBox::new(
+                app.append_stack(InputBox::new(
                     String::from("Tag colour"),
                     move |app, tag_colour| {
                         // FIX: Actually have proper error handling with an error enum
@@ -153,19 +150,19 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
                         );
                         Ok(())
                     },
-                )));
+                ));
                 Ok(())
             },
-        )));
+        ));
     }));
     tags_options.push(DialogAction::new(String::from("Clear tags"), move |app| {
         app.task_store.tasks[selected_index].tags.clear();
     }));
     tags_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
-    app.append_stack(Box::new(DialogBox::new(
+    app.append_stack(DialogBox::new(
         "Add or remove a tag".to_string(),
         tags_options,
-    )));
+    ));
 }
 
 // TODO: Maybe later

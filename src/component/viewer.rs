@@ -71,7 +71,13 @@ impl Viewer {
         drawer.draw_widget(table, draw_area)
     }
 
-    fn draw_completed_task_viewer(&self, app: &App, block: Block, draw_area: Rect, drawer: &mut Drawer) {
+    fn draw_completed_task_viewer(
+        &self,
+        app: &App,
+        block: Block,
+        draw_area: Rect,
+        drawer: &mut Drawer,
+    ) {
         let task = &app.task_store.completed_tasks[*self.completed_task_index.borrow()];
         let completed_time = task
             .time_completed
@@ -129,7 +135,7 @@ impl DrawableComponent for Viewer {
         }
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, _app: &mut App, _key_code: crossterm::event::KeyCode) -> EventResult {
         EventResult::Ignored
     }
 }

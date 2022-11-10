@@ -1,10 +1,13 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, vec};
 
 use crate::{
     actions,
     app::{App, SelectedComponent},
     component::{
-        completed_list::CompletedList, input::input_box::InputBox, task_list::TaskList,
+        completed_list::CompletedList,
+        input::input_box::InputBox,
+        layout::adjacent_layout::{AdjacentLayout, Element},
+        task_list::TaskList,
         viewer::Viewer,
     },
     task::Task,
@@ -13,7 +16,7 @@ use crate::{
 use crossterm::event::KeyCode;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Layout, Rect},
+    layout::{Constraint, Direction, Rect},
     Frame,
 };
 
@@ -32,89 +35,34 @@ impl MainScreenLayer {
         MainScreenLayer {
             task_list: TaskList::new(task_index.clone()),
             completed_list: CompletedList::new(completed_task_index.clone()),
-            viewer: Viewer::new(task_index.clone(), completed_task_index.clone()),
+            viewer: Viewer::new(task_index, completed_task_index),
         }
-    }
-
-    fn draw_tasks<B>(app: &App, frame: &mut Frame<B>, layout_chunk: Rect)
-    where
-        B: Backend,
-    {
-        // let layout_chunk = Layout::default()
-        //     .direction(Direction::Vertical)
-        //     .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-        //     .split(layout_chunk);
-
-        // TaskList::draw(app, layout_chunk[0], frame);
-
-        // CompletedList::draw(app, layout_chunk[1], frame)
-    }
-
-    pub fn draw<B: Backend>(app: &mut App, f: &mut Frame<B>) {
-        // let layout = Layout::default()
-        //     .direction(Direction::Vertical)
-        //     .constraints(vec![Constraint::Min(1), Constraint::Length(1)])
-        //     .split(f.size());
-
-        // let main_body = layout[0];
-        // let status_line = layout[1];
-
-        // app.status_line.draw(app, status_line, f);
-
-        // let chunks = Layout::default()
-        //     .direction(Direction::Horizontal)
-        //     .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
-        //     .split(main_body);
-
-        // Viewer::draw(app, chunks[1], f);
-        // Self::draw_tasks(app, f, chunks[0]);
-
-        // if let Some(component) = app.popup_stack.last() {
-        //     match component {
-        //         UserInputType::Input(component) => {
-        //             let layout_chunk = utils::centre_rect(
-        //                 Constraint::Percentage(70),
-        //                 Constraint::Length(
-        //                     (component.user_input.len() as u16).max(1) + input_box::PADDING as u16,
-        //                 ),
-        //                 f.size(),
-        //             );
-        //             component.draw(app, layout_chunk, f)
-        //         }
-        //         UserInputType::Dialog(component) => {
-        //             let layout_chunk = utils::centre_rect(
-        //                 Constraint::Percentage(70),
-        //                 Constraint::Length(component.options.len() as u16 + 2),
-        //                 f.size(),
-        //             );
-        //             component.draw(app, layout_chunk, f)
-        //         }
-        //         UserInputType::Message(component) => {
-        //             let layout_chunk = utils::centre_rect(
-        //                 Constraint::Percentage(70),
-        //                 Constraint::Percentage(30),
-        //                 f.size(),
-        //             );
-        //             component.draw(app, layout_chunk, f)
-        //         }
-        //     }
-        // }
     }
 }
 
 impl DrawableComponent for MainScreenLayer {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
-        let layout_chunk = Layout::default()
-            .direction(tui::layout::Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(draw_area);
-        let layout_chunk2 = Layout::default()
-            .direction(tui::layout::Direction::Vertical)
-            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-            .split(layout_chunk[0]);
-        drawer.draw_component(app, &self.task_list, layout_chunk2[0]);
-        drawer.draw_component(app, &self.completed_list, layout_chunk2[1]);
-        drawer.draw_component(app, &self.viewer, layout_chunk[1]);
+    fn draw<'a>(&'a self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
+        let layout = AdjacentLayout {
+            children: vec![
+                (
+                    Constraint::Percentage(50),
+                    Element::owned(AdjacentLayout {
+                        children: vec![
+                            (Constraint::Percentage(70), Element::borrow(&self.task_list)),
+                            (
+                                Constraint::Percentage(30),
+                                Element::borrow(&self.completed_list),
+                            ),
+                        ],
+                        direction: Direction::Vertical,
+                    }),
+                ),
+                (Constraint::Percentage(50), Element::borrow(&self.viewer)),
+            ],
+            direction: Direction::Horizontal,
+        };
+
+        drawer.draw_component(app, &layout, draw_area);
     }
 
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
@@ -135,7 +83,7 @@ impl DrawableComponent for MainScreenLayer {
         }
 
         match key_code {
-            KeyCode::Char('a') => app.append_stack(Box::new(InputBox::new(
+            KeyCode::Char('a') => app.append_stack(InputBox::new(
                 String::from("Add a task"),
                 |app, mut word| {
                     app.task_store.tasks.push(Task::from_string(
@@ -143,7 +91,7 @@ impl DrawableComponent for MainScreenLayer {
                     ));
                     Ok(())
                 },
-            ))),
+            )),
             KeyCode::Char('1') => app.selected_component = SelectedComponent::CurrentTasks,
             KeyCode::Char('2') => app.selected_component = SelectedComponent::CompletedTasks,
             KeyCode::Char('x') => actions::open_help_menu(app),
@@ -152,7 +100,7 @@ impl DrawableComponent for MainScreenLayer {
         }
 
         if key_code == KeyCode::Char('-') {
-            app.append_stack(Box::new(WidgetComponent::new(Rect::new(5, 5, 5, 5))));
+            app.append_stack(WidgetComponent::new(Rect::new(5, 5, 5, 5)));
             return EventResult::Consumed;
         }
         if key_code == KeyCode::Char('0') {

@@ -5,11 +5,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
+use crate::component::layout::stack_layout::StackLayout;
 use crate::component::status_line::StatusLine;
 use crate::component::task_list::TaskList;
 use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
-use crate::view::{DrawableComponent, StackLayout};
+use crate::view::DrawableComponent;
 
 // PERF: Wow the technical debt is insane, have to rewrite all this :(
 // Basic structure
@@ -30,7 +31,7 @@ pub struct App {
 
     pub status_line: StatusLine,
 
-    pub callbacks: VecDeque<Box<dyn FnOnce(&mut App, &mut StackLayout) -> ()>>,
+    pub callbacks: VecDeque<Box<dyn FnOnce(&mut App, &mut StackLayout)>>,
     pub selected_component: SelectedComponent,
 
     should_shutdown: bool,
@@ -58,9 +59,10 @@ impl App {
         self.callbacks.push_back(Box::new(|_, x| x.pop_layer()));
     }
 
-    pub fn append_stack(&mut self, component: Box<dyn DrawableComponent>) {
+    // FIX: use generics?!
+    pub fn append_stack<'a, T: DrawableComponent + 'static>(&mut self, component: T) {
         self.callbacks
-            .push_back(Box::new(|_, x| x.append_layer(component)));
+            .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
     }
 
     pub fn execute_event(&mut self, key_code: KeyCode) {

@@ -1,4 +1,3 @@
-
 use tui::layout::{Constraint, Rect};
 use tui::style::{Color, Style};
 use tui::text::Span;
@@ -49,7 +48,11 @@ impl DrawableComponent for MessageBox {
         drawer.draw_widget(message_box, draw_area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, _: crossterm::event::KeyCode) -> crate::view::EventResult {
+    fn key_pressed(
+        &mut self,
+        app: &mut App,
+        _: crossterm::event::KeyCode,
+    ) -> crate::view::EventResult {
         app.pop_stack();
         crate::view::EventResult::Consumed
     }

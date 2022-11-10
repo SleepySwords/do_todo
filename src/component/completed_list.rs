@@ -40,7 +40,7 @@ impl CompletedList {
         )]
     }
 
-    pub fn handle_event(app: &mut App, key_code: KeyCode) -> Option<()> {
+    pub fn handle_event(_app: &mut App, _key_code: KeyCode) -> Option<()> {
         Some(())
     }
 }

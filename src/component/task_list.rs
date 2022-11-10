@@ -127,7 +127,7 @@ impl DrawableComponent for TaskList {
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
         match key_code {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
-                _ => {}
+            _ => {}
         }
         let mut selected_index = self.selected_mut();
         match key_code {
@@ -165,7 +165,7 @@ impl DrawableComponent for TaskList {
             }
             KeyCode::Char('e') => {
                 let index = *selected_index;
-                app.append_stack(Box::new(InputBox::filled(
+                app.append_stack(InputBox::filled(
                     // TODO: cleanup this so it doesn't use clone, perhaps use references?
                     String::from("Edit the  selected task"),
                     app.task_store.tasks[*selected_index].title.clone(),
@@ -174,7 +174,7 @@ impl DrawableComponent for TaskList {
                             word.drain(..).collect::<String>().trim().to_string();
                         Ok(())
                     }),
-                )))
+                ))
             }
             KeyCode::Char('t') => actions::tag_menu(app, *selected_index),
             KeyCode::Enter => {

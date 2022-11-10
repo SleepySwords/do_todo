@@ -100,11 +100,11 @@ impl DrawableComponent for InputBox {
                     app.pop_stack();
                     let err = (self.callback)(app, self.user_input.join("\n"));
                     if err.is_err() {
-                        app.append_stack(Box::new(MessageBox::new(
+                        app.append_stack(MessageBox::new(
                             String::from("Error"),
                             err.err().unwrap().to_string(),
                             tui::style::Color::Red,
-                        )));
+                        ));
                     }
                     return EventResult::Consumed;
                 }
