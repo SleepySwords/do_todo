@@ -5,23 +5,30 @@ use crate::{
     view::{DrawableComponent, Drawer, EventResult},
 };
 
-pub enum Element<'a> {
-    Owned(Box<dyn DrawableComponent + 'a>),
-    Borrow(&'a dyn DrawableComponent),
+pub enum Child<'a> {
+    Owned(Constraint, Box<dyn DrawableComponent + 'a>),
+    Borrow(Constraint, &'a dyn DrawableComponent),
 }
 
-impl Element<'_> {
-    pub fn owned<'a, T: DrawableComponent + 'a>(drawable: T) -> Element<'a> {
-        Element::Owned(Box::new(drawable))
+impl Child<'_> {
+    pub fn owned<'a, T: DrawableComponent + 'a>(contraint: Constraint, drawable: T) -> Child<'a> {
+        Child::Owned(contraint, Box::new(drawable))
     }
 
-    pub fn borrow<T: DrawableComponent>(drawable: &T) -> Element {
-        Element::Borrow(drawable)
+    pub fn borrow<T: DrawableComponent>(constraint: Constraint, drawable: &T) -> Child {
+        Child::Borrow(constraint, drawable)
+    }
+
+    fn constraint(&self) -> Constraint {
+        match self {
+            Child::Owned(constraint, _) => *constraint,
+            Child::Borrow(constraint, _) => *constraint,
+        }
     }
 }
 
 pub struct AdjacentLayout<'a> {
-    pub children: Vec<(Constraint, Element<'a>)>,
+    pub children: Vec<Child<'a>>,
     pub direction: Direction,
 }
 
@@ -41,15 +48,15 @@ impl DrawableComponent for AdjacentLayout<'_> {
             .constraints(
                 self.children
                     .iter()
-                    .map(|f| f.0)
+                    .map(|f| f.constraint())
                     .collect::<Vec<Constraint>>(),
             )
             .split(draw_area);
 
         for (i, drawable) in self.children.iter().enumerate() {
-            let drawable = match &drawable.1 {
-                Element::Owned(a) => a.as_ref().to_owned(),
-                Element::Borrow(a) => a.to_owned(),
+            let drawable = match &drawable {
+                Child::Owned(_, a) => a.as_ref().to_owned(),
+                Child::Borrow(_, a) => a.to_owned(),
             };
             drawer.draw_component(app, drawable, layout_chunk[i]);
         }

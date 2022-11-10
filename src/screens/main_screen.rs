@@ -6,7 +6,7 @@ use crate::{
     component::{
         completed_list::CompletedList,
         input::input_box::InputBox,
-        layout::adjacent_layout::{AdjacentLayout, Element},
+        layout::adjacent_layout::{AdjacentLayout, Child},
         task_list::TaskList,
         viewer::Viewer,
     },
@@ -40,20 +40,17 @@ impl DrawableComponent for MainScreenLayer {
     fn draw<'a>(&'a self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
         let layout = AdjacentLayout {
             children: vec![
-                (
+                Child::owned(
                     Constraint::Percentage(50),
-                    Element::owned(AdjacentLayout {
+                    AdjacentLayout {
                         children: vec![
-                            (Constraint::Percentage(70), Element::borrow(&self.task_list)),
-                            (
-                                Constraint::Percentage(30),
-                                Element::borrow(&self.completed_list),
-                            ),
+                            Child::borrow(Constraint::Percentage(70), &self.task_list),
+                            Child::borrow(Constraint::Percentage(30), &self.completed_list),
                         ],
                         direction: Direction::Vertical,
-                    }),
+                    },
                 ),
-                (Constraint::Percentage(50), Element::borrow(&self.viewer)),
+                Child::borrow(Constraint::Percentage(50), &self.viewer),
             ],
             direction: Direction::Horizontal,
         };

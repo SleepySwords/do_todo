@@ -1,3 +1,5 @@
+use std::usize;
+
 use crossterm::event::KeyCode;
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -139,7 +141,7 @@ pub fn wrap_text(spans: Spans, width: usize) -> Text {
                 // To string?!?
                 let mut stx = str_content.to_string();
 
-                if str_content.len() + current_width + if next_element { 1 } else { 0 } < width {
+                if str_content.len() + current_width + usize::from(next_element) < width {
                     if next_element {
                         stx.push(' ');
                     }
