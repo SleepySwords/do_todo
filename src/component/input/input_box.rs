@@ -97,10 +97,10 @@ impl DrawableComponent for InputBox {
         match key_code {
             KeyCode::Enter => {
                 if !self.user_input.join("\n").is_empty() {
-                    app.pop_stack();
+                    app.pop_layer();
                     let err = (self.callback)(app, self.user_input.join("\n"));
                     if err.is_err() {
-                        app.append_stack(MessageBox::new(
+                        app.append_layer(MessageBox::new(
                             String::from("Error"),
                             err.err().unwrap().to_string(),
                             tui::style::Color::Red,
@@ -127,7 +127,7 @@ impl DrawableComponent for InputBox {
             }
             KeyCode::Tab => self.user_input.push(String::default()),
             KeyCode::Esc => {
-                app.pop_stack();
+                app.pop_layer();
             }
             _ => {}
         }

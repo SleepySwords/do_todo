@@ -53,7 +53,7 @@ impl DrawableComponent for MessageBox {
         app: &mut App,
         _: crossterm::event::KeyCode,
     ) -> crate::view::EventResult {
-        app.pop_stack();
+        app.pop_layer();
         crate::view::EventResult::Consumed
     }
 }

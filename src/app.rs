@@ -45,12 +45,12 @@ impl App {
         self.should_shutdown
     }
 
-    pub fn pop_stack(&mut self) {
+    pub fn pop_layer(&mut self) {
         self.callbacks.push_back(Box::new(|_, x| x.pop_layer()));
     }
 
     // FIX: use generics?!
-    pub fn append_stack<T: DrawableComponent + 'static>(&mut self, component: T) {
+    pub fn append_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
         self.callbacks
             .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
     }

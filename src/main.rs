@@ -70,11 +70,13 @@ pub fn start_app(
     while !app.should_shutdown() {
         terminal.draw(|f| {
             let draw_size = f.size();
-            let mut renderbackend = DrawBackend::CrosstermRenderer(f);
-            let mut renderer = Drawer::new(draw_size, &mut renderbackend);
-            layout.draw(app, draw_size, &mut renderer);
+            let mut draw_backend = DrawBackend::CrosstermRenderer(f);
+            let mut drawer = Drawer::new(draw_size, &mut draw_backend);
+            layout.draw(app, draw_size, &mut drawer);
         })?;
 
+        // This function blocks
+        // TODO: We are probably going to have to implement a Tick system eventually.
         if let Event::Key(event) = event::read()? {
             if event.code == KeyCode::Char('c') && event.modifiers.contains(KeyModifiers::CONTROL) {
                 return Ok(());

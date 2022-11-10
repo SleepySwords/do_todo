@@ -87,12 +87,12 @@ impl DrawableComponent for DialogBox {
         utils::handle_movement(key_code, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => {
-                app.pop_stack();
+                app.pop_layer();
                 (self.options[self.index].function)(app);
             }
             KeyCode::Esc => {
                 // May be better to have a custom escape function
-                app.pop_stack();
+                app.pop_layer();
             }
             _ => {}
         }

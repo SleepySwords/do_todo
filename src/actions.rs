@@ -56,14 +56,14 @@ pub fn open_help_menu(app: &mut App) {
         ));
     }
 
-    app.append_stack(DialogBox::new(String::from("Help Menu"), actions));
+    app.append_layer(DialogBox::new(String::from("Help Menu"), actions));
 }
 
 pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
     if app.task_store.tasks.is_empty() {
         return;
     }
-    app.append_stack(DialogBox::new(
+    app.append_layer(DialogBox::new(
         "Delete selected task".to_string(),
         vec![
             DialogAction::new(String::from("Delete"), move |app| {
@@ -128,10 +128,10 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
     // Menu to add a new tag
     // FIX: ooof this is some ugly ass code
     tags_options.push(DialogAction::new(String::from("New tag"), move |app| {
-        app.append_stack(InputBox::new(
+        app.append_layer(InputBox::new(
             String::from("Tag name"),
             move |app, tag_name| {
-                app.append_stack(InputBox::new(
+                app.append_layer(InputBox::new(
                     String::from("Tag colour"),
                     move |app, tag_colour| {
                         // FIX: Actually have proper error handling with an error enum
@@ -160,7 +160,7 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
         app.task_store.tasks[selected_index].tags.clear();
     }));
     tags_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
-    app.append_stack(DialogBox::new(
+    app.append_layer(DialogBox::new(
         "Add or remove a tag".to_string(),
         tags_options,
     ));

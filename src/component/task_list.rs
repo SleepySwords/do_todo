@@ -163,10 +163,10 @@ impl DrawableComponent for TaskList {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
             KeyCode::Char('e') => {
                 let index = *selected_index;
-                app.append_stack(InputBox::filled(
+                app.append_layer(InputBox::filled(
                     // TODO: cleanup this so it doesn't use clone, perhaps use references?
                     String::from("Edit the  selected task"),
-                    app.task_store.tasks[*selected_index].title.clone(),
+                    app.task_store.tasks[*selected_index].title.to_string(),
                     Box::new(move |app, mut word| {
                         app.task_store.tasks[index].title =
                             word.drain(..).collect::<String>().trim().to_string();
