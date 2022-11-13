@@ -20,7 +20,7 @@ pub const CURSOR_SIZE: usize = 1;
 
 pub struct InputBox {
     title: String,
-    pub user_input: Vec<String>,
+    user_input: Vec<String>,
     callback: InputBoxCallback,
 }
 
@@ -57,6 +57,8 @@ impl DrawableComponent for InputBox {
             .iter()
             .enumerate()
             .map(|(i, x)| {
+                // FIX: Complex logic, need to either write a seperate function, add a comment, or
+                // refactor
                 if i == self.user_input.len() - 1 {
                     let substring_length =
                         if x.len() > draw_area.width as usize - PADDING - CURSOR_SIZE {

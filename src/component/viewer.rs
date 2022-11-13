@@ -52,7 +52,7 @@ impl Viewer {
         };
 
         let items = vec![
-            (Span::raw("Title"), Spans::from(&task.title as &str)),
+            (Span::raw("Title"), Spans::from(task.title.split("\n").map(Span::from).collect::<Vec<Span>>())),
             (
                 Span::raw("Priority"),
                 Spans::from(Span::styled(
@@ -86,7 +86,7 @@ impl Viewer {
 
         let constraints = [Constraint::Percentage(25), Constraint::Percentage(75)];
         let items = vec![
-            (Span::raw("Title"), Spans::from(&task.task.title as &str)),
+            (Span::raw("Title"), Spans::from(task.task.title.split("\n").map(Span::from).collect::<Vec<Span>>())),
             (
                 Span::raw("Date Completed"),
                 Spans::from(&completed_time as &str),

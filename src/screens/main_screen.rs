@@ -8,13 +8,13 @@ use crate::{
         input::input_box::InputBox,
         layout::adjacent_layout::{AdjacentLayout, Child},
         task_list::TaskList,
-        viewer::Viewer,
+        viewer::Viewer, message_box::MessageBox,
     },
     task::Task,
     view::{DrawableComponent, Drawer, EventResult},
 };
 use crossterm::event::KeyCode;
-use tui::layout::{Constraint, Direction, Rect};
+use tui::{layout::{Constraint, Direction, Rect}, style::Color};
 
 pub struct MainScreenLayer {
     task_list: TaskList,
@@ -59,28 +59,27 @@ impl DrawableComponent for MainScreenLayer {
     }
 
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
-        let result = match app.selected_component {
-            crate::app::SelectedComponent::CurrentTasks => {
+        let event_result = match app.selected_component {
+            SelectedComponent::CurrentTasks => {
                 self.task_list.key_pressed(app, key_code)
             }
-            crate::app::SelectedComponent::CompletedTasks => {
+            SelectedComponent::CompletedTasks => {
                 self.completed_list.key_pressed(app, key_code)
             }
-            _ => crate::view::EventResult::Ignored,
+            _ => EventResult::Ignored,
         };
 
-        // TODO: Simplify logic here.
-
-        if result == EventResult::Consumed {
-            return result;
+        if event_result == EventResult::Consumed {
+            return event_result;
         }
 
+        // Global keybindings
         match key_code {
             KeyCode::Char('a') => app.append_layer(InputBox::new(
                 String::from("Add a task"),
-                |app, mut word| {
+                |app, word| {
                     app.task_store.tasks.push(Task::from_string(
-                        word.drain(..).collect::<String>().trim().to_string(),
+                        word.to_string(),
                     ));
                     Ok(())
                 },

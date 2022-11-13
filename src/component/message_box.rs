@@ -26,8 +26,13 @@ impl MessageBox {
 impl DrawableComponent for MessageBox {
     fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
         let style = Style::default().fg(self.colour);
+        let text = self
+            .message
+            .split("\n")
+            .map(|msg| Span::styled(msg, style))
+            .collect::<Vec<Span>>();
         let text = wrap_text(
-            tui::text::Spans(vec![Span::styled(&self.message, style)]),
+            tui::text::Spans(text),
             (Constraint::Percentage(70).apply(draw_area.width) - 2).into(),
         );
         let height = text.height();
