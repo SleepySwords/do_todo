@@ -14,9 +14,7 @@ use crate::{
     view::{DrawableComponent, Drawer, EventResult},
 };
 use crossterm::event::KeyCode;
-use tui::{
-    layout::{Constraint, Direction, Rect},
-};
+use tui::layout::{Constraint, Direction, Rect};
 
 pub struct MainScreenLayer {
     task_list: TaskList,
@@ -75,9 +73,7 @@ impl DrawableComponent for MainScreenLayer {
         match key_code {
             KeyCode::Char('a') => {
                 app.append_layer(InputBox::new(String::from("Add a task"), |app, word| {
-                    app.task_store
-                        .tasks
-                        .push(Task::from_string(word));
+                    app.task_store.tasks.push(Task::from_string(word));
                     Ok(())
                 }))
             }
