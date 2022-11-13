@@ -1,12 +1,15 @@
+use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Style},
     text::Text,
     widgets::Paragraph,
-    Frame,
 };
 
-use crate::app::App;
+use crate::{
+    app::App,
+    view::{DrawableComponent, Drawer, EventResult},
+};
 
 // TODO: Proper impl with actual colours
 pub struct StatusLine {
@@ -32,11 +35,15 @@ impl StatusLine {
     }
 }
 
-impl StatusLine {
+impl DrawableComponent for StatusLine {
     // Should be able to do commands?!
-    pub fn draw<B: tui::backend::Backend>(&self, _: &App, draw_area: Rect, f: &mut Frame<B>) {
+    fn draw(&self, _: &App, draw_area: Rect, drawer: &mut Drawer) {
         let help = Text::styled(self.status_line.as_str(), Style::default().fg(self.colour));
         let paragraph = Paragraph::new(help);
-        f.render_widget(paragraph, draw_area);
+        drawer.draw_widget(paragraph, draw_area);
+    }
+
+    fn key_pressed(&mut self, _: &mut App, _: KeyCode) -> EventResult {
+        EventResult::Ignored
     }
 }

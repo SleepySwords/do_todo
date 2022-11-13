@@ -33,6 +33,12 @@ impl Task {
         app.task_store.tags.get(self.tags.first().unwrap())
     }
 
+    pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + '_ {
+        self.tags
+            .iter()
+            .map(|tag_index| return app.task_store.tags.get(tag_index).unwrap())
+    }
+
     // PERF: Potentially expensive
     pub fn flip_tag(&mut self, tag: u32) {
         if !self.tags.contains(&tag) {

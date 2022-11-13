@@ -1,37 +1,27 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
+use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
 
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
-use crate::component::input::dialog::DialogBox;
-use crate::component::input::input_box::InputBox;
-use crate::component::message_box::MessageBox;
+use crate::component::layout::stack_layout::StackLayout;
 use crate::component::status_line::StatusLine;
 use crate::component::task_list::TaskList;
 use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
+use crate::view::DrawableComponent;
 
-// PERF: Wow the technical debt is insane, have to rewrite all this :(
-// Basic structure
-// Renderer -> Calls individual render on each section, pass the context
-// Where should the context be stored? Perhaps there is all the context with an is_visable tag?
-// Universal variables should be in app (Tasks, themes)
-
-// TODO: Refactor drawing system to allow screens or something, more complex modules
-// Use a queue like system to basically ensure that no modules are removed.
-// IDs? But that's a bit excessive.
+type Callback = dyn FnOnce(&mut App, &mut StackLayout);
 
 #[derive(Default)]
 pub struct App {
-    pub popup_stack: Vec<UserInputType>,
     pub theme: Theme,
     pub task_store: TaskStore,
 
     pub status_line: StatusLine,
 
-    pub selected_task_index: usize,
-    pub selected_completed_task_index: usize,
+    pub callbacks: VecDeque<Box<Callback>>,
     pub selected_component: SelectedComponent,
 
     should_shutdown: bool,
@@ -55,50 +45,22 @@ impl App {
         self.should_shutdown
     }
 
-    pub fn popup_context(&self) -> Option<&UserInputType> {
-        self.popup_stack.last()
+    pub fn pop_layer(&mut self) {
+        self.callbacks.push_back(Box::new(|_, x| x.pop_layer()));
     }
 
-    pub fn popup_context_mut(&mut self) -> Option<&mut UserInputType> {
-        self.popup_stack.last_mut()
+    // FIX: use generics?!
+    pub fn append_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
+        self.callbacks
+            .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
     }
 
-    pub fn append_layer(&mut self, popup: UserInputType) {
-        self.popup_stack.push(popup);
-        self.selected_component = SelectedComponent::PopUpComponent;
-    }
-
-    pub fn pop_popup(&mut self) -> Option<UserInputType> {
-        if self.popup_stack.len() == 1 {
-            self.selected_component = SelectedComponent::CurrentTasks;
-        }
-        self.popup_stack.pop()
+    pub fn execute_event(&mut self, key_code: KeyCode) {
+        self.callbacks.push_back(Box::new(move |app, x| {
+            x.key_pressed(app, key_code);
+        }));
     }
 }
-
-pub enum UserInputType {
-    Input(InputBox),
-    Dialog(DialogBox),
-    Message(MessageBox),
-}
-
-// TODO: This currently does not work due to how the component system is setup.
-// impl UserInputType {
-//     pub fn handle_event(&self, app: &mut App, key_code: KeyCode) {
-//         let err = match self {
-//             UserInputType::Input(_) => InputBox::handle_event(app, key_code),
-//             UserInputType::Dialog(_) => DialogBox::handle_event(app, key_code),
-//             UserInputType::Message(_) => MessageBox::handle_event(app, key_code),
-//         };
-//         if err.is_err() {
-//             app.append_layer(UserInputType::Message(MessageBox::new(
-//                 String::from("Error"),
-//                 err.err().unwrap().to_string(),
-//                 Color::Red,
-//             )))
-//         }
-//     }
-// }
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct TaskStore {
@@ -113,7 +75,7 @@ pub struct TaskStore {
 pub enum SelectedComponent {
     CurrentTasks,
     CompletedTasks,
-    PopUpComponent,
+    Overlay,
 }
 
 impl Default for SelectedComponent {
@@ -127,7 +89,7 @@ impl SelectedComponent {
         match self {
             SelectedComponent::CurrentTasks => TaskList::available_actions(),
             SelectedComponent::CompletedTasks => CompletedList::available_actions(),
-            SelectedComponent::PopUpComponent => vec![],
+            SelectedComponent::Overlay => vec![],
         }
     }
 }

@@ -1,81 +1,89 @@
-use crate::{
-    app::{App, UserInputType},
-    component::{
-        completed_list::CompletedList, input::input_box, task_list::TaskList, viewer::Viewer,
-    },
-    utils,
-};
-use tui::{
-    backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
-    Frame,
-};
+use std::{cell::RefCell, rc::Rc, vec};
 
-pub struct MainScreenLayer;
+use crate::{
+    actions,
+    app::{App, SelectedComponent},
+    component::{
+        completed_list::CompletedList,
+        input::input_box::InputBox,
+        layout::adjacent_layout::{AdjacentLayout, Child},
+        task_list::TaskList,
+        viewer::Viewer,
+    },
+    task::Task,
+    view::{DrawableComponent, Drawer, EventResult},
+};
+use crossterm::event::KeyCode;
+use tui::layout::{Constraint, Direction, Rect};
+
+pub struct MainScreenLayer {
+    task_list: TaskList,
+    completed_list: CompletedList,
+    viewer: Viewer,
+}
 
 impl MainScreenLayer {
-    fn draw_tasks<B>(app: &App, frame: &mut Frame<B>, layout_chunk: Rect)
-    where
-        B: Backend,
-    {
-        let layout_chunk = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-            .split(layout_chunk);
+    pub fn new() -> MainScreenLayer {
+        // The use of a RefCell means that we have to be more carefull in where we borrow this
+        // variable. Ie: No storing borrowed references.
+        let task_index = Rc::new(RefCell::new(0));
+        let completed_task_index = Rc::new(RefCell::new(0));
+        MainScreenLayer {
+            task_list: TaskList::new(task_index.clone()),
+            completed_list: CompletedList::new(completed_task_index.clone()),
+            viewer: Viewer::new(task_index, completed_task_index),
+        }
+    }
+}
 
-        TaskList::draw(app, layout_chunk[0], frame);
+impl DrawableComponent for MainScreenLayer {
+    fn draw<'a>(&'a self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
+        let layout = AdjacentLayout {
+            children: vec![
+                Child::owned(
+                    Constraint::Percentage(50),
+                    AdjacentLayout {
+                        children: vec![
+                            Child::borrow(Constraint::Percentage(70), &self.task_list),
+                            Child::borrow(Constraint::Percentage(30), &self.completed_list),
+                        ],
+                        direction: Direction::Vertical,
+                    },
+                ),
+                Child::borrow(Constraint::Percentage(50), &self.viewer),
+            ],
+            direction: Direction::Horizontal,
+        };
 
-        CompletedList::draw(app, layout_chunk[1], frame)
+        drawer.draw_component(app, &layout, draw_area);
     }
 
-    pub fn draw<B: Backend>(app: &mut App, f: &mut Frame<B>) {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Min(1), Constraint::Length(1)])
-            .split(f.size());
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+        let event_result = match app.selected_component {
+            SelectedComponent::CurrentTasks => self.task_list.key_pressed(app, key_code),
+            SelectedComponent::CompletedTasks => self.completed_list.key_pressed(app, key_code),
+            _ => EventResult::Ignored,
+        };
 
-        let main_body = layout[0];
-        let status_line = layout[1];
-
-        app.status_line.draw(app, status_line, f);
-
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
-            .split(main_body);
-
-        Viewer::draw(app, chunks[1], f);
-        Self::draw_tasks(app, f, chunks[0]);
-
-        if let Some(component) = app.popup_stack.last() {
-            match component {
-                UserInputType::Input(component) => {
-                    let layout_chunk = utils::centered_rect(
-                        Constraint::Percentage(70),
-                        Constraint::Length(
-                            (component.user_input.len() as u16).max(1) + input_box::PADDING as u16,
-                        ),
-                        f.size(),
-                    );
-                    component.draw(app, layout_chunk, f)
-                }
-                UserInputType::Dialog(component) => {
-                    let layout_chunk = utils::centered_rect(
-                        Constraint::Percentage(70),
-                        Constraint::Length(component.options.len() as u16 + 2),
-                        f.size(),
-                    );
-                    component.draw(app, layout_chunk, f)
-                }
-                UserInputType::Message(component) => {
-                    let layout_chunk = utils::centered_rect(
-                        Constraint::Percentage(70),
-                        Constraint::Percentage(30),
-                        f.size(),
-                    );
-                    component.draw(app, layout_chunk, f)
-                }
-            }
+        if event_result == EventResult::Consumed {
+            return event_result;
         }
+
+        // Global keybindings
+        match key_code {
+            KeyCode::Char('a') => {
+                app.append_layer(InputBox::new(String::from("Add a task"), |app, word| {
+                    app.task_store.tasks.push(Task::from_string(word));
+                    Ok(())
+                }))
+            }
+            KeyCode::Char('1') => app.selected_component = SelectedComponent::CurrentTasks,
+            KeyCode::Char('2') => app.selected_component = SelectedComponent::CompletedTasks,
+            KeyCode::Char('x') => actions::open_help_menu(app),
+            KeyCode::Char('q') => app.shutdown(),
+            _ => {}
+        }
+
+        EventResult::Consumed
     }
 }

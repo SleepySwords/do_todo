@@ -1,3 +1,6 @@
+use std::cell::{Ref, RefCell, RefMut};
+use std::rc::Rc;
+
 use crossterm::event::KeyCode;
 
 use tui::layout::Rect;
@@ -7,15 +10,26 @@ use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::HelpAction;
 use crate::app::{App, SelectedComponent};
+use crate::view::{DrawableComponent, EventResult};
 use crate::{actions, utils};
 
 const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CompletedTasks;
 
-pub struct CompletedList;
+pub struct CompletedList {
+    selected_index: Rc<RefCell<usize>>,
+}
 
 impl CompletedList {
-    fn selected(app: &App) -> &usize {
-        &app.selected_completed_task_index
+    pub fn new(selected_index: Rc<RefCell<usize>>) -> Self {
+        Self { selected_index }
+    }
+
+    fn selected(&self) -> Ref<usize> {
+        self.selected_index.borrow()
+    }
+
+    fn selected_mut(&self) -> RefMut<usize> {
+        self.selected_index.borrow_mut()
     }
 
     pub fn available_actions() -> Vec<HelpAction<'static>> {
@@ -25,35 +39,22 @@ impl CompletedList {
             "Restores the selected task",
         )]
     }
+}
 
-    pub fn handle_event(app: &mut App, key_code: KeyCode) -> Option<()> {
-        utils::handle_movement(
-            key_code,
-            &mut app.selected_completed_task_index,
-            app.task_store.completed_tasks.len(),
-        );
-
-        let selected_index = *Self::selected(app);
-
-        if let KeyCode::Char('r') = key_code {
-            actions::restore_task(app, selected_index)
-        }
-
-        Some(())
-    }
-
-    pub fn draw<B: tui::backend::Backend>(app: &App, draw_area: Rect, frame: &mut tui::Frame<B>) {
+impl DrawableComponent for CompletedList {
+    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
         let theme = &app.theme;
+
+        let selected_index = *self.selected();
 
         let completed_tasks: Vec<ListItem> = app
             .task_store
             .completed_tasks
             .iter()
             .enumerate()
-            .map(|(ind, task)| {
+            .map(|(i, task)| {
                 let colour = if let SelectedComponent::CompletedTasks = app.selected_component {
-                    let i = app.selected_completed_task_index;
-                    if i == ind {
+                    if selected_index == i {
                         theme.selected_task_colour
                     } else {
                         Color::White
@@ -73,8 +74,8 @@ impl CompletedList {
             })
             .collect();
 
-        let recently_competed = List::new(completed_tasks)
-            .block(utils::generate_block(
+        let completed_list = List::new(completed_tasks)
+            .block(utils::generate_default_block(
                 "Completed tasks",
                 COMPONENT_TYPE,
                 app,
@@ -84,12 +85,33 @@ impl CompletedList {
         let mut completed_state = ListState::default();
         if !app.task_store.completed_tasks.is_empty() {
             let index = match app.selected_component {
-                SelectedComponent::CompletedTasks => app.selected_completed_task_index,
+                SelectedComponent::CompletedTasks => selected_index,
                 _ => app.task_store.completed_tasks.len() - 1,
             };
             completed_state.select(Some(index));
         }
 
-        frame.render_stateful_widget(recently_competed, draw_area, &mut completed_state);
+        drawer.draw_stateful_widget(completed_list, &mut completed_state, draw_area);
+    }
+
+    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+        let result = utils::handle_movement(
+            key_code,
+            &mut self.selected_mut(),
+            app.task_store.completed_tasks.len(),
+        );
+
+        if result == EventResult::Consumed {
+            return result;
+        }
+
+        let mut selected_index = self.selected_mut();
+
+        if let KeyCode::Char('r') = key_code {
+            actions::restore_task(app, &mut selected_index);
+            return EventResult::Consumed;
+        }
+
+        EventResult::Ignored
     }
 }

@@ -2,7 +2,8 @@ use std::{error::Error, fs, path::Path};
 
 use crate::{app::TaskStore, task::Task, theme::Theme};
 
-// FIX: Proper handling, data should not be stored in the config file
+// FIX: Proper handling, data should not be stored in the config file and needes testing
+// Add a swp file.
 pub fn get_data() -> Result<(Theme, TaskStore), Box<dyn Error>> {
     match dirs::home_dir() {
         Some(home_dir) => {
@@ -45,6 +46,7 @@ pub fn get_data() -> Result<(Theme, TaskStore), Box<dyn Error>> {
     }
 }
 
+// FIX: proper error handling, pring data out if cannout save.
 pub fn save_data(theme: &Theme, task_store: &TaskStore) -> Result<(), Box<dyn Error>> {
     let dotodo_path = dirs::home_dir().unwrap().join(".config/dotodo/");
 

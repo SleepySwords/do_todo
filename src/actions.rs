@@ -1,14 +1,15 @@
+use std::{cell::RefCell, rc::Rc};
+
 use chrono::Local;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::KeyCode;
 use tui::style::Color;
 
 use crate::{
-    app::{App, SelectedComponent, UserInputType},
+    app::{App, SelectedComponent},
     component::{
         input::dialog::{DialogAction, DialogBox},
         input::input_box::InputBox,
     },
-    input::handle_key,
     task::{CompletedTask, Task},
 };
 
@@ -50,68 +51,60 @@ pub fn open_help_menu(app: &mut App) {
         actions.push(DialogAction::new(
             format!("{}    {}", ac.short_hand, ac.description),
             move |app| {
-                handle_key(
-                    crossterm::event::KeyEvent {
-                        code: ac.character,
-                        modifiers: KeyModifiers::NONE,
-                    },
-                    app,
-                );
+                app.execute_event(ac.character);
             },
         ));
     }
 
-    app.append_layer(UserInputType::Dialog(DialogBox::new(
-        String::from("Help Menu"),
-        actions,
-    )));
+    app.append_layer(DialogBox::new(String::from("Help Menu"), actions));
 }
 
-pub fn open_delete_task_menu(app: &mut App, selected_index: usize) {
+pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
     if app.task_store.tasks.is_empty() {
         return;
     }
-    app.append_layer(UserInputType::Dialog(DialogBox::new(
+    app.append_layer(DialogBox::new(
         "Delete selected task".to_string(),
         vec![
             DialogAction::new(String::from("Delete"), move |app| {
-                app.task_store.tasks.remove(selected_index);
-                if selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty()
+                let mut selected_index = selected_index.borrow_mut();
+                app.task_store.tasks.remove(*selected_index);
+                if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty()
                 {
-                    app.selected_task_index -= 1;
+                    *selected_index -= 1;
                 }
             }),
             DialogAction::new(String::from("Cancel"), |_| {}),
         ],
-    )));
+    ));
 }
 
-pub fn restore_task(app: &mut App, selected_index: usize) {
+pub fn restore_task(app: &mut App, selected_index: &mut usize) {
     if app.task_store.completed_tasks.is_empty() {
         return;
     }
     app.task_store.tasks.push(Task::from_completed_task(
-        app.task_store.completed_tasks.remove(selected_index),
+        app.task_store.completed_tasks.remove(*selected_index),
     ));
-    if selected_index == app.task_store.completed_tasks.len()
+    if *selected_index == app.task_store.completed_tasks.len()
         && !app.task_store.completed_tasks.is_empty()
     {
-        app.selected_completed_task_index -= 1;
+        *selected_index -= 1;
     }
 }
 
-pub fn complete_task(app: &mut App, selected_index: usize) {
+pub fn complete_task(app: &mut App, selected_index: &mut usize) {
     if app.task_store.tasks.is_empty() {
         return;
     }
     let local = Local::now();
     let time_completed = local.naive_local();
-    let task = app.task_store.tasks.remove(selected_index);
+    let task = app.task_store.tasks.remove(*selected_index);
     app.task_store
         .completed_tasks
         .push(CompletedTask::from_task(task, time_completed));
-    if selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
-        app.selected_task_index -= 1;
+    if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
+        *selected_index -= 1;
     }
 }
 
@@ -135,10 +128,10 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
     // Menu to add a new tag
     // FIX: ooof this is some ugly ass code
     tags_options.push(DialogAction::new(String::from("New tag"), move |app| {
-        app.append_layer(UserInputType::Input(InputBox::new(
+        app.append_layer(InputBox::new(
             String::from("Tag name"),
             move |app, tag_name| {
-                app.append_layer(UserInputType::Input(InputBox::new(
+                app.append_layer(InputBox::new(
                     String::from("Tag colour"),
                     move |app, tag_colour| {
                         // FIX: Actually have proper error handling with an error enum
@@ -158,17 +151,17 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
                         app.task_store.tasks[selected_index].flip_tag(tag_id);
                         Ok(())
                     },
-                )));
+                ));
                 Ok(())
             },
-        )));
+        ));
     }));
     tags_options.push(DialogAction::new(String::from("Clear tags"), move |app| {
         app.task_store.tasks[selected_index].tags.clear();
     }));
     tags_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
-    app.append_layer(UserInputType::Dialog(DialogBox::new(
+    app.append_layer(DialogBox::new(
         "Add or remove a tag".to_string(),
         tags_options,
-    )));
+    ));
 }
