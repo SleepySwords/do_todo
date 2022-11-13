@@ -28,7 +28,7 @@ impl DrawableComponent for MessageBox {
         let style = Style::default().fg(self.colour);
         let text = self
             .message
-            .split("\n")
+            .split('\n')
             .map(|msg| Span::styled(msg, style))
             .collect::<Vec<Span>>();
         let text = wrap_text(
