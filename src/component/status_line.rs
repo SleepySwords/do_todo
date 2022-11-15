@@ -1,28 +1,49 @@
+use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Style},
     text::Text,
     widgets::Paragraph,
-    Frame,
 };
 
-use crate::app::App;
+use crate::{
+    app::App,
+    view::{DrawableComponent, Drawer, EventResult},
+};
 
-pub struct StatusLineComponent {
-    status_line: String,
+// TODO: Proper impl with actual colours
+pub struct StatusLine {
+    pub status_line: String,
+    pub colour: Color,
 }
 
-impl StatusLineComponent {
-    pub fn new(status_line: String) -> StatusLineComponent {
-        StatusLineComponent { status_line }
+impl Default for StatusLine {
+    fn default() -> Self {
+        StatusLine {
+            status_line: String::default(),
+            colour: Color::White,
+        }
     }
 }
 
-impl StatusLineComponent {
+impl StatusLine {
+    pub fn new(status_line: String) -> StatusLine {
+        StatusLine {
+            status_line,
+            colour: Color::White,
+        }
+    }
+}
+
+impl DrawableComponent for StatusLine {
     // Should be able to do commands?!
-    pub fn draw<B: tui::backend::Backend>(&self, _: &App, area: Rect, f: &mut Frame<B>) {
-        let help = Text::styled(self.status_line.as_str(), Style::default().fg(Color::White));
+    fn draw(&self, _: &App, draw_area: Rect, drawer: &mut Drawer) {
+        let help = Text::styled(self.status_line.as_str(), Style::default().fg(self.colour));
         let paragraph = Paragraph::new(help);
-        f.render_widget(paragraph, area);
+        drawer.draw_widget(paragraph, draw_area);
+    }
+
+    fn key_pressed(&mut self, _: &mut App, _: KeyCode) -> EventResult {
+        EventResult::Ignored
     }
 }

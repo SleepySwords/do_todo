@@ -1,41 +1,38 @@
+use std::collections::{BTreeMap, VecDeque};
+
+use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
 
-use crate::component::dialog::DialogComponent;
-use crate::component::input_box::InputBoxComponent;
-use crate::task::{CompletedTask, Task};
+use crate::actions::HelpAction;
+use crate::component::completed_list::CompletedList;
+use crate::component::layout::stack_layout::StackLayout;
+use crate::component::status_line::StatusLine;
+use crate::component::task_list::TaskList;
+use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
+use crate::view::DrawableComponent;
 
-// Consider either putting all the data in app or using something such as Rc and RefCells?
+type Callback = dyn FnOnce(&mut App, &mut StackLayout);
+
 #[derive(Default)]
 pub struct App {
-    pub popup_stack: Vec<PopUpComponents>,
     pub theme: Theme,
-    pub selected_component: SelectedComponent,
-    pub words: String,
-    pub task_data: TaskData,
+    pub task_store: TaskStore,
 
-    pub selected_task_index: usize,
-    pub selected_completed_task_index: usize,
+    pub status_line: StatusLine,
+
+    pub callbacks: VecDeque<Box<Callback>>,
+    pub selected_component: SelectedComponent,
 
     should_shutdown: bool,
 }
 
-pub enum PopUpComponents {
-    InputBox(InputBoxComponent),
-    DialogBox(DialogComponent),
-}
-
-#[derive(Deserialize, Default, Serialize)]
-pub struct TaskData {
-    pub tasks: Vec<Task>,
-    pub completed_tasks: Vec<CompletedTask>,
-}
-
 impl App {
-    pub fn new(theme: Theme, task_data: TaskData) -> App {
+    pub fn new(theme: Theme, task_data: TaskStore) -> App {
         App {
             theme,
-            task_data,
+            task_store: task_data,
+            status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
             ..Default::default()
         }
     }
@@ -47,17 +44,52 @@ impl App {
     pub fn should_shutdown(&mut self) -> bool {
         self.should_shutdown
     }
+
+    pub fn pop_layer(&mut self) {
+        self.callbacks.push_back(Box::new(|_, x| x.pop_layer()));
+    }
+
+    // FIX: use generics?!
+    pub fn append_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
+        self.callbacks
+            .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
+    }
+
+    pub fn execute_event(&mut self, key_code: KeyCode) {
+        self.callbacks.push_back(Box::new(move |app, x| {
+            x.key_pressed(app, key_code);
+        }));
+    }
 }
 
-#[derive(PartialEq)]
+#[derive(Default, Deserialize, Serialize)]
+pub struct TaskStore {
+    // eventually convert to vec
+    pub tags: BTreeMap<u32, Tag>,
+
+    pub tasks: Vec<Task>,
+    pub completed_tasks: Vec<CompletedTask>,
+}
+
+#[derive(PartialEq, Eq)]
 pub enum SelectedComponent {
     CurrentTasks,
     CompletedTasks,
-    PopUpComponent,
+    Overlay,
 }
 
 impl Default for SelectedComponent {
     fn default() -> Self {
         Self::CurrentTasks
+    }
+}
+
+impl SelectedComponent {
+    pub fn available_help_actions(&self) -> Vec<HelpAction> {
+        match self {
+            SelectedComponent::CurrentTasks => TaskList::available_actions(),
+            SelectedComponent::CompletedTasks => CompletedList::available_actions(),
+            SelectedComponent::Overlay => vec![],
+        }
     }
 }

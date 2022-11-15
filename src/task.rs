@@ -1,14 +1,22 @@
-use crate::theme::Theme;
+use crate::{app::App, theme::Theme};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tui::style::Color;
 
 #[derive(Deserialize, Serialize)]
+pub struct Tag {
+    pub name: String,
+    pub colour: Color,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Task {
     pub progress: bool,
     pub title: String,
     pub priority: Priority,
+
+    pub tags: Vec<u32>,
 }
 
 impl Task {
@@ -17,39 +25,57 @@ impl Task {
             progress: false,
             title: content,
             priority: Priority::None,
+            tags: Vec::new(),
+        }
+    }
+
+    pub fn first_tag<'a>(&self, app: &'a App) -> Option<&'a Tag> {
+        app.task_store.tags.get(self.tags.first().unwrap())
+    }
+
+    pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + '_ {
+        self.tags
+            .iter()
+            .map(|tag_index| return app.task_store.tags.get(tag_index).unwrap())
+    }
+
+    // PERF: Potentially expensive
+    pub fn flip_tag(&mut self, tag: u32) {
+        if !self.tags.contains(&tag) {
+            self.tags.push(tag)
+        } else {
+            self.tags.retain(|x| x != &tag);
         }
     }
 
     pub fn from_completed_task(completed_task: CompletedTask) -> Self {
-        Task {
-            progress: false,
-            title: completed_task.title,
-            priority: completed_task.priority,
-        }
+        completed_task.task
     }
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct CompletedTask {
-    pub title: String,
+    pub task: Task,
     pub time_completed: NaiveDateTime,
-    pub priority: Priority,
 }
 
 impl CompletedTask {
     pub fn from_task(task: Task, time_completed: NaiveDateTime) -> Self {
         CompletedTask {
-            title: task.title,
+            task,
             time_completed,
-            priority: task.priority,
         }
     }
 
     pub fn from_string(content: String, time_completed: NaiveDateTime) -> Self {
         CompletedTask {
-            title: content,
+            task: Task {
+                progress: false,
+                title: content,
+                priority: Priority::None,
+                tags: Vec::new(),
+            },
             time_completed,
-            priority: Priority::None,
         }
     }
 }
