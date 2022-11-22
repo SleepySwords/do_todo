@@ -10,7 +10,6 @@ use crate::{
         message_box::MessageBox,
         task_list::TaskList,
         viewer::Viewer,
-        wrapped_text::TestWrap,
     },
     task::Task,
     view::{DrawableComponent, Drawer, EventResult},

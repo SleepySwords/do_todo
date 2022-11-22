@@ -40,7 +40,7 @@ impl InputBox {
         InputBox {
             title,
             user_input: words
-                .split("\n")
+                .split('\n')
                 .map(|f| f.to_string())
                 .collect::<Vec<String>>(),
             callback,

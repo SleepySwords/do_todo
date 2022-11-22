@@ -57,12 +57,11 @@ fn flush(
     area: tui::layout::Rect,
     buf: &mut tui::buffer::Buffer,
 ) {
-    for x in 0..word.len() {
-        let (symbol, style) = word[x];
-        buf.get_mut(x as u16 + current_width + area.x, current_height)
+    for (i, (symbol, style)) in word.iter().enumerate() {
+        buf.get_mut(i as u16 + current_width + area.x, current_height)
             .set_symbol(symbol);
-        buf.get_mut(x as u16 + current_width + area.x, current_height)
-            .set_style(style);
+        buf.get_mut(i as u16 + current_width + area.x, current_height)
+            .set_style(*style);
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{usize, char};
+use std::{char, usize};
 
 use crossterm::event::KeyCode;
 use tui::{
@@ -173,7 +173,7 @@ pub fn wrap_text(spans: Spans, width: u16) -> Text {
         .into_iter()
         .for_each(|x| add_to_current_line(&mut text, x));
     if let Some(l) = text.lines.last() {
-        if l.0.len() == 0 {
+        if l.0.is_empty() {
             text.lines.pop();
         }
     }
@@ -198,7 +198,7 @@ pub fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
     }
 }
 
-pub fn new_blank_line<'a>(text: &mut Text<'a>) {
+pub fn new_blank_line(text: &mut Text) {
     text.lines.push(Spans(Vec::new()));
 }
 

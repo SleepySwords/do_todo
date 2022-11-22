@@ -33,7 +33,7 @@ impl DrawableComponent for MessageBox {
             .collect::<Vec<Span>>();
         let text = wrap_text(
             tui::text::Spans(text),
-            (Constraint::Percentage(70).apply(draw_area.width) - 2).into(),
+            Constraint::Percentage(70).apply(draw_area.width) - 2,
         );
         let height = text.height();
         let message_box = Paragraph::new(text);
