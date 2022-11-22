@@ -54,12 +54,7 @@ impl Viewer {
         let items = vec![
             (
                 Span::raw("Title"),
-                Spans::from(
-                    task.title
-                        .split('\n')
-                        .map(Span::from)
-                        .collect::<Vec<Span>>(),
-                ),
+                Spans::from(Span::from(task.title.as_str())),
             ),
             (
                 Span::raw("Priority"),
@@ -71,8 +66,9 @@ impl Viewer {
             (Span::raw("Tags"), tags_name),
         ];
 
+        // NOTE: I have no idea why the width must be three less, should probably investigate.
         let table =
-            utils::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
+            utils::generate_table(items, constraints[1].apply(draw_area.width) as usize - 3)
                 .block(block)
                 .widths(&constraints);
 

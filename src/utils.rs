@@ -1,4 +1,4 @@
-use std::usize;
+use std::{char, usize};
 
 use crossterm::event::KeyCode;
 use tui::{
@@ -7,6 +7,7 @@ use tui::{
     text::{Span, Spans, Text},
     widgets::{Block, Borders, Cell, Row, Table},
 };
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     app::{App, SelectedComponent},
@@ -26,7 +27,6 @@ pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) 
         .split(popup_layout[1])[1]
 }
 
-// TODO: Why do we have three values for this again? Ideally it would just be two right?
 fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3] {
     match constraint {
         Constraint::Percentage(percent) => [
@@ -109,7 +109,7 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) -
 
 pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
     Table::new(items.into_iter().map(|(title, content)| {
-        let text = wrap_text(content, width);
+        let text = wrap_text(content, width as u16);
 
         let height = text.height();
         let cells = vec![Cell::from(title), Cell::from(text)];
@@ -117,50 +117,80 @@ pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Ta
     }))
 }
 
-// FIX: Spans are broken up even if they don't have a space
-// FIX: This is because we would split based on spans not spaces.
-// This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
-// HACK: Factorise this
-pub fn wrap_text(spans: Spans, width: usize) -> Text {
-    spans
-        .0
-        .into_iter()
-        .fold((0, Text::raw("")), |acc, span| {
-            let mut current_width = acc.0;
-            let mut text = acc.1;
-
-            if current_width + span.width() < width {
-                current_width = (current_width + span.width()) % width;
-                add_to_text(&mut text, span);
-                return (current_width, text);
+// FIX: This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
+pub fn wrap_text(spans: Spans, width: u16) -> Text {
+    let mut text = Text::default();
+    let mut queue = Vec::new();
+    for span in &spans.0 {
+        let mut content = String::new();
+        let style = span.style;
+        for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
+            let is_newline = grapheme.chars().any(|chr| chr == '\n');
+            if is_newline {
+                queue
+                    .into_iter()
+                    .for_each(|x| add_to_current_line(&mut text, x));
+                add_to_current_line(&mut text, Span::styled(content, style));
+                queue = Vec::new();
+                content = String::new();
+                new_blank_line(&mut text);
             }
-
-            let mut iter = span.content.split(' ').peekable();
-            while let Some(str_content) = iter.next() {
-                let next_element = iter.peek().is_some();
-                // To string?!?
-                let mut stx = str_content.to_string();
-
-                if str_content.len() + current_width + usize::from(next_element) < width {
-                    if next_element {
-                        stx.push(' ');
-                    }
-                    current_width = (current_width + stx.len()) % width;
-                    add_to_text(&mut text, Span::styled(stx, span.style));
-                } else {
-                    if next_element {
-                        stx.push(' ');
-                    }
-                    current_width = (current_width + stx.len()) % width;
-                    text.lines.push(Spans::from(Span::styled(stx, span.style)));
+            // Insert when encountering a space.
+            let is_whitespace = grapheme.chars().all(&char::is_whitespace);
+            if is_whitespace {
+                if current_width(&text) as u16 + content.len() as u16 != width {
+                    content.push_str(grapheme);
                 }
+                queue
+                    .into_iter()
+                    .for_each(|x| add_to_current_line(&mut text, x));
+                add_to_current_line(&mut text, Span::styled(content, style));
+                queue = Vec::new();
+                content = String::new();
+                continue;
             }
-            (current_width, text)
-        })
-        .1
+            content.push_str(grapheme);
+            // If the content exceeds the current length, break the content up
+            if content.len() as u16 == width {
+                queue
+                    .into_iter()
+                    .for_each(|x| add_to_current_line(&mut text, x));
+                add_to_current_line(&mut text, Span::styled(content, style));
+                queue = Vec::new();
+                content = String::new();
+                new_blank_line(&mut text);
+            }
+            // If the content + current width exceeds the width make a new line to break it up.
+            if current_width(&text) as u16 + content.len() as u16 > width {
+                new_blank_line(&mut text);
+            }
+        }
+        if !content.is_empty() {
+            queue.push(Span::styled(content, style));
+        }
+    }
+    queue
+        .into_iter()
+        .for_each(|x| add_to_current_line(&mut text, x));
+    if let Some(l) = text.lines.last() {
+        if l.0.is_empty() {
+            text.lines.pop();
+        }
+    }
+    text
+    // flush(current_width, current_height, word, area, buf);
 }
 
-pub fn add_to_text<'a>(text: &mut Text<'a>, span: Span<'a>) {
+fn current_width(text: &Text) -> usize {
+    text.lines.last().map_or(0usize, |x| {
+        x.0.iter().fold(0usize, |mut acc, e| {
+            acc += e.width();
+            acc
+        })
+    })
+}
+
+fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
     if let Some(last) = text.lines.last_mut() {
         last.0.push(span);
     } else {
@@ -168,7 +198,11 @@ pub fn add_to_text<'a>(text: &mut Text<'a>, span: Span<'a>) {
     }
 }
 
-// Generates the default block
+fn new_blank_line(text: &mut Text) {
+    text.lines.push(Spans(Vec::new()));
+}
+
+/// Generates the default block
 pub fn generate_default_block<'a>(
     title: &'a str,
     selected_component: SelectedComponent,
