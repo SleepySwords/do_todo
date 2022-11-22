@@ -39,7 +39,10 @@ impl InputBox {
     pub fn filled(title: String, words: String, callback: InputBoxCallback) -> InputBox {
         InputBox {
             title,
-            user_input: vec![words],
+            user_input: words
+                .split("\n")
+                .map(|f| f.to_string())
+                .collect::<Vec<String>>(),
             callback,
         }
     }

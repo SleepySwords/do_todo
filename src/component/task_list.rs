@@ -165,7 +165,7 @@ impl DrawableComponent for TaskList {
                 let index = *selected_index;
                 app.append_layer(InputBox::filled(
                     // TODO: cleanup this so it doesn't use clone, perhaps use references?
-                    String::from("Edit the  selected task"),
+                    String::from("Edit the selected task"),
                     app.task_store.tasks[*selected_index].title.to_string(),
                     Box::new(move |app, mut word| {
                         app.task_store.tasks[index].title =
