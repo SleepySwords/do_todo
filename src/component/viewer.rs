@@ -66,6 +66,7 @@ impl Viewer {
             (Span::raw("Tags"), tags_name),
         ];
 
+        // NOTE: I have no idea why the width must be three less, should probably investigate.
         let table =
             utils::generate_table(items, constraints[1].apply(draw_area.width) as usize - 3)
                 .block(block)

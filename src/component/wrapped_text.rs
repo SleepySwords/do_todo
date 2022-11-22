@@ -22,6 +22,14 @@ impl Widget for WrappedText<'_> {
         for span in &self.spans.0 {
             let style = span.style;
             for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
+                let is_newline = grapheme.chars().any(|chr| chr == '\n');
+                if is_newline {
+                    flush(current_width, current_height, word, area, buf);
+                    current_width = 0;
+                    current_height += 1;
+                    word = Vec::new();
+                    continue;
+                }
                 let is_whitespace = grapheme.chars().all(&char::is_whitespace);
                 if is_whitespace {
                     if current_width + word.len() as u16 != area.width {

@@ -7,7 +7,6 @@ use crate::{
         completed_list::CompletedList,
         input::input_box::InputBox,
         layout::adjacent_layout::{AdjacentLayout, Child},
-        message_box::MessageBox,
         task_list::TaskList,
         viewer::Viewer,
     },
@@ -75,16 +74,6 @@ impl DrawableComponent for MainScreenLayer {
             KeyCode::Char('a') => {
                 app.append_layer(InputBox::new(String::from("Add a task"), |app, word| {
                     app.task_store.tasks.push(Task::from_string(word));
-                    Ok(())
-                }))
-            }
-            KeyCode::Char('o') => {
-                app.append_layer(InputBox::new(String::from("Add a task"), |app, word| {
-                    app.append_layer(MessageBox::new(
-                        "Error".to_string(),
-                        word,
-                        tui::style::Color::Blue,
-                    ));
                     Ok(())
                 }))
             }

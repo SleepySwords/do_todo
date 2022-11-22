@@ -125,7 +125,7 @@ pub fn wrap_text(spans: Spans, width: u16) -> Text {
         let mut content = String::new();
         let style = span.style;
         for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
-            let is_newline = grapheme == "\n";
+            let is_newline = grapheme.chars().any(|chr| chr == '\n');
             if is_newline {
                 queue
                     .into_iter()
@@ -190,7 +190,7 @@ fn current_width(text: &Text) -> usize {
     })
 }
 
-pub fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
+fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
     if let Some(last) = text.lines.last_mut() {
         last.0.push(span);
     } else {
@@ -198,7 +198,7 @@ pub fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
     }
 }
 
-pub fn new_blank_line(text: &mut Text) {
+fn new_blank_line(text: &mut Text) {
     text.lines.push(Spans(Vec::new()));
 }
 
