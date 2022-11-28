@@ -164,10 +164,7 @@ pub fn delete_tag_menu(app: &mut App) {
         // TODO: Allow for DialogBox to support colours.
         tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
             app.append_layer(DialogBox::new(
-                format!(
-                    "Do you want to permenatly delete the tag {}",
-                    moved_name
-                ),
+                format!("Do you want to permenatly delete the tag {}", moved_name),
                 vec![
                     DialogAction::new(String::from("Delete"), move |app| {
                         app.task_store.delete_tag(moved)
