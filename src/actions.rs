@@ -169,10 +169,10 @@ pub fn delete_tag_menu(app: &mut App) {
                     moved_name
                 ),
                 vec![
-                    DialogAction::new(String::from("yes"), move |app| {
+                    DialogAction::new(String::from("Delete"), move |app| {
                         app.task_store.delete_tag(moved)
                     }),
-                    DialogAction::new(String::from("no"), move |_| {}),
+                    DialogAction::new(String::from("Cancel"), move |_| {}),
                 ],
             ));
         }));
