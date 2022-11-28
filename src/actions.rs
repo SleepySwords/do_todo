@@ -9,6 +9,7 @@ use crate::{
     component::{
         input::dialog::{DialogAction, DialogBox},
         input::input_box::InputBox,
+        message_box::MessageBox,
     },
     task::{CompletedTask, Task},
 };
@@ -108,60 +109,105 @@ pub fn complete_task(app: &mut App, selected_index: &mut usize) {
     }
 }
 
-// TODO: Add a way to remove tags
 pub fn tag_menu(app: &mut App, selected_index: usize) {
     if app.task_store.tasks.is_empty() {
         return;
     }
 
-    let mut tags_options: Vec<DialogAction> = Vec::new();
+    let mut tag_options: Vec<DialogAction> = Vec::new();
 
     // Loops through the tags and adds them to the menu.
     for (i, tag) in app.task_store.tags.iter() {
         let moved: u32 = *i;
         // TODO: Allow for DialogBox to support colours.
-        tags_options.push(DialogAction::new(String::from(&tag.name), move |app| {
+        tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
             app.task_store.tasks[selected_index].flip_tag(moved);
         }));
     }
 
-    // Menu to add a new tag
     // FIX: ooof this is some ugly ass code
-    tags_options.push(DialogAction::new(String::from("New tag"), move |app| {
+    tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
         app.append_layer(InputBox::new(
             String::from("Tag name"),
             move |app, tag_name| {
-                app.append_layer(InputBox::new(
-                    String::from("Tag colour"),
-                    move |app, tag_colour| {
-                        // FIX: Actually have proper error handling with an error enum
-                        // TODO: Add colour word support (ie: green, blue, red, orange)
-                        let red = u8::from_str_radix(&tag_colour[0..2], 16)?;
-                        let green = u8::from_str_radix(&tag_colour[2..4], 16)?;
-                        let blue = u8::from_str_radix(&tag_colour[4..6], 16)?;
-                        let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
-                        app.task_store.tags.insert(
-                            tag_id,
-                            crate::task::Tag {
-                                // FIX: I can't be bothered fixing this ownership problem
-                                name: tag_name.to_owned(),
-                                colour: Color::Rgb(red, green, blue),
-                            },
-                        );
-                        app.task_store.tasks[selected_index].flip_tag(tag_id);
-                        Ok(())
-                    },
-                ));
+                open_select_tag_colour(app, selected_index, tag_name);
                 Ok(())
             },
         ));
     }));
-    tags_options.push(DialogAction::new(String::from("Clear tags"), move |app| {
-        app.task_store.tasks[selected_index].tags.clear();
-    }));
-    tags_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+    tag_options.push(DialogAction::new(
+        String::from("Clear all tags"),
+        move |app| {
+            app.task_store.tasks[selected_index].tags.clear();
+        },
+    ));
+    tag_options.push(DialogAction::new(
+        String::from("Delete a tag"),
+        move |app| {
+            delete_tag_menu(app);
+        },
+    ));
+    tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+
     app.append_layer(DialogBox::new(
         "Add or remove a tag".to_string(),
-        tags_options,
+        tag_options,
+    ));
+}
+
+pub fn delete_tag_menu(app: &mut App) {
+    let mut tag_options: Vec<DialogAction> = Vec::new();
+
+    for (i, tag) in app.task_store.tags.iter() {
+        let moved: u32 = *i;
+        let moved_name = tag.name.clone();
+        // TODO: Allow for DialogBox to support colours.
+        tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
+            app.append_layer(DialogBox::new(
+                format!("Do you want to permenatly delete the tag {}", moved_name),
+                vec![
+                    DialogAction::new(String::from("Delete"), move |app| {
+                        app.task_store.delete_tag(moved)
+                    }),
+                    DialogAction::new(String::from("Cancel"), move |_| {}),
+                ],
+            ));
+        }));
+    }
+    tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+
+    app.append_layer(DialogBox::new("Delete a tag".to_string(), tag_options));
+}
+
+fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String) {
+    let tag = tag_name.clone();
+    app.append_layer(InputBox::new_with_error_callback(
+        String::from("Tag colour"),
+        move |app, tag_colour| {
+            // TODO: Add colour word support (ie: green, blue, red, orange)
+            let red = u8::from_str_radix(&tag_colour[0..2], 16)?;
+            let green = u8::from_str_radix(&tag_colour[2..4], 16)?;
+            let blue = u8::from_str_radix(&tag_colour[4..6], 16)?;
+            let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
+            app.task_store.tags.insert(
+                tag_id,
+                crate::task::Tag {
+                    // Unfortunately the `.to_owned` call is required as this is a Fn rather than a
+                    // FnOnce
+                    name: tag_name.to_owned(),
+                    colour: Color::Rgb(red, green, blue),
+                },
+            );
+            app.task_store.tasks[selected_index].flip_tag(tag_id);
+            Ok(())
+        },
+        move |app, err| {
+            open_select_tag_colour(app, selected_index, tag.to_owned());
+            app.append_layer(MessageBox::new(
+                String::from("Error"),
+                err.to_string(),
+                tui::style::Color::Red,
+            ));
+        },
     ));
 }
