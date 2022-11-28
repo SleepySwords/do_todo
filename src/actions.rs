@@ -136,7 +136,7 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
         ));
     }));
     tag_options.push(DialogAction::new(
-        String::from("Clear all tags from selected"),
+        String::from("Clear all tags"),
         move |app| {
             app.task_store.tasks[selected_index].tags.clear();
         },
@@ -160,9 +160,21 @@ pub fn delete_tag_menu(app: &mut App) {
 
     for (i, tag) in app.task_store.tags.iter() {
         let moved: u32 = *i;
+        let moved_name = tag.name.clone();
         // TODO: Allow for DialogBox to support colours.
         tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
-            app.task_store.delete_tag(moved);
+            app.append_layer(DialogBox::new(
+                format!(
+                    "Do you want to permenatly delete the tag {}",
+                    moved_name
+                ),
+                vec![
+                    DialogAction::new(String::from("yes"), move |app| {
+                        app.task_store.delete_tag(moved)
+                    }),
+                    DialogAction::new(String::from("no"), move |_| {}),
+                ],
+            ));
         }));
     }
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
