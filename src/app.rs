@@ -71,6 +71,15 @@ pub struct TaskStore {
     pub completed_tasks: Vec<CompletedTask>,
 }
 
+impl TaskStore {
+    pub fn delete_tag(&mut self, tag_id: u32) {
+        self.tags.remove(&tag_id);
+        for task in &mut self.tasks {
+            task.tags.retain(|f| f != &tag_id);
+        }
+    }
+}
+
 #[derive(PartialEq, Eq)]
 pub enum SelectedComponent {
     CurrentTasks,

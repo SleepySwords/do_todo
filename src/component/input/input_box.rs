@@ -8,12 +8,12 @@ use tui::{
 };
 
 use crate::app::App;
-use crate::component::message_box::MessageBox;
 use crate::error::AppError;
 use crate::utils;
 use crate::view::{DrawableComponent, EventResult};
 
 type InputBoxCallback = Box<dyn Fn(&mut App, String) -> Result<(), AppError>>;
+type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
 
 pub const PADDING: usize = 2;
 pub const CURSOR_SIZE: usize = 1;
@@ -22,6 +22,7 @@ pub struct InputBox {
     title: String,
     user_input: Vec<String>,
     callback: InputBoxCallback,
+    error_callback: ErrorCallback,
 }
 
 impl InputBox {
@@ -33,6 +34,24 @@ impl InputBox {
             title,
             user_input: vec![String::default()],
             callback: Box::new(callback),
+            error_callback: Box::new(|_, _| {}),
+        }
+    }
+
+    pub fn new_with_error_callback<T: 'static, U: 'static>(
+        title: String,
+        callback: T,
+        error_callback: U,
+    ) -> InputBox
+    where
+        T: Fn(&mut App, String) -> Result<(), AppError>,
+        U: Fn(&mut App, AppError),
+    {
+        InputBox {
+            title,
+            user_input: vec![String::default()],
+            callback: Box::new(callback),
+            error_callback: Box::new(error_callback),
         }
     }
 
@@ -44,6 +63,7 @@ impl InputBox {
                 .map(|f| f.to_string())
                 .collect::<Vec<String>>(),
             callback,
+            error_callback: Box::new(|_, _| {}),
         }
     }
 }
@@ -94,22 +114,19 @@ impl DrawableComponent for InputBox {
         )
     }
 
-    fn key_pressed(
-        &mut self,
-        app: &mut App,
-        key_code: crossterm::event::KeyCode,
-    ) -> crate::view::EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_code: KeyCode) -> EventResult {
         match key_code {
             KeyCode::Enter => {
                 if !self.user_input.join("\n").is_empty() {
+                    // Unfortunately since the `app` uses a callback system, ie: the component is removed at the next draw.
+                    // self.callback cannot be a FnOnce
+                    // Which makes things particularly annoying.
+                    // Removing the callback system would mean that the components and the app
+                    // cannot be passed together. Perhaps a global state is a better idea.
                     app.pop_layer();
                     let err = (self.callback)(app, self.user_input.join("\n"));
                     if err.is_err() {
-                        app.append_layer(MessageBox::new(
-                            String::from("Error"),
-                            err.err().unwrap().to_string(),
-                            tui::style::Color::Red,
-                        ));
+                        (self.error_callback)(app, err.err().unwrap());
                     }
                     return EventResult::Consumed;
                 }

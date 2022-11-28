@@ -178,7 +178,6 @@ pub fn wrap_text(spans: Spans, width: u16) -> Text {
         }
     }
     text
-    // flush(current_width, current_height, word, area, buf);
 }
 
 fn current_width(text: &Text) -> usize {
