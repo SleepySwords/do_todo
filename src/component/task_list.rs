@@ -96,7 +96,7 @@ impl DrawableComponent for TaskList {
                 spans.push(priority);
 
                 // TODO: Rewrite to store as an array in the task
-                let content = Span::styled(task.title.split("\n").next().unwrap(), style);
+                let content = Span::styled(task.title.split('\n').next().unwrap(), style);
                 spans.push(content);
 
                 for tag in task.iter_tags(app) {
