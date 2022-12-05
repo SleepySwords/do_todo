@@ -95,17 +95,17 @@ impl DrawableComponent for CompletedList {
     }
 
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+        let mut selected_index = self.selected_mut();
+
         let result = utils::handle_movement(
             key_code,
-            &mut self.selected_mut(),
+            &mut selected_index,
             app.task_store.completed_tasks.len(),
         );
 
         if result == EventResult::Consumed {
             return result;
         }
-
-        let mut selected_index = self.selected_mut();
 
         if let KeyCode::Char('r') = key_code {
             actions::restore_task(app, &mut selected_index);

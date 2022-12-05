@@ -10,8 +10,8 @@ pub struct StackLayout {
 }
 
 impl StackLayout {
-    pub fn pop_layer(&mut self) {
-        self.children.pop();
+    pub fn pop_layer(&mut self) -> Option<Box<dyn DrawableComponent>> {
+        self.children.pop()
     }
 
     pub fn append_layer(&mut self, component: Box<dyn DrawableComponent>) {

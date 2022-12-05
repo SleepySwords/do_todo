@@ -2,13 +2,13 @@ use std::{fmt::Display, num::ParseIntError};
 
 #[derive(Debug)]
 pub enum AppError {
-    InvalidColour(ParseIntError),
+    InvalidColour(),
 }
 
 impl Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AppError::InvalidColour(_) => write!(f, "Please use a valid colour"),
+            AppError::InvalidColour() => write!(f, "Please use a valid colour"),
         }
     }
 }
@@ -20,7 +20,7 @@ impl std::error::Error for AppError {
 }
 
 impl From<ParseIntError> for AppError {
-    fn from(err: ParseIntError) -> AppError {
-        AppError::InvalidColour(err)
+    fn from(_: ParseIntError) -> AppError {
+        AppError::InvalidColour()
     }
 }

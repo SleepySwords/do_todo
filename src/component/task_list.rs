@@ -131,7 +131,6 @@ impl DrawableComponent for TaskList {
         match key_code {
             // Move this to the actions class
             KeyCode::Char('h') => {
-                *self.selected_mut() -= 1;
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;
                 }
@@ -165,9 +164,8 @@ impl DrawableComponent for TaskList {
             KeyCode::Char('e') => {
                 let index = *selected_index;
                 app.append_layer(InputBox::filled(
-                    // TODO: cleanup this so it doesn't use clone, perhaps use references?
                     String::from("Edit the selected task"),
-                    app.task_store.tasks[*selected_index].title.to_string(),
+                    app.task_store.tasks[*selected_index].title.as_str(),
                     Box::new(move |app, mut word| {
                         app.task_store.tasks[index].title =
                             word.drain(..).collect::<String>().trim().to_string();
@@ -175,7 +173,8 @@ impl DrawableComponent for TaskList {
                     }),
                 ))
             }
-            KeyCode::Char('t') => actions::tag_menu(app, *selected_index),
+            KeyCode::Char('f') => actions::flip_tag_menu(app, *selected_index),
+            KeyCode::Char('t') => actions::edit_tag_menu(app, *selected_index),
             KeyCode::Enter => {
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;

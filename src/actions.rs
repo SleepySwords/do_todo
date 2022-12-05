@@ -11,6 +11,7 @@ use crate::{
         input::input_box::InputBox,
         message_box::MessageBox,
     },
+    error::AppError,
     task::{CompletedTask, Task},
 };
 
@@ -109,7 +110,7 @@ pub fn complete_task(app: &mut App, selected_index: &mut usize) {
     }
 }
 
-pub fn tag_menu(app: &mut App, selected_index: usize) {
+pub fn flip_tag_menu(app: &mut App, selected_index: usize) {
     if app.task_store.tasks.is_empty() {
         return;
     }
@@ -126,6 +127,23 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
     }
 
     // FIX: ooof this is some ugly ass code
+    tag_options.push(DialogAction::new(
+        String::from("Clear all tags"),
+        move |app| {
+            app.task_store.tasks[selected_index].tags.clear();
+        },
+    ));
+    tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+
+    app.append_layer(DialogBox::new(
+        "Add or remove a tag".to_string(),
+        tag_options,
+    ));
+}
+
+pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
+    let mut tag_options: Vec<DialogAction> = Vec::new();
+
     tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
         app.append_layer(InputBox::new(
             String::from("Tag name"),
@@ -135,12 +153,6 @@ pub fn tag_menu(app: &mut App, selected_index: usize) {
             },
         ));
     }));
-    tag_options.push(DialogAction::new(
-        String::from("Clear all tags"),
-        move |app| {
-            app.task_store.tasks[selected_index].tags.clear();
-        },
-    ));
     tag_options.push(DialogAction::new(
         String::from("Delete a tag"),
         move |app| {
@@ -184,10 +196,42 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
     app.append_layer(InputBox::new_with_error_callback(
         String::from("Tag colour"),
         move |app, tag_colour| {
-            // TODO: Add colour word support (ie: green, blue, red, orange)
-            let red = u8::from_str_radix(&tag_colour[0..2], 16)?;
-            let green = u8::from_str_radix(&tag_colour[2..4], 16)?;
-            let blue = u8::from_str_radix(&tag_colour[4..6], 16)?;
+            let colour = if tag_colour.starts_with('#') {
+                let red = u8::from_str_radix(&tag_colour[1..3], 16)?;
+                let green = u8::from_str_radix(&tag_colour[3..5], 16)?;
+                let blue = u8::from_str_radix(&tag_colour[5..7], 16)?;
+                Color::Rgb(red, green, blue)
+            } else if let Ok(colour) = tag_colour.parse() {
+                Color::Indexed(colour)
+            } else {
+                match tag_colour
+                    .to_lowercase()
+                    .replace(' ', "")
+                    .replace('_', "")
+                    .replace('-', "")
+                    .as_str()
+                {
+                    "reset" => Color::Reset,
+                    "black" => Color::Black,
+                    "red" => Color::Red,
+                    "green" => Color::Green,
+                    "yellow" => Color::Yellow,
+                    "blue" => Color::Blue,
+                    "magenta" => Color::Magenta,
+                    "cyan" => Color::Cyan,
+                    "gray" => Color::Gray,
+                    "darkgray" => Color::DarkGray,
+                    "lightred" => Color::LightRed,
+                    "lightgreen" => Color::LightGreen,
+                    "lightyellow" => Color::LightYellow,
+                    "lightblue" => Color::LightBlue,
+                    "lightmagenta" => Color::LightMagenta,
+                    "lightcyan" => Color::LightCyan,
+                    "white" => Color::White,
+                    _ => return Err(AppError::InvalidColour()),
+                }
+            };
+
             let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
             app.task_store.tags.insert(
                 tag_id,
@@ -195,16 +239,21 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                     // Unfortunately the `.to_owned` call is required as this is a Fn rather than a
                     // FnOnce
                     name: tag_name.to_owned(),
-                    colour: Color::Rgb(red, green, blue),
+                    colour,
                 },
             );
             app.task_store.tasks[selected_index].flip_tag(tag_id);
             Ok(())
         },
         move |app, err| {
-            open_select_tag_colour(app, selected_index, tag.to_owned());
+            // FIX: WTF is this shit, since these functions take Fn, they each need to own their
+            // values.
+            let tag_name = tag.to_owned();
             app.append_layer(MessageBox::new(
                 String::from("Error"),
+                move |app| {
+                    open_select_tag_colour(app, selected_index, tag_name.to_owned());
+                },
                 err.to_string(),
                 tui::style::Color::Red,
             ));
