@@ -206,9 +206,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
             } else {
                 match tag_colour
                     .to_lowercase()
-                    .replace(' ', "")
-                    .replace('_', "")
-                    .replace('-', "")
+                    .replace([' ', '_', '-'], "")
                     .as_str()
                 {
                     "reset" => Color::Reset,
