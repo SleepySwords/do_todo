@@ -48,7 +48,6 @@ fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3
     }
 }
 
-// Should return if consumed input
 pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) -> EventResult {
     match key_code {
         KeyCode::Char('g') => {

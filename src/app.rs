@@ -46,7 +46,19 @@ impl App {
     }
 
     pub fn pop_layer(&mut self) {
-        self.callbacks.push_back(Box::new(|_, x| x.pop_layer()));
+        self.callbacks.push_back(Box::new(|_, x| {
+            x.pop_layer();
+        }));
+    }
+
+    pub fn pop_layer_callback<T>(&mut self, callback: T)
+    where
+        T: FnOnce(&mut App, &mut StackLayout, Option<Box<dyn DrawableComponent>>) + 'static,
+    {
+        self.callbacks.push_back(Box::new(|app, x| {
+            let comp = x.pop_layer();
+            callback(app, x, comp)
+        }));
     }
 
     // FIX: use generics?!

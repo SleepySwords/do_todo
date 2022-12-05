@@ -9,14 +9,21 @@ use crate::view::DrawableComponent;
 
 pub struct MessageBox {
     title: String,
+    callback: Box<dyn Fn(&mut App)>,
     message: String,
     colour: Color,
 }
 
 impl MessageBox {
-    pub fn new(title: String, words: String, colour: Color) -> MessageBox {
+    pub fn new<T: Fn(&mut App) + 'static>(
+        title: String,
+        callback: T,
+        words: String,
+        colour: Color,
+    ) -> MessageBox {
         MessageBox {
             title,
+            callback: Box::new(callback),
             message: words,
             colour,
         }
@@ -59,6 +66,7 @@ impl DrawableComponent for MessageBox {
         _: crossterm::event::KeyCode,
     ) -> crate::view::EventResult {
         app.pop_layer();
+        (self.callback)(app);
         crate::view::EventResult::Consumed
     }
 }

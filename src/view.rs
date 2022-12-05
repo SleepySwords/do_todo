@@ -15,6 +15,13 @@ pub enum EventResult {
     Ignored,
 }
 
+// FIX: rewrite such that StackLayout and AdjacentLayout only generates layouts and
+// not call draw themselves. Then we can pass custom variables through the draw call, should remove
+// all uses of RefCell code. This would also allow more flexibility. Perhaps DrawableComponent
+// should be an enum, however less flexibility, but would allow for nice callback, since pop_layer
+// would know which componenent is which.
+// ie: viewer.draw(&mut app, layout, task_list.selected, completed_list.selected)
+
 /// A component that is able to be drawn on the screen.
 pub trait DrawableComponent {
     /// Draws the component onto the [[Drawer]]
@@ -86,9 +93,6 @@ impl Drawer<'_, '_, '_> {
     }
 }
 
-/// Stores all the different types of Renderers in an enum
-/// This is to because generics are not allowed in traits as they are not "Object-safe" like wtf
-/// let me have my generics
 pub enum DrawBackend<'a, 'b> {
     CrosstermRenderer(&'a mut Frame<'b, CrosstermBackend<Stdout>>),
 }

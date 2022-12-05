@@ -55,7 +55,7 @@ impl InputBox {
         }
     }
 
-    pub fn filled(title: String, words: String, callback: InputBoxCallback) -> InputBox {
+    pub fn filled(title: String, words: &str, callback: InputBoxCallback) -> InputBox {
         InputBox {
             title,
             user_input: words
