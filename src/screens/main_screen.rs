@@ -13,7 +13,7 @@ use crate::{
     task::Task,
     view::{DrawableComponent, Drawer, EventResult},
 };
-use crossterm::event::{KeyCode, MouseEvent};
+use crossterm::event::KeyCode;
 use tui::layout::{Constraint, Direction, Rect};
 
 pub struct MainScreenLayer {

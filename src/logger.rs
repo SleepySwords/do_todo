@@ -1,5 +1,4 @@
 use chrono::NaiveTime;
-use itertools::Itertools;
 use crossterm::event::KeyCode;
 
 use crate::{component::message_box::MessageBox, utils, view::DrawableComponent};
@@ -26,12 +25,15 @@ impl DrawableComponent for Logger {
         if self.opened {
             drawer.draw_component(
                 app,
-                &MessageBox::new(
+                &MessageBox::new_by_list(
                     "Log".to_string(),
                     |_| {},
-                    self.logs.iter().map(|(msg, time)| format!("{}: {}", time.format("%H:%M:%S%.3f"), msg)).join("\n"),
+                    self.logs
+                        .iter()
+                        .map(|(msg, time)| format!("{}: {}", time.format("%H:%M:%S%.3f"), msg))
+                        .collect::<Vec<String>>(),
                     tui::style::Color::Red,
-                    self.logs.len()
+                    self.logs.len(),
                 ),
                 utils::centre_rect(
                     tui::layout::Constraint::Percentage(70),

@@ -13,14 +13,12 @@ mod view;
 
 use app::App;
 use component::layout::{
-        adjacent_layout::{AdjacentLayout, Child},
-        stack_layout::StackLayout,
-    };
+    adjacent_layout::{AdjacentLayout, Child},
+    stack_layout::StackLayout,
+};
 use config::save_data;
 use crossterm::{
-    event::{
-        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers,
-    },
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -111,7 +109,7 @@ pub fn start_app(
                     callback(app, &mut stack_layout);
                 }
             }
-            Event::Mouse(event) => {
+            Event::Mouse(_event) => {
                 // stack_layout.mouse_event(app, event);
             }
             Event::Resize(x, y) => {

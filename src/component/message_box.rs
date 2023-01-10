@@ -40,13 +40,14 @@ impl MessageBox {
         callback: T,
         words: Vec<String>,
         colour: Color,
+        selected_index: usize,
     ) -> MessageBox {
         MessageBox {
             title,
             callback: Box::new(callback),
             message: words,
             colour,
-            selected_index: 0,
+            selected_index,
         }
     }
 }
@@ -60,7 +61,8 @@ impl DrawableComponent for MessageBox {
             .map(|msg| ListItem::new(Span::styled(msg, style)))
             .collect::<Vec<ListItem>>();
         // Add multiline support.
-        let height = ((text.len() + 2) as u16).min(Constraint::Percentage(70).apply(app.app_size.height));
+        let height =
+            ((text.len() + 2) as u16).min(Constraint::Percentage(70).apply(app.app_size.height));
         let list = List::new(text);
         let list = list.block(
             Block::default()
