@@ -1,17 +1,18 @@
 use tui::layout::{Constraint, Rect};
 use tui::style::{Color, Style};
 use tui::text::Span;
-use tui::widgets::{Block, Borders, Clear, Paragraph};
+use tui::widgets::{Block, Borders, Clear, List, ListItem, ListState};
 
 use crate::app::App;
-use crate::utils::{centre_rect, wrap_text};
+use crate::utils::centre_rect;
 use crate::view::DrawableComponent;
 
 pub struct MessageBox {
     title: String,
     callback: Box<dyn Fn(&mut App)>,
-    message: String,
+    message: Vec<String>,
     colour: Color,
+    selected_index: usize,
 }
 
 impl MessageBox {
@@ -20,12 +21,32 @@ impl MessageBox {
         callback: T,
         words: String,
         colour: Color,
+        selected_index: usize,
+    ) -> MessageBox {
+        MessageBox {
+            title,
+            callback: Box::new(callback),
+            message: words
+                .split('\n')
+                .map(|f| f.to_string())
+                .collect::<Vec<String>>(),
+            colour,
+            selected_index,
+        }
+    }
+
+    pub fn new_by_list<T: Fn(&mut App) + 'static>(
+        title: String,
+        callback: T,
+        words: Vec<String>,
+        colour: Color,
     ) -> MessageBox {
         MessageBox {
             title,
             callback: Box::new(callback),
             message: words,
             colour,
+            selected_index: 0,
         }
     }
 }
@@ -35,29 +56,28 @@ impl DrawableComponent for MessageBox {
         let style = Style::default().fg(self.colour);
         let text = self
             .message
-            .split('\n')
-            .map(|msg| Span::styled(msg, style))
-            .collect::<Vec<Span>>();
-        let text = wrap_text(
-            tui::text::Spans(text),
-            Constraint::Percentage(70).apply(draw_area.width) - 2,
-        );
-        let height = text.height();
-        let message_box = Paragraph::new(text);
-        let message_box = message_box.block(
+            .iter()
+            .map(|msg| ListItem::new(Span::styled(msg, style)))
+            .collect::<Vec<ListItem>>();
+        // Add multiline support.
+        let height = ((text.len() + 2) as u16).min(Constraint::Percentage(70).apply(app.app_size.height));
+        let list = List::new(text);
+        let list = list.block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(app.theme.border_style.border_type)
                 .border_style(style)
                 .title(self.title.as_ref()),
         );
+        let mut list_state = ListState::default();
+        list_state.select(Some(self.selected_index));
         let draw_area = centre_rect(
             Constraint::Percentage(70),
-            Constraint::Length((height + 2).try_into().unwrap()),
+            Constraint::Length(height),
             draw_area,
         );
         drawer.draw_widget(Clear, draw_area);
-        drawer.draw_widget(message_box, draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, draw_area);
     }
 
     fn key_pressed(

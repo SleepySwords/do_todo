@@ -134,6 +134,7 @@ pub fn wrap_text(spans: Spans, width: u16) -> Text {
                 content = String::new();
                 new_blank_line(&mut text);
             }
+
             // Insert when encountering a space.
             let is_whitespace = grapheme.chars().all(&char::is_whitespace);
             if is_whitespace {
@@ -149,6 +150,7 @@ pub fn wrap_text(spans: Spans, width: u16) -> Text {
                 continue;
             }
             content.push_str(grapheme);
+
             // If the content exceeds the current length, break the content up
             if content.len() as u16 == width {
                 queue
@@ -159,6 +161,7 @@ pub fn wrap_text(spans: Spans, width: u16) -> Text {
                 content = String::new();
                 new_blank_line(&mut text);
             }
+
             // If the content + current width exceeds the width make a new line to break it up.
             if current_width(&text) as u16 + content.len() as u16 > width {
                 new_blank_line(&mut text);

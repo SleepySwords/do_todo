@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
 
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
@@ -163,7 +163,7 @@ impl DrawableComponent for TaskList {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
             KeyCode::Char('e') => {
                 let index = *selected_index;
-                app.append_layer(InputBox::filled(
+                app.push_layer(InputBox::filled(
                     String::from("Edit the selected task"),
                     app.task_store.tasks[*selected_index].title.as_str(),
                     Box::new(move |app, mut word| {

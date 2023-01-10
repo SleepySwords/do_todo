@@ -39,7 +39,6 @@ impl Task {
             .map(|tag_index| return app.task_store.tags.get(tag_index).unwrap())
     }
 
-    // PERF: Potentially expensive
     pub fn flip_tag(&mut self, tag: u32) {
         if !self.tags.contains(&tag) {
             self.tags.push(tag)
