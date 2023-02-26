@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
 
-use chrono::{NaiveTime, Local};
+use chrono::{Local, NaiveTime};
 use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
 use tui::layout::Rect;
