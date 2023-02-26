@@ -141,12 +141,9 @@ impl DrawableComponent for CompletedList {
             if row == 0 {
                 return EventResult::Ignored;
             }
-            if *self.selected_index.borrow()
-                > self.area.height as usize - 2
-            {
-                let new_index = *self.selected_index.borrow()
-                    - (self.area.height as usize - 2)
-                    + row as usize;
+            if *self.selected_index.borrow() > self.area.height as usize - 2 {
+                let new_index =
+                    *self.selected_index.borrow() - (self.area.height as usize - 2) + row as usize;
                 *self.selected_index.borrow_mut() = new_index;
             } else {
                 if row as usize > app.task_store.completed_tasks.len() {

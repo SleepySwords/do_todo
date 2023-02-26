@@ -25,7 +25,11 @@ use view::{DrawBackend, DrawableComponent, Drawer, EventResult};
 
 use std::io;
 use std::{error::Error, io::Stdout};
-use tui::{backend::CrosstermBackend, Terminal, layout::{Layout, Constraint}};
+use tui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Layout},
+    Terminal,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
@@ -81,10 +85,7 @@ pub fn start_app(
 
             let chunk = Layout::default()
                 .direction(tui::layout::Direction::Vertical)
-                .constraints([
-                    Constraint::Min(1),
-                    Constraint::Length(1)
-                ])
+                .constraints([Constraint::Min(1), Constraint::Length(1)])
                 .split(draw_size);
 
             stack_layout.update_layout(chunk[0]);

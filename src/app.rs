@@ -56,7 +56,6 @@ impl App {
         }));
     }
 
-
     // Perhaps should use a static variable.
     pub fn println(&mut self, line: String) {
         self.logs.push((line, Local::now().time()));

@@ -49,9 +49,7 @@ pub struct Drawer<'a, 'b, 'c> {
 }
 
 impl Drawer<'_, '_, '_> {
-    pub fn new<'a, 'b, 'c>(
-        backend: &'a mut DrawBackend<'b, 'c>,
-    ) -> Drawer<'a, 'b, 'c> {
+    pub fn new<'a, 'b, 'c>(backend: &'a mut DrawBackend<'b, 'c>) -> Drawer<'a, 'b, 'c> {
         Drawer { backend }
     }
 
