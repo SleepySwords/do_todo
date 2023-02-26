@@ -17,6 +17,7 @@ use crate::{
 
 #[derive(Default)]
 pub struct Viewer {
+    area: Rect,
     task_index: Rc<RefCell<usize>>,
     completed_task_index: Rc<RefCell<usize>>,
 }
@@ -24,6 +25,7 @@ pub struct Viewer {
 impl Viewer {
     pub fn new(task_index: Rc<RefCell<usize>>, completed_task_index: Rc<RefCell<usize>>) -> Viewer {
         Viewer {
+            area: Rect::default(),
             task_index,
             completed_task_index,
         }
@@ -68,7 +70,7 @@ impl Viewer {
 
         // NOTE: I have no idea why the width must be three less, should probably investigate.
         let table =
-            utils::generate_table(items, constraints[1].apply(draw_area.width) as usize - 3)
+            utils::generate_table(items, constraints[1].apply(self.area.width) as usize - 3)
                 .block(block)
                 .widths(&constraints);
 
@@ -116,8 +118,9 @@ impl Viewer {
 }
 
 impl DrawableComponent for Viewer {
-    fn draw(&self, app: &App, draw_area: tui::layout::Rect, drawer: &mut Drawer) {
+    fn draw(&self, app: &App, _: tui::layout::Rect, drawer: &mut Drawer) {
         let theme = &app.theme;
+        let draw_area = self.area;
         let block = Block::default()
             .title("Task information")
             .borders(Borders::ALL)
@@ -150,5 +153,9 @@ impl DrawableComponent for Viewer {
 
     fn key_pressed(&mut self, _app: &mut App, _key_code: crossterm::event::KeyCode) -> EventResult {
         EventResult::Ignored
+    }
+
+    fn update_layout(&mut self, area: Rect) {
+        self.area = area;
     }
 }
