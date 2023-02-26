@@ -34,4 +34,23 @@ impl DrawableComponent for StackLayout {
         }
         EventResult::Ignored
     }
+
+    fn mouse_event(
+        &mut self,
+        app: &mut App,
+        mouse_event: crossterm::event::MouseEvent,
+    ) -> EventResult {
+        for child in &mut self.children.iter_mut().rev() {
+            if child.mouse_event(app, mouse_event) == EventResult::Consumed {
+                return EventResult::Consumed;
+            }
+        }
+        EventResult::Ignored
+    }
+
+    fn update_layout(&mut self, rect: Rect) {
+        for child in self.children.iter_mut() {
+            child.update_layout(rect);
+        }
+    }
 }

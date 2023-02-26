@@ -56,6 +56,8 @@ impl App {
         }));
     }
 
+
+    // Perhaps should use a static variable.
     pub fn println(&mut self, line: String) {
         self.logs.push((line, Local::now().time()));
     }
@@ -70,7 +72,6 @@ impl App {
         }));
     }
 
-    // FIX: use generics?!
     pub fn push_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
         self.callbacks
             .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
@@ -85,7 +86,6 @@ impl App {
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct TaskStore {
-    // eventually convert to vec
     pub tags: BTreeMap<u32, Tag>,
 
     pub tasks: Vec<Task>,

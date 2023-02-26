@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, MouseEventKind};
 
 use tui::{
     layout::{Constraint, Rect},
@@ -31,6 +31,7 @@ impl DialogAction {
 }
 
 pub struct DialogBox {
+    area: Rect,
     title: String,
     index: usize,
     pub options: Vec<DialogAction>,
@@ -42,6 +43,7 @@ impl DialogBox {
             panic!("The size of the options is 0");
         }
         DialogBox {
+            area: Rect::default(),
             title,
             index: 0,
             options,
@@ -97,5 +99,30 @@ impl DrawableComponent for DialogBox {
             _ => {}
         }
         EventResult::Consumed
+    }
+
+    fn mouse_event(
+        &mut self,
+        app: &mut App,
+        mouse_event: crossterm::event::MouseEvent,
+    ) -> EventResult {
+        let draw_area = utils::centre_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.options.len() as u16 + 2),
+            self.area,
+        );
+        if utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
+            app.println("yay".to_string());
+            return EventResult::Consumed;
+        }
+
+        if let MouseEventKind::Down(_) = mouse_event.kind {
+            app.pop_layer();
+        }
+        EventResult::Consumed
+    }
+
+    fn update_layout(&mut self, area: Rect) {
+        self.area = area;
     }
 }

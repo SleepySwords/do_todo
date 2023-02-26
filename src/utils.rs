@@ -27,6 +27,10 @@ pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) 
         .split(popup_layout[1])[1]
 }
 
+pub fn inside_rect((row, column): (u16, u16), rect: Rect) -> bool {
+    rect.x <= column && column < (rect.x + rect.width) && rect.y <= row && row < (rect.y + rect.height)
+}
+
 fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3] {
     match constraint {
         Constraint::Percentage(percent) => [

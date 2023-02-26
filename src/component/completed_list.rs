@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
 
 use tui::layout::Rect;
 use tui::style::{Color, Style};
@@ -16,12 +16,16 @@ use crate::{actions, utils};
 const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CompletedTasks;
 
 pub struct CompletedList {
+    pub area: Rect,
     selected_index: Rc<RefCell<usize>>,
 }
 
 impl CompletedList {
     pub fn new(selected_index: Rc<RefCell<usize>>) -> Self {
-        Self { selected_index }
+        Self {
+            area: Rect::default(),
+            selected_index,
+        }
     }
 
     fn selected(&self) -> Ref<usize> {
@@ -42,7 +46,7 @@ impl CompletedList {
 }
 
 impl DrawableComponent for CompletedList {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::view::Drawer) {
         let theme = &app.theme;
 
         let selected_index = *self.selected();
@@ -84,14 +88,10 @@ impl DrawableComponent for CompletedList {
 
         let mut completed_state = ListState::default();
         if !app.task_store.completed_tasks.is_empty() {
-            let index = match app.selected_component {
-                SelectedComponent::CompletedTasks => selected_index,
-                _ => app.task_store.completed_tasks.len() - 1,
-            };
-            completed_state.select(Some(index));
+            completed_state.select(Some(selected_index));
         }
 
-        drawer.draw_stateful_widget(completed_list, &mut completed_state, draw_area);
+        drawer.draw_stateful_widget(completed_list, &mut completed_state, self.area);
     }
 
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
@@ -113,5 +113,53 @@ impl DrawableComponent for CompletedList {
         }
 
         EventResult::Ignored
+    }
+
+    fn mouse_event(
+        &mut self,
+        app: &mut App,
+        MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
+    ) -> EventResult {
+        let row = row - self.area.y;
+        if let MouseEventKind::ScrollUp = kind {
+            if *self.selected_index.borrow() != 0 {
+                *self.selected_index.borrow_mut() -= 1;
+            }
+        }
+
+        if let MouseEventKind::ScrollDown = kind {
+            if *self.selected_index.borrow() < app.task_store.completed_tasks.len() - 1 {
+                *self.selected_index.borrow_mut() += 1;
+            }
+        }
+
+        if let MouseEventKind::Down(_) = kind {
+            if let COMPONENT_TYPE = app.selected_component {
+            } else {
+                app.selected_component = COMPONENT_TYPE;
+            }
+            if row == 0 {
+                return EventResult::Ignored;
+            }
+            if *self.selected_index.borrow()
+                > self.area.height as usize - 2
+            {
+                let new_index = *self.selected_index.borrow()
+                    - (self.area.height as usize - 2)
+                    + row as usize;
+                *self.selected_index.borrow_mut() = new_index;
+            } else {
+                if row as usize > app.task_store.completed_tasks.len() {
+                    *self.selected_index.borrow_mut() = app.task_store.completed_tasks.len() - 1;
+                    return EventResult::Ignored;
+                }
+                *self.selected_index.borrow_mut() = row as usize - 1;
+            }
+        }
+        EventResult::Ignored
+    }
+
+    fn update_layout(&mut self, rect: Rect) {
+        self.area = rect;
     }
 }

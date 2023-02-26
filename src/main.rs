@@ -12,15 +12,10 @@ mod utils;
 mod view;
 
 use app::App;
-use component::layout::{
-        adjacent_layout::{AdjacentLayout, Child},
-        stack_layout::StackLayout,
-    };
+use component::layout::stack_layout::StackLayout;
 use config::save_data;
 use crossterm::{
-    event::{
-        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers,
-    },
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -30,7 +25,7 @@ use view::{DrawBackend, DrawableComponent, Drawer, EventResult};
 
 use std::io;
 use std::{error::Error, io::Stdout};
-use tui::{backend::CrosstermBackend, Terminal};
+use tui::{backend::CrosstermBackend, Terminal, layout::{Layout, Constraint}};
 
 fn main() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
@@ -82,15 +77,21 @@ pub fn start_app(
             app.app_size = draw_size;
 
             let mut draw_backend = DrawBackend::CrosstermRenderer(f);
-            let mut drawer = Drawer::new(draw_size, &mut draw_backend);
-            let layout = AdjacentLayout {
-                children: vec![
-                    Child::Borrow(tui::layout::Constraint::Min(1), &stack_layout),
-                    Child::Borrow(tui::layout::Constraint::Length(1), &app.status_line),
-                ],
-                direction: tui::layout::Direction::Vertical,
-            };
-            layout.draw(app, draw_size, &mut drawer);
+            let mut drawer = Drawer::new(&mut draw_backend);
+
+            let chunk = Layout::default()
+                .direction(tui::layout::Direction::Vertical)
+                .constraints([
+                    Constraint::Min(1),
+                    Constraint::Length(1)
+                ])
+                .split(draw_size);
+
+            stack_layout.update_layout(chunk[0]);
+            stack_layout.draw(app, chunk[0], &mut drawer);
+
+            app.status_line.draw(app, chunk[1], &mut drawer);
+
             logger.draw(app, draw_size, &mut drawer);
         })?;
 
@@ -103,20 +104,19 @@ pub fn start_app(
                 {
                     return Ok(());
                 }
-                if logger.key_pressed(app, event.code) == EventResult::Ignored {
-                    stack_layout.key_pressed(app, event.code);
-                }
-
-                while let Some(callback) = app.callbacks.pop_front() {
-                    callback(app, &mut stack_layout);
+                if EventResult::Ignored == stack_layout.key_pressed(app, event.code) {
+                    logger.key_pressed(app, event.code);
                 }
             }
             Event::Mouse(event) => {
-                // stack_layout.mouse_event(app, event);
+                stack_layout.mouse_event(app, event);
             }
             Event::Resize(x, y) => {
                 app.println(format!("{} {}", x, y));
             }
+        }
+        while let Some(callback) = app.callbacks.pop_front() {
+            callback(app, &mut stack_layout);
         }
         logger.update(app.logs.clone());
     }

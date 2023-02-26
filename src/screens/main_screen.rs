@@ -1,24 +1,23 @@
-use std::{cell::RefCell, rc::Rc, vec};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     actions,
     app::{App, SelectedComponent},
     component::{
-        completed_list::CompletedList,
-        input::input_box::InputBox,
-        layout::adjacent_layout::{AdjacentLayout, Child},
-        task_list::TaskList,
+        completed_list::CompletedList, input::input_box::InputBox, task_list::TaskList,
         viewer::Viewer,
     },
     task::Task,
+    utils,
     view::{DrawableComponent, Drawer, EventResult},
 };
 use crossterm::event::{KeyCode, MouseEvent};
-use tui::layout::{Constraint, Direction, Rect};
+use tui::layout::{Constraint, Direction, Layout, Rect};
 
 pub struct MainScreenLayer {
     task_list: TaskList,
     completed_list: CompletedList,
+    layout: Rect,
     viewer: Viewer,
 }
 
@@ -31,6 +30,7 @@ impl MainScreenLayer {
         MainScreenLayer {
             task_list: TaskList::new(task_index.clone()),
             completed_list: CompletedList::new(completed_task_index.clone()),
+            layout: Rect::default(),
             viewer: Viewer::new(task_index, completed_task_index),
         }
     }
@@ -38,24 +38,9 @@ impl MainScreenLayer {
 
 impl DrawableComponent for MainScreenLayer {
     fn draw<'a>(&'a self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
-        let layout = AdjacentLayout {
-            children: vec![
-                Child::owned(
-                    Constraint::Percentage(50),
-                    AdjacentLayout {
-                        children: vec![
-                            Child::borrow(Constraint::Percentage(70), &self.task_list),
-                            Child::borrow(Constraint::Percentage(30), &self.completed_list),
-                        ],
-                        direction: Direction::Vertical,
-                    },
-                ),
-                Child::borrow(Constraint::Percentage(50), &self.viewer),
-            ],
-            direction: Direction::Horizontal,
-        };
-
-        drawer.draw_component(app, &layout, draw_area);
+        drawer.draw_component(app, &self.task_list, draw_area);
+        drawer.draw_component(app, &self.completed_list, draw_area);
+        drawer.draw_component(app, &self.viewer, draw_area);
     }
 
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
@@ -77,15 +62,57 @@ impl DrawableComponent for MainScreenLayer {
                         .tasks
                         .push(Task::from_string(word.trim().to_string()));
                     Ok(())
-                }))
+                }));
+                EventResult::Consumed
             }
-            KeyCode::Char('1') => app.selected_component = SelectedComponent::CurrentTasks,
-            KeyCode::Char('2') => app.selected_component = SelectedComponent::CompletedTasks,
-            KeyCode::Char('x') => actions::open_help_menu(app),
-            KeyCode::Char('q') => app.shutdown(),
-            _ => {}
+            KeyCode::Char('1') => {
+                app.selected_component = SelectedComponent::CurrentTasks;
+                EventResult::Consumed
+            }
+            KeyCode::Char('2') => {
+                app.selected_component = SelectedComponent::CompletedTasks;
+                EventResult::Consumed
+            }
+            KeyCode::Char('x') => {
+                actions::open_help_menu(app);
+                EventResult::Consumed
+            }
+            KeyCode::Char('q') => {
+                app.shutdown();
+                EventResult::Consumed
+            }
+            _ => EventResult::Ignored,
         }
+    }
 
-        EventResult::Consumed
+    fn mouse_event(
+        &mut self,
+        app: &mut App,
+        mouse_event: crossterm::event::MouseEvent,
+    ) -> EventResult {
+        let MouseEvent { row, column, .. } = mouse_event;
+        if utils::inside_rect((row, column), self.task_list.area) {
+            self.task_list.mouse_event(app, mouse_event);
+        } else if utils::inside_rect((row, column), self.completed_list.area) {
+            self.completed_list.mouse_event(app, mouse_event);
+        }
+        EventResult::Ignored
+    }
+
+    fn update_layout(&mut self, layout: Rect) {
+        self.layout = layout;
+        let main_chunk = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(layout);
+
+        let layout_chunk = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+            .split(main_chunk[0]);
+
+        self.task_list.update_layout(layout_chunk[0]);
+        self.completed_list.update_layout(layout_chunk[1]);
+        self.viewer.update_layout(main_chunk[1]);
     }
 }

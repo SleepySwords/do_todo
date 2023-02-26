@@ -18,12 +18,16 @@ use super::input::input_box::InputBox;
 const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CurrentTasks;
 
 pub struct TaskList {
+    pub area: Rect,
     selected_index: Rc<RefCell<usize>>,
 }
 
 impl TaskList {
     pub fn new(selected_index: Rc<RefCell<usize>>) -> Self {
-        Self { selected_index }
+        Self {
+            selected_index,
+            area: Rect::default(),
+        }
     }
 
     fn selected(&self) -> Ref<usize> {
@@ -61,7 +65,7 @@ impl TaskList {
 }
 
 impl DrawableComponent for TaskList {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::view::Drawer) {
         let theme = &app.theme;
         let tasks: Vec<ListItem> = app
             .task_store
@@ -123,11 +127,12 @@ impl DrawableComponent for TaskList {
             None
         });
 
-        drawer.draw_stateful_widget(current, &mut state, draw_area);
+        drawer.draw_stateful_widget(current, &mut state, self.area);
     }
 
     fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
         let mut selected_index = self.selected_mut();
+
         match key_code {
             // Move this to the actions class
             KeyCode::Char('h') => {
@@ -188,5 +193,49 @@ impl DrawableComponent for TaskList {
             }
         }
         EventResult::Ignored
+    }
+
+    fn mouse_event(
+        &mut self,
+        app: &mut App,
+        MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
+    ) -> EventResult {
+        if let MouseEventKind::ScrollUp = kind {
+            if *self.selected_index.borrow() != 0 {
+                *self.selected_index.borrow_mut() -= 1;
+            }
+        }
+
+        if let MouseEventKind::ScrollDown = kind {
+            if *self.selected_index.borrow() < app.task_store.tasks.len() - 1 {
+                *self.selected_index.borrow_mut() += 1;
+            }
+        }
+
+        if let MouseEventKind::Down(_) = kind {
+            if let COMPONENT_TYPE = app.selected_component {
+            } else {
+                app.selected_component = COMPONENT_TYPE;
+            }
+            if row == 0 {
+                return EventResult::Ignored;
+            }
+            if *self.selected_index.borrow() > self.area.height as usize - 2 {
+                let new_index =
+                    *self.selected_index.borrow() - (self.area.height as usize - 2) + row as usize;
+                *self.selected_index.borrow_mut() = new_index;
+            } else {
+                if row as usize > app.task_store.tasks.len() {
+                    *self.selected_index.borrow_mut() = app.task_store.tasks.len() - 1;
+                    return EventResult::Ignored;
+                }
+                *self.selected_index.borrow_mut() = row as usize - 1;
+            }
+        }
+        EventResult::Ignored
+    }
+
+    fn update_layout(&mut self, rect: Rect) {
+        self.area = rect;
     }
 }
