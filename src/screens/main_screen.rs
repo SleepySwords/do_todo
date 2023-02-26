@@ -72,7 +72,7 @@ impl DrawableComponent for MainScreenLayer {
         // Global keybindings
         match key_code {
             KeyCode::Char('a') => {
-                app.append_layer(InputBox::new(String::from("Add a task"), |app, word| {
+                app.push_layer(InputBox::new(String::from("Add a task"), |app, word| {
                     app.task_store
                         .tasks
                         .push(Task::from_string(word.trim().to_string()));

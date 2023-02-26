@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, VecDeque};
 
+use chrono::{Local, NaiveTime};
 use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
+use tui::layout::Rect;
 
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
@@ -23,6 +25,9 @@ pub struct App {
 
     pub callbacks: VecDeque<Box<Callback>>,
     pub selected_component: SelectedComponent,
+
+    pub app_size: Rect,
+    pub logs: Vec<(String, NaiveTime)>,
 
     should_shutdown: bool,
 }
@@ -51,6 +56,10 @@ impl App {
         }));
     }
 
+    pub fn println(&mut self, line: String) {
+        self.logs.push((line, Local::now().time()));
+    }
+
     pub fn pop_layer_callback<T>(&mut self, callback: T)
     where
         T: FnOnce(&mut App, &mut StackLayout, Option<Box<dyn DrawableComponent>>) + 'static,
@@ -62,7 +71,7 @@ impl App {
     }
 
     // FIX: use generics?!
-    pub fn append_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
+    pub fn push_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
         self.callbacks
             .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
     }

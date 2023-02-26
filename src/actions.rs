@@ -58,14 +58,14 @@ pub fn open_help_menu(app: &mut App) {
         ));
     }
 
-    app.append_layer(DialogBox::new(String::from("Help Menu"), actions));
+    app.push_layer(DialogBox::new(String::from("Help Menu"), actions));
 }
 
 pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
     if app.task_store.tasks.is_empty() {
         return;
     }
-    app.append_layer(DialogBox::new(
+    app.push_layer(DialogBox::new(
         "Delete selected task".to_string(),
         vec![
             DialogAction::new(String::from("Delete"), move |app| {
@@ -135,7 +135,7 @@ pub fn flip_tag_menu(app: &mut App, selected_index: usize) {
     ));
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 
-    app.append_layer(DialogBox::new(
+    app.push_layer(DialogBox::new(
         "Add or remove a tag".to_string(),
         tag_options,
     ));
@@ -145,7 +145,7 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
     let mut tag_options: Vec<DialogAction> = Vec::new();
 
     tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
-        app.append_layer(InputBox::new(
+        app.push_layer(InputBox::new(
             String::from("Tag name"),
             move |app, tag_name| {
                 open_select_tag_colour(app, selected_index, tag_name);
@@ -161,7 +161,7 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
     ));
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 
-    app.append_layer(DialogBox::new(
+    app.push_layer(DialogBox::new(
         "Add or remove a tag".to_string(),
         tag_options,
     ));
@@ -175,7 +175,7 @@ pub fn delete_tag_menu(app: &mut App) {
         let moved_name = tag.name.clone();
         // TODO: Allow for DialogBox to support colours.
         tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
-            app.append_layer(DialogBox::new(
+            app.push_layer(DialogBox::new(
                 format!("Do you want to permenatly delete the tag {}", moved_name),
                 vec![
                     DialogAction::new(String::from("Delete"), move |app| {
@@ -188,12 +188,12 @@ pub fn delete_tag_menu(app: &mut App) {
     }
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 
-    app.append_layer(DialogBox::new("Delete a tag".to_string(), tag_options));
+    app.push_layer(DialogBox::new("Delete a tag".to_string(), tag_options));
 }
 
 fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String) {
     let tag = tag_name.clone();
-    app.append_layer(InputBox::new_with_error_callback(
+    app.push_layer(InputBox::new_with_error_callback(
         String::from("Tag colour"),
         move |app, tag_colour| {
             let colour = if tag_colour.starts_with('#') {
@@ -247,13 +247,14 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
             // FIX: WTF is this shit, since these functions take Fn, they each need to own their
             // values.
             let tag_name = tag.to_owned();
-            app.append_layer(MessageBox::new(
+            app.push_layer(MessageBox::new(
                 String::from("Error"),
                 move |app| {
                     open_select_tag_colour(app, selected_index, tag_name.to_owned());
                 },
                 err.to_string(),
                 tui::style::Color::Red,
+                0,
             ));
         },
     ));
