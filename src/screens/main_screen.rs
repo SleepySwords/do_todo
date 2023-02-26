@@ -37,7 +37,7 @@ impl MainScreenLayer {
 }
 
 impl DrawableComponent for MainScreenLayer {
-    fn draw<'a>(&'a self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
+    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
         drawer.draw_component(app, &self.task_list, draw_area);
         drawer.draw_component(app, &self.completed_list, draw_area);
         drawer.draw_component(app, &self.viewer, draw_area);
