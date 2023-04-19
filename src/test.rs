@@ -315,10 +315,105 @@ mod movement {
                     Task::from_string(String::from("meme")),
                     Task::from_string(String::from("based")),
                 ],
-                completed_tasks: vec![],
-                tags: BTreeMap::new(),
+                completed_tasks: vec![
+                    CompletedTask::from_string(String::from("hey"), Local::now().naive_local()),
+                    CompletedTask::from_string(String::from("there"), Local::now().naive_local()),
+                ],
             },
         );
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 1);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 0);
+        input::handle_input(KeyCode::Char('k'), &mut app);
+        assert_eq!(app.selected_task_index, 1);
+
+        input::handle_input(KeyCode::Char('2'), &mut app);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_completed_task_index, 1);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_completed_task_index, 0);
+        input::handle_input(KeyCode::Char('k'), &mut app);
+        assert_eq!(app.selected_task_index, 1);
+    }
+
+    #[test]
+    fn test_movement_retention() {
+        let mut app = App::new(
+            crate::theme::Theme::default(),
+            TaskData {
+                tasks: vec![
+                    Task::from_string(String::from("meme")),
+                    Task::from_string(String::from("based")),
+                ],
+                completed_tasks: vec![
+                    CompletedTask::from_string(String::from("hey"), Local::now().naive_local()),
+                    CompletedTask::from_string(String::from("there"), Local::now().naive_local()),
+                ],
+            },
+        );
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 1);
+        assert_eq!(app.selected_completed_task_index, 0);
+
+        input::handle_input(KeyCode::Char('2'), &mut app);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 1);
+        assert_eq!(app.selected_completed_task_index, 1);
+    }
+
+    #[test]
+    fn test_no_data() {
+        let mut app = App::new(
+            crate::theme::Theme::default(),
+            TaskData {
+                tasks: vec![
+                    Task::from_string(String::from("meme")),
+                    Task::from_string(String::from("based")),
+                ],
+                completed_tasks: vec![
+                    CompletedTask::from_string(String::from("hey"), Local::now().naive_local()),
+                    CompletedTask::from_string(String::from("there"), Local::now().naive_local()),
+                ],
+            },
+        );
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 1);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 0);
+
+        input::handle_input(KeyCode::Char('2'), &mut app);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_completed_task_index, 1);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_completed_task_index, 0);
+    }
+
+    #[test]
+    fn test_one_task() {
+        let mut app = App::new(
+            crate::theme::Theme::default(),
+            TaskData {
+                tasks: vec![
+                    Task::from_string(String::from("meme")),
+                    Task::from_string(String::from("based")),
+                ],
+                completed_tasks: vec![
+                    CompletedTask::from_string(String::from("hey"), Local::now().naive_local()),
+                    CompletedTask::from_string(String::from("there"), Local::now().naive_local()),
+                ],
+            },
+        );
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 1);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_task_index, 0);
+
+        input::handle_input(KeyCode::Char('2'), &mut app);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_completed_task_index, 1);
+        input::handle_input(KeyCode::Char('j'), &mut app);
+        assert_eq!(app.selected_completed_task_index, 0);
         let index = Rc::new(RefCell::new(0));
         let task_list = TaskList::new(index.clone());
 
