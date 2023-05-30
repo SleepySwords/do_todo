@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use chrono::{Local, NaiveTime};
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 use serde::{Deserialize, Serialize};
 use tui::layout::Rect;
 
@@ -76,9 +76,9 @@ impl App {
             .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
     }
 
-    pub fn execute_event(&mut self, key_code: KeyCode) {
+    pub fn execute_event(&mut self, key_event: KeyEvent) {
         self.callbacks.push_back(Box::new(move |app, x| {
-            x.key_pressed(app, key_code);
+            x.key_pressed(app, key_event);
         }));
     }
 }
@@ -100,7 +100,7 @@ impl TaskStore {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum SelectedComponent {
     CurrentTasks,
     CompletedTasks,

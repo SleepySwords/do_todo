@@ -231,7 +231,7 @@ pub fn generate_default_block<'a>(
 
 #[cfg(test)]
 pub mod test {
-    use crossterm::event::KeyCode;
+    use crossterm::event::{KeyCode, KeyModifiers};
 
     use crate::{
         app::{App, TaskStore},
@@ -240,12 +240,12 @@ pub mod test {
     };
 
     pub fn input_char(character: char, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(KeyCode::Char(character));
+        app.execute_event(crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE));
         execute_callbacks(app, stack_layout);
     }
 
     pub fn input_code(key: KeyCode, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(key);
+        app.execute_event(crossterm::event::KeyEvent::new(key, KeyModifiers::NONE));
         execute_callbacks(app, stack_layout);
     }
 

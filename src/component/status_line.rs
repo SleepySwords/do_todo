@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
 use tui::{
     layout::Rect,
     style::{Color, Style},
@@ -43,7 +43,7 @@ impl DrawableComponent for StatusLine {
         drawer.draw_widget(paragraph, draw_area);
     }
 
-    fn key_pressed(&mut self, _: &mut App, _: KeyCode) -> EventResult {
+    fn key_pressed(&mut self, _: &mut App, _: KeyEvent) -> EventResult {
         EventResult::Ignored
     }
 }

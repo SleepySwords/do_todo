@@ -31,7 +31,7 @@ impl DialogAction {
 }
 
 pub struct DialogBox {
-    area: Rect,
+    draw_area: Rect,
     title: String,
     index: usize,
     pub options: Vec<DialogAction>,
@@ -43,28 +43,36 @@ impl DialogBox {
             panic!("The size of the options is 0");
         }
         DialogBox {
-            area: Rect::default(),
+            draw_area: Rect::default(),
             title,
             index: 0,
             options,
         }
     }
+
+    fn generate_rect(&self) -> Rect {
+        utils::centre_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.options.len() as u16 + 2),
+            self.draw_area,
+        )
+    }
 }
 
 impl DrawableComponent for DialogBox {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
-        let draw_area = utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.options.len() as u16 + 2),
-            draw_area,
-        );
+    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::view::Drawer) {
+        let draw_area = self.generate_rect();
         let list = List::new(
             self.options
                 .iter()
                 .map(|action| ListItem::new(Spans::from(action.name.as_str())))
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+        .highlight_style(
+            Style::default()
+                .add_modifier(Modifier::BOLD)
+                .fg(tui::style::Color::LightMagenta),
+        )
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -80,7 +88,8 @@ impl DrawableComponent for DialogBox {
         drawer.draw_stateful_widget(list, &mut list_state, draw_area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+        let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
                 return EventResult::Consumed;
@@ -106,13 +115,25 @@ impl DrawableComponent for DialogBox {
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
     ) -> EventResult {
-        let draw_area = utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.options.len() as u16 + 2),
-            self.area,
-        );
+        let draw_area = self.generate_rect();
         if utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            app.println("yay".to_string());
+            if let MouseEventKind::ScrollDown = mouse_event.kind {
+                if self.index < self.options.len() - 1 {
+                    self.index += 1;
+                }
+            }
+            if let MouseEventKind::ScrollUp = mouse_event.kind {
+                if self.index > 0 {
+                    self.index -= 1;
+                }
+            }
+            if let MouseEventKind::Down(_) = mouse_event.kind {
+                let i = (mouse_event.row - draw_area.y) as usize;
+                if i == 0 || i > self.options.len() {
+                    return EventResult::Consumed;
+                }
+                self.index = i - 1usize;
+            }
             return EventResult::Consumed;
         }
 
@@ -123,6 +144,6 @@ impl DrawableComponent for DialogBox {
     }
 
     fn update_layout(&mut self, area: Rect) {
-        self.area = area;
+        self.draw_area = area;
     }
 }

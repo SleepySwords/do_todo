@@ -41,6 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: Should try and recover if it fails
     let (theme, tasks) = config::get_data().expect("Could not get data");
     let mut app = App::new(theme, tasks);
+
     let result = start_app(&mut app, &mut terminal);
 
     // Shutting down application
@@ -71,9 +72,10 @@ pub fn start_app(
 ) -> io::Result<()> {
     let mut stack_layout = StackLayout {
         children: vec![Box::new(MainScreenLayer::new())],
-    };
+};
 
     let mut logger = Logger::default();
+    // logger.draw(app, draw_area, drawer)
 
     while !app.should_shutdown() {
         terminal.draw(|f| {
@@ -105,8 +107,8 @@ pub fn start_app(
                 {
                     return Ok(());
                 }
-                if EventResult::Ignored == stack_layout.key_pressed(app, event.code) {
-                    logger.key_pressed(app, event.code);
+                if EventResult::Ignored == stack_layout.key_pressed(app, event) {
+                    logger.key_pressed(app, event);
                 }
             }
             Event::Mouse(event) => {
@@ -115,6 +117,7 @@ pub fn start_app(
             Event::Resize(x, y) => {
                 app.println(format!("{} {}", x, y));
             }
+            _ => {}
         }
         while let Some(callback) = app.callbacks.pop_front() {
             callback(app, &mut stack_layout);

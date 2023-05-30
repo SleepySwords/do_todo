@@ -85,7 +85,7 @@ impl DrawableComponent for MessageBox {
     fn key_pressed(
         &mut self,
         app: &mut App,
-        _: crossterm::event::KeyCode,
+        _: crossterm::event::KeyEvent,
     ) -> crate::view::EventResult {
         app.pop_layer();
         (self.callback)(app);

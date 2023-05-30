@@ -4,7 +4,7 @@ use crate::{
     actions,
     app::{App, SelectedComponent},
     component::{
-        completed_list::CompletedList, input::input_box::InputBox, task_list::TaskList,
+        completed_list::CompletedList, input::input_box::{InputBox, InputBoxBuilder}, task_list::TaskList,
         viewer::Viewer,
     },
     task::Task,
@@ -43,10 +43,10 @@ impl DrawableComponent for MainScreenLayer {
         drawer.draw_component(app, &self.viewer, draw_area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         let event_result = match app.selected_component {
-            SelectedComponent::CurrentTasks => self.task_list.key_pressed(app, key_code),
-            SelectedComponent::CompletedTasks => self.completed_list.key_pressed(app, key_code),
+            SelectedComponent::CurrentTasks => self.task_list.key_pressed(app, key_event),
+            SelectedComponent::CompletedTasks => self.completed_list.key_pressed(app, key_event),
             _ => EventResult::Ignored,
         };
 
@@ -55,14 +55,16 @@ impl DrawableComponent for MainScreenLayer {
         }
 
         // Global keybindings
-        match key_code {
+        match key_event.code {
             KeyCode::Char('a') => {
-                app.push_layer(InputBox::new(String::from("Add a task"), |app, word| {
+                let prev_component = app.selected_component;
+                app.selected_component = SelectedComponent::Overlay;
+                app.push_layer(InputBoxBuilder::default().title(String::from("Add a task")).callback(move |app, word| {
                     app.task_store
                         .tasks
                         .push(Task::from_string(word.trim().to_string()));
                     Ok(())
-                }));
+                }).selected_to_restore(Some(prev_component)).build());
                 EventResult::Consumed
             }
             KeyCode::Char('1') => {

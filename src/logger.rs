@@ -47,8 +47,9 @@ impl DrawableComponent for Logger {
     fn key_pressed(
         &mut self,
         _: &mut crate::app::App,
-        key_code: crossterm::event::KeyCode,
+        key_event: crossterm::event::KeyEvent,
     ) -> crate::view::EventResult {
+        let key_code = key_event.code;
         if self.opened {
             self.opened = false;
             return crate::view::EventResult::Consumed;

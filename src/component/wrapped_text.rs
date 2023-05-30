@@ -96,7 +96,7 @@ impl DrawableComponent for TestWrap {
     fn key_pressed(
         &mut self,
         app: &mut crate::app::App,
-        _: crossterm::event::KeyCode,
+        _: crossterm::event::KeyEvent,
     ) -> crate::view::EventResult {
         app.pop_layer();
         crate::view::EventResult::Consumed

@@ -151,7 +151,7 @@ impl DrawableComponent for Viewer {
         }
     }
 
-    fn key_pressed(&mut self, _app: &mut App, _key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_pressed(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> EventResult {
         EventResult::Ignored
     }
 
