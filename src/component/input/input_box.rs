@@ -25,7 +25,6 @@ pub struct InputBox {
     selected_to_restore: Option<SelectedComponent>,
 }
 
-// TODO: Might make this a builder pattern
 impl InputBox {
     pub fn filled(title: String, words: &str, callback: InputBoxCallback) -> InputBox {
         let words = words
@@ -218,6 +217,12 @@ impl InputBoxBuilder {
 
     pub fn selected_to_restore(mut self, selected_to_restore: Option<SelectedComponent>) -> Self {
         self.selected_to_restore = selected_to_restore;
+        self
+    }
+
+    pub fn save_selected(mut self, app: &mut App) -> Self {
+        self.selected_to_restore = Some(app.selected_component);
+        app.selected_component = SelectedComponent::Overlay;
         self
     }
 }

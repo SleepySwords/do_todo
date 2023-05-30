@@ -13,7 +13,7 @@ use crate::app::{App, SelectedComponent};
 use crate::utils;
 use crate::view::{DrawableComponent, EventResult};
 
-use super::input::input_box::InputBox;
+use super::input::input_box::{InputBox, InputBoxBuilder};
 
 const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CurrentTasks;
 
@@ -100,7 +100,16 @@ impl DrawableComponent for TaskList {
                 spans.push(priority);
 
                 // TODO: Rewrite to store as an array in the task
-                let content = Span::styled(task.title.split('\n').next().unwrap(), style);
+                let content = Span::styled(
+                    task.title.split('\n').next().unwrap(),
+                    style.fg(
+                        if COMPONENT_TYPE == app.selected_component && *self.selected() == i {
+                            theme.selected_task_colour
+                        } else {
+                            Color::White
+                        },
+                    ),
+                );
                 spans.push(content);
 
                 for tag in task.iter_tags(app) {
@@ -169,15 +178,17 @@ impl DrawableComponent for TaskList {
             KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
             KeyCode::Char('e') => {
                 let index = *selected_index;
-                app.push_layer(InputBox::filled(
-                    String::from("Edit the selected task"),
-                    app.task_store.tasks[*selected_index].title.as_str(),
-                    Box::new(move |app, mut word| {
+                let edit_box = InputBoxBuilder::default()
+                    .title(String::from("Edit the selected task"))
+                    .fill(app.task_store.tasks[*selected_index].title.as_str())
+                    .callback(move |app, mut word| {
                         app.task_store.tasks[index].title =
                             word.drain(..).collect::<String>().trim().to_string();
                         Ok(())
-                    }),
-                ))
+                    })
+                    .save_selected(app)
+                    .build();
+                app.push_layer(edit_box)
             }
             KeyCode::Char('f') => actions::flip_tag_menu(app, *selected_index),
             KeyCode::Char('t') => actions::edit_tag_menu(app, *selected_index),

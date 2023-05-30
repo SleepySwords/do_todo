@@ -4,7 +4,7 @@ use crate::{
     actions,
     app::{App, SelectedComponent},
     component::{
-        completed_list::CompletedList, input::input_box::{InputBox, InputBoxBuilder}, task_list::TaskList,
+        completed_list::CompletedList, input::input_box::InputBoxBuilder, task_list::TaskList,
         viewer::Viewer,
     },
     task::Task,
@@ -57,14 +57,17 @@ impl DrawableComponent for MainScreenLayer {
         // Global keybindings
         match key_event.code {
             KeyCode::Char('a') => {
-                let prev_component = app.selected_component;
-                app.selected_component = SelectedComponent::Overlay;
-                app.push_layer(InputBoxBuilder::default().title(String::from("Add a task")).callback(move |app, word| {
-                    app.task_store
-                        .tasks
-                        .push(Task::from_string(word.trim().to_string()));
-                    Ok(())
-                }).selected_to_restore(Some(prev_component)).build());
+                let add_input_dialog = InputBoxBuilder::default()
+                    .title(String::from("Add a task"))
+                    .callback(move |app, word| {
+                        app.task_store
+                            .tasks
+                            .push(Task::from_string(word.trim().to_string()));
+                        Ok(())
+                    })
+                    .save_selected(app)
+                    .build();
+                app.push_layer(add_input_dialog);
                 EventResult::Consumed
             }
             KeyCode::Char('1') => {

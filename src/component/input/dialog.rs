@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    app::App,
+    app::{App, SelectedComponent},
     utils,
     view::{DrawableComponent, EventResult},
 };
@@ -34,22 +34,11 @@ pub struct DialogBox {
     draw_area: Rect,
     title: String,
     index: usize,
-    pub options: Vec<DialogAction>,
+    options: Vec<DialogAction>,
+    selected_to_restore: Option<SelectedComponent>,
 }
 
 impl DialogBox {
-    pub fn new(title: String, options: Vec<DialogAction>) -> DialogBox {
-        if options.is_empty() {
-            panic!("The size of the options is 0");
-        }
-        DialogBox {
-            draw_area: Rect::default(),
-            title,
-            index: 0,
-            options,
-        }
-    }
-
     fn generate_rect(&self) -> Rect {
         utils::centre_rect(
             Constraint::Percentage(70),
@@ -99,11 +88,17 @@ impl DrawableComponent for DialogBox {
         match key_code {
             KeyCode::Enter => {
                 app.pop_layer();
+                if let Some(selected) = self.selected_to_restore {
+                    app.selected_component = selected;
+                }
                 (self.options[self.index].function)(app);
             }
             KeyCode::Esc => {
                 // May be better to have a custom escape function
                 app.pop_layer();
+                if let Some(selected) = self.selected_to_restore {
+                    app.selected_component = selected;
+                }
             }
             _ => {}
         }
@@ -139,11 +134,77 @@ impl DrawableComponent for DialogBox {
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
             app.pop_layer();
+            if let Some(selected) = self.selected_to_restore {
+                app.selected_component = selected;
+            }
         }
         EventResult::Consumed
     }
 
     fn update_layout(&mut self, area: Rect) {
         self.draw_area = area;
+    }
+}
+
+pub struct DialogBoxBuilder {
+    draw_area: Rect,
+    title: String,
+    index: usize,
+    options: Vec<DialogAction>,
+    selected_to_restore: Option<SelectedComponent>,
+}
+
+impl Default for DialogBoxBuilder {
+    fn default() -> Self {
+        DialogBoxBuilder {
+            draw_area: Rect::default(),
+            title: String::default(),
+            index: 0,
+            options: Vec::new(),
+            selected_to_restore: None,
+        }
+    }
+}
+
+impl DialogBoxBuilder {
+    pub fn build(self) -> DialogBox {
+        DialogBox {
+            draw_area: self.draw_area,
+            title: self.title,
+            index: self.index,
+            options: self.options,
+            selected_to_restore: self.selected_to_restore,
+        }
+    }
+
+    pub fn add_option(mut self, dialog_action: DialogAction) -> Self {
+        self.options.push(dialog_action);
+        self
+    }
+
+    pub fn options(mut self, options: Vec<DialogAction>) -> Self {
+        self.options = options;
+        self
+    }
+
+    pub fn draw_area(mut self, draw_area: Rect) -> Self {
+        self.draw_area = draw_area;
+        self
+    }
+
+    pub fn title(mut self, title: String) -> Self {
+        self.title = title;
+        self
+    }
+
+    pub fn selected_to_restore(mut self, selected_to_restore: Option<SelectedComponent>) -> Self {
+        self.selected_to_restore = selected_to_restore;
+        self
+    }
+
+    pub fn save_selected(mut self, app: &mut App) -> Self {
+        self.selected_to_restore = Some(app.selected_component);
+        app.selected_component = SelectedComponent::Overlay;
+        self
     }
 }

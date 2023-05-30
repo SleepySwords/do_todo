@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use chrono::{Local, NaiveTime};
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event:: KeyEvent;
 use serde::{Deserialize, Serialize};
 use tui::layout::Rect;
 
@@ -81,6 +81,9 @@ impl App {
             x.key_pressed(app, key_event);
         }));
     }
+
+    // TODO: add a selected(SelectedComponent) function to be used, could use the stacklayout to
+    // try and find if it is used.
 }
 
 #[derive(Default, Deserialize, Serialize)]
