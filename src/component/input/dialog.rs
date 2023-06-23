@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    app::{App, SelectedComponent},
+    app::{App, Mode},
     utils,
     view::{DrawableComponent, EventResult},
 };
@@ -35,7 +35,7 @@ pub struct DialogBox {
     title: String,
     index: usize,
     options: Vec<DialogAction>,
-    selected_to_restore: Option<SelectedComponent>,
+    selected_to_restore: Option<Mode>,
 }
 
 impl DialogBox {
@@ -151,7 +151,7 @@ pub struct DialogBoxBuilder {
     title: String,
     index: usize,
     options: Vec<DialogAction>,
-    selected_to_restore: Option<SelectedComponent>,
+    selected_to_restore: Option<Mode>,
 }
 
 impl Default for DialogBoxBuilder {
@@ -197,14 +197,14 @@ impl DialogBoxBuilder {
         self
     }
 
-    pub fn selected_to_restore(mut self, selected_to_restore: Option<SelectedComponent>) -> Self {
+    pub fn selected_to_restore(mut self, selected_to_restore: Option<Mode>) -> Self {
         self.selected_to_restore = selected_to_restore;
         self
     }
 
     pub fn save_selected(mut self, app: &mut App) -> Self {
         self.selected_to_restore = Some(app.selected_component);
-        app.selected_component = SelectedComponent::Overlay;
+        app.selected_component = Mode::Overlay;
         self
     }
 }

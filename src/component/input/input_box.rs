@@ -5,7 +5,7 @@ use tui::style::Style;
 use tui::widgets::{Block, Borders, Clear};
 use tui_textarea::TextArea;
 
-use crate::app::{App, SelectedComponent};
+use crate::app::{App, Mode};
 use crate::error::AppError;
 use crate::utils;
 use crate::view::{DrawableComponent, EventResult};
@@ -22,7 +22,7 @@ pub struct InputBox {
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
     draw_area: Rect,
-    selected_to_restore: Option<SelectedComponent>,
+    selected_to_restore: Option<Mode>,
 }
 
 impl InputBox {
@@ -144,7 +144,7 @@ pub struct InputBoxBuilder {
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
     draw_area: Rect,
-    selected_to_restore: Option<SelectedComponent>,
+    selected_to_restore: Option<Mode>,
 }
 
 impl Default for InputBoxBuilder {
@@ -215,14 +215,14 @@ impl InputBoxBuilder {
         self
     }
 
-    pub fn selected_to_restore(mut self, selected_to_restore: Option<SelectedComponent>) -> Self {
+    pub fn selected_to_restore(mut self, selected_to_restore: Option<Mode>) -> Self {
         self.selected_to_restore = selected_to_restore;
         self
     }
 
     pub fn save_selected(mut self, app: &mut App) -> Self {
         self.selected_to_restore = Some(app.selected_component);
-        app.selected_component = SelectedComponent::Overlay;
+        app.selected_component = Mode::Overlay;
         self
     }
 }

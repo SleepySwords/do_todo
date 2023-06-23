@@ -9,13 +9,13 @@ use tui::text::{Span, Spans};
 use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::{self, HelpAction};
-use crate::app::{App, SelectedComponent};
+use crate::app::{App, Mode};
 use crate::utils;
 use crate::view::{DrawableComponent, EventResult};
 
 use super::input::input_box::{InputBox, InputBoxBuilder};
 
-const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CurrentTasks;
+const COMPONENT_TYPE: Mode = Mode::CurrentTasks;
 
 pub struct TaskList {
     pub area: Rect,

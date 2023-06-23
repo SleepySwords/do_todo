@@ -10,7 +10,7 @@ use tui::{
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
-    app::{App, SelectedComponent},
+    app::{App, Mode},
     view::EventResult,
 };
 
@@ -213,7 +213,7 @@ fn new_blank_line(text: &mut Text) {
 /// Generates the default block
 pub fn generate_default_block<'a>(
     title: &'a str,
-    selected_component: SelectedComponent,
+    selected_component: Mode,
     app: &App,
 ) -> Block<'a> {
     let border_colour = if app.selected_component == selected_component {

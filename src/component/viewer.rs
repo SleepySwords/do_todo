@@ -9,7 +9,7 @@ use tui::{
 
 // A viewer of a task/something
 use crate::{
-    app::{App, SelectedComponent},
+    app::{App, Mode},
     task::Task,
     utils,
     view::{DrawableComponent, Drawer, EventResult},
@@ -127,21 +127,21 @@ impl DrawableComponent for Viewer {
             .border_type(theme.border_style.border_type);
 
         match app.selected_component {
-            SelectedComponent::CurrentTasks => {
+            Mode::CurrentTasks => {
                 if !app.task_store.tasks.is_empty() {
                     self.draw_task_viewer(app, block, draw_area, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
             }
-            SelectedComponent::CompletedTasks => {
+            Mode::CompletedTasks => {
                 if !app.task_store.completed_tasks.is_empty() {
                     self.draw_completed_task_viewer(app, block, draw_area, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
             }
-            SelectedComponent::Overlay => {
+            Mode::Overlay => {
                 if !app.task_store.tasks.is_empty() {
                     self.draw_task_viewer(app, block, draw_area, drawer)
                 } else {

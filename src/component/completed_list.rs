@@ -9,11 +9,11 @@ use tui::text::{Span, Spans};
 use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::HelpAction;
-use crate::app::{App, SelectedComponent};
+use crate::app::{App, Mode};
 use crate::view::{DrawableComponent, EventResult};
 use crate::{actions, utils};
 
-const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CompletedTasks;
+const COMPONENT_TYPE: Mode = Mode::CompletedTasks;
 
 pub struct CompletedList {
     pub area: Rect,
@@ -57,7 +57,7 @@ impl DrawableComponent for CompletedList {
             .iter()
             .enumerate()
             .map(|(i, task)| {
-                let colour = if let SelectedComponent::CompletedTasks = app.selected_component {
+                let colour = if let Mode::CompletedTasks = app.selected_component {
                     if selected_index == i {
                         theme.selected_task_colour
                     } else {

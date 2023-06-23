@@ -5,7 +5,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tui::style::Color;
 
 use crate::{
-    app::{App, SelectedComponent},
+    app::{App, Mode},
     component::{
         input::dialog::DialogAction,
         input::{dialog::DialogBoxBuilder, input_box::InputBoxBuilder},
@@ -40,12 +40,12 @@ pub fn open_help_menu(app: &mut App) {
     // Actions that are universal, should use a table?
     let mut actions: Vec<DialogAction> = vec![
         DialogAction::new(String::from("1    Change to current task window"), |app| {
-            app.selected_component = SelectedComponent::CurrentTasks;
+            app.selected_component = Mode::CurrentTasks;
         }),
         DialogAction::new(
             String::from("2    Change to completed task window"),
             |app| {
-                app.selected_component = SelectedComponent::CompletedTasks;
+                app.selected_component = Mode::CompletedTasks;
             },
         ),
     ];

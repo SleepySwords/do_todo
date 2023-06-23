@@ -24,7 +24,7 @@ pub struct App {
     pub status_line: StatusLine,
 
     pub callbacks: VecDeque<Box<Callback>>,
-    pub selected_component: SelectedComponent,
+    pub selected_component: Mode,
 
     pub app_size: Rect,
     pub logs: Vec<(String, NaiveTime)>,
@@ -104,24 +104,24 @@ impl TaskStore {
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
-pub enum SelectedComponent {
+pub enum Mode {
     CurrentTasks,
     CompletedTasks,
     Overlay,
 }
 
-impl Default for SelectedComponent {
+impl Default for Mode {
     fn default() -> Self {
         Self::CurrentTasks
     }
 }
 
-impl SelectedComponent {
+impl Mode {
     pub fn available_help_actions(&self) -> Vec<HelpAction> {
         match self {
-            SelectedComponent::CurrentTasks => TaskList::available_actions(),
-            SelectedComponent::CompletedTasks => CompletedList::available_actions(),
-            SelectedComponent::Overlay => vec![],
+            Mode::CurrentTasks => TaskList::available_actions(),
+            Mode::CompletedTasks => CompletedList::available_actions(),
+            Mode::Overlay => vec![],
         }
     }
 }

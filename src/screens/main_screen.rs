@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     actions,
-    app::{App, SelectedComponent},
+    app::{App, Mode},
     component::{
         completed_list::CompletedList, input::input_box::InputBoxBuilder, task_list::TaskList,
         viewer::Viewer,
@@ -45,8 +45,8 @@ impl DrawableComponent for MainScreenLayer {
 
     fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         let event_result = match app.selected_component {
-            SelectedComponent::CurrentTasks => self.task_list.key_pressed(app, key_event),
-            SelectedComponent::CompletedTasks => self.completed_list.key_pressed(app, key_event),
+            Mode::CurrentTasks => self.task_list.key_pressed(app, key_event),
+            Mode::CompletedTasks => self.completed_list.key_pressed(app, key_event),
             _ => EventResult::Ignored,
         };
 
@@ -71,11 +71,11 @@ impl DrawableComponent for MainScreenLayer {
                 EventResult::Consumed
             }
             KeyCode::Char('1') => {
-                app.selected_component = SelectedComponent::CurrentTasks;
+                app.selected_component = Mode::CurrentTasks;
                 EventResult::Consumed
             }
             KeyCode::Char('2') => {
-                app.selected_component = SelectedComponent::CompletedTasks;
+                app.selected_component = Mode::CompletedTasks;
                 EventResult::Consumed
             }
             KeyCode::Char('x') => {
