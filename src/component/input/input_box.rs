@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Rect};
 use tui::style::Style;
 use tui::widgets::{Block, Borders, Clear};
-use tui_textarea::TextArea;
+use tui_textarea::{TextArea, Input};
 
 use crate::app::{App, Mode};
 use crate::error::AppError;
@@ -97,7 +97,7 @@ impl DrawableComponent for InputBox {
                 }
             }
             _ => {
-                self.text_area.input(key_event);
+                self.text_area.input(Input::from(key_event));
             }
         }
         EventResult::Consumed

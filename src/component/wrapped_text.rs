@@ -9,7 +9,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::view::DrawableComponent;
 
 struct WrappedText<'a> {
-    pub spans: Spans<'a>,
+    pub line: Spans<'a>,
 }
 
 impl Widget for WrappedText<'_> {
@@ -19,7 +19,7 @@ impl Widget for WrappedText<'_> {
         let mut word = Vec::new();
         let mut current_width = 0u16;
         let mut current_height = 0u16;
-        for span in &self.spans.0 {
+        for span in &self.line.0 {
             let style = span.style;
             for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
                 let is_newline = grapheme.chars().any(|chr| chr == '\n');
@@ -80,7 +80,7 @@ pub struct TestWrap {
 impl DrawableComponent for TestWrap {
     fn draw(&self, _: &crate::app::App, _: tui::layout::Rect, drawer: &mut crate::view::Drawer) {
         let text = WrappedText {
-            spans: Spans::from(self.text.as_str()),
+            line: Spans::from(self.text.as_str()),
         };
         drawer.draw_widget(
             text,
