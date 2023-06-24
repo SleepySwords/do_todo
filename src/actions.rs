@@ -279,6 +279,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 0,
             ));
         })
+        .save_selected(app)
         .build();
     app.push_layer(colour_menu);
 }

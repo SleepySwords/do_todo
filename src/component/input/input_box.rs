@@ -74,16 +74,14 @@ impl DrawableComponent for InputBox {
                 if !self.text_area.lines().join("\n").is_empty() {
                     // Unfortunately since the `app` uses a callback system, ie: the component is removed at the next draw.
                     // self.callback cannot be a FnOnce
-                    // Which makes things particularly annoying.
-                    // Removing the callback system would mean that the components and the app
-                    // cannot be passed together. Perhaps a global state is a better idea.
+                    // When popping the layer, probably should do the callback.
                     app.pop_layer();
+                    if let Some(selected) = self.selected_to_restore {
+                        app.selected_component = selected;
+                    }
                     let err = (self.callback)(app, self.text_area.lines().join("\n"));
                     if err.is_err() {
                         (self.error_callback)(app, err.err().unwrap());
-                    }
-                    if let Some(selected) = self.selected_to_restore {
-                        app.selected_component = selected;
                     }
                 }
             }
