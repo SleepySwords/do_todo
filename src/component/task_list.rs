@@ -75,7 +75,7 @@ impl DrawableComponent for TaskList {
             .map(|(i, task)| {
                 let mut spans = Vec::new();
 
-                let style = if COMPONENT_TYPE == app.selected_component && *self.selected() == i {
+                let style = if COMPONENT_TYPE == app.mode && *self.selected() == i {
                     Style::default().add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
@@ -84,7 +84,7 @@ impl DrawableComponent for TaskList {
                 let progress = Span::styled(
                     if task.progress { "[~] " } else { "[ ] " },
                     style.fg(
-                        if COMPONENT_TYPE == app.selected_component && *self.selected() == i {
+                        if COMPONENT_TYPE == app.mode && *self.selected() == i {
                             theme.selected_task_colour
                         } else {
                             Color::White
@@ -103,7 +103,7 @@ impl DrawableComponent for TaskList {
                 let content = Span::styled(
                     task.title.split('\n').next().unwrap(),
                     style.fg(
-                        if COMPONENT_TYPE == app.selected_component && *self.selected() == i {
+                        if COMPONENT_TYPE == app.mode && *self.selected() == i {
                             theme.selected_task_colour
                         } else {
                             Color::White
@@ -130,7 +130,7 @@ impl DrawableComponent for TaskList {
         ));
 
         let mut state = ListState::default();
-        state.select(if COMPONENT_TYPE == app.selected_component {
+        state.select(if COMPONENT_TYPE == app.mode {
             Some(*self.selected())
         } else {
             None
@@ -186,7 +186,7 @@ impl DrawableComponent for TaskList {
                             word.drain(..).collect::<String>().trim().to_string();
                         Ok(())
                     })
-                    .save_selected(app)
+                    .save_mode(app)
                     .build();
                 app.push_layer(edit_box)
             }
@@ -225,9 +225,9 @@ impl DrawableComponent for TaskList {
         }
 
         if let MouseEventKind::Down(_) = kind {
-            if let COMPONENT_TYPE = app.selected_component {
+            if let COMPONENT_TYPE = app.mode {
             } else {
-                app.selected_component = COMPONENT_TYPE;
+                app.mode = COMPONENT_TYPE;
             }
             if row == 0 {
                 return EventResult::Ignored;

@@ -213,10 +213,10 @@ fn new_blank_line(text: &mut Text) {
 /// Generates the default block
 pub fn generate_default_block<'a>(
     title: &'a str,
-    selected_component: Mode,
+    mode: Mode,
     app: &App,
 ) -> Block<'a> {
-    let border_colour = if app.selected_component == selected_component {
+    let border_colour = if app.mode == mode {
         app.theme.selected_border_colour
     } else {
         app.theme.default_border_colour

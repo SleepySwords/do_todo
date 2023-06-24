@@ -22,7 +22,7 @@ pub struct InputBox {
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
     draw_area: Rect,
-    selected_to_restore: Option<Mode>,
+    mode_to_restore: Option<Mode>,
 }
 
 impl InputBox {
@@ -41,7 +41,7 @@ impl InputBox {
             callback,
             error_callback: Box::new(|_, _| {}),
             draw_area: Rect::default(),
-            selected_to_restore: None,
+            mode_to_restore: None,
         }
     }
 }
@@ -76,8 +76,8 @@ impl DrawableComponent for InputBox {
                     // self.callback cannot be a FnOnce
                     // When popping the layer, probably should do the callback.
                     app.pop_layer();
-                    if let Some(selected) = self.selected_to_restore {
-                        app.selected_component = selected;
+                    if let Some(mode) = self.mode_to_restore {
+                        app.mode = mode;
                     }
                     let err = (self.callback)(app, self.text_area.lines().join("\n"));
                     if err.is_err() {
@@ -90,8 +90,8 @@ impl DrawableComponent for InputBox {
             }
             KeyCode::Esc => {
                 app.pop_layer();
-                if let Some(selected) = self.selected_to_restore {
-                    app.selected_component = selected;
+                if let Some(mode) = self.mode_to_restore {
+                    app.mode = mode;
                 }
             }
             _ => {
@@ -142,7 +142,7 @@ pub struct InputBoxBuilder {
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
     draw_area: Rect,
-    selected_to_restore: Option<Mode>,
+    mode_to_restore: Option<Mode>,
 }
 
 impl Default for InputBoxBuilder {
@@ -153,7 +153,7 @@ impl Default for InputBoxBuilder {
             callback: Box::new(|_app, _task| Ok(())),
             error_callback: Box::new(|_app, _err| {}),
             draw_area: Rect::default(),
-            selected_to_restore: None,
+            mode_to_restore: None,
         }
     }
 }
@@ -166,7 +166,7 @@ impl InputBoxBuilder {
             callback: self.callback,
             error_callback: self.error_callback,
             draw_area: self.draw_area,
-            selected_to_restore: self.selected_to_restore,
+            mode_to_restore: self.mode_to_restore,
         }
     }
 
@@ -213,14 +213,14 @@ impl InputBoxBuilder {
         self
     }
 
-    pub fn selected_to_restore(mut self, selected_to_restore: Option<Mode>) -> Self {
-        self.selected_to_restore = selected_to_restore;
+    pub fn mode_to_restore(mut self, mode_to_restore: Option<Mode>) -> Self {
+        self.mode_to_restore = mode_to_restore;
         self
     }
 
-    pub fn save_selected(mut self, app: &mut App) -> Self {
-        self.selected_to_restore = Some(app.selected_component);
-        app.selected_component = Mode::Overlay;
+    pub fn save_mode(mut self, app: &mut App) -> Self {
+        self.mode_to_restore = Some(app.mode);
+        app.mode = Mode::Overlay;
         self
     }
 }

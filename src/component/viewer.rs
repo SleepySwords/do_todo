@@ -126,7 +126,7 @@ impl DrawableComponent for Viewer {
             .borders(Borders::ALL)
             .border_type(theme.border_style.border_type);
 
-        match app.selected_component {
+        match app.mode {
             Mode::CurrentTasks => {
                 if !app.task_store.tasks.is_empty() {
                     self.draw_task_viewer(app, block, draw_area, drawer)

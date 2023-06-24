@@ -44,7 +44,7 @@ impl DrawableComponent for MainScreenLayer {
     }
 
     fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
-        let event_result = match app.selected_component {
+        let event_result = match app.mode {
             Mode::CurrentTasks => self.task_list.key_pressed(app, key_event),
             Mode::CompletedTasks => self.completed_list.key_pressed(app, key_event),
             _ => EventResult::Ignored,
@@ -65,17 +65,17 @@ impl DrawableComponent for MainScreenLayer {
                             .push(Task::from_string(word.trim().to_string()));
                         Ok(())
                     })
-                    .save_selected(app)
+                    .save_mode(app)
                     .build();
                 app.push_layer(add_input_dialog);
                 EventResult::Consumed
             }
             KeyCode::Char('1') => {
-                app.selected_component = Mode::CurrentTasks;
+                app.mode = Mode::CurrentTasks;
                 EventResult::Consumed
             }
             KeyCode::Char('2') => {
-                app.selected_component = Mode::CompletedTasks;
+                app.mode = Mode::CompletedTasks;
                 EventResult::Consumed
             }
             KeyCode::Char('x') => {

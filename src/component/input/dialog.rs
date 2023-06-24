@@ -35,7 +35,7 @@ pub struct DialogBox {
     title: String,
     index: usize,
     options: Vec<DialogAction>,
-    selected_to_restore: Option<Mode>,
+    mode_to_restore: Option<Mode>,
 }
 
 impl DialogBox {
@@ -88,16 +88,16 @@ impl DrawableComponent for DialogBox {
         match key_code {
             KeyCode::Enter => {
                 app.pop_layer();
-                if let Some(selected) = self.selected_to_restore {
-                    app.selected_component = selected;
+                if let Some(mode) = self.mode_to_restore {
+                    app.mode = mode;
                 }
                 (self.options[self.index].function)(app);
             }
             KeyCode::Esc => {
                 // May be better to have a custom escape function
                 app.pop_layer();
-                if let Some(selected) = self.selected_to_restore {
-                    app.selected_component = selected;
+                if let Some(mode) = self.mode_to_restore {
+                    app.mode = mode;
                 }
             }
             _ => {}
@@ -134,8 +134,8 @@ impl DrawableComponent for DialogBox {
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
             app.pop_layer();
-            if let Some(selected) = self.selected_to_restore {
-                app.selected_component = selected;
+            if let Some(mode) = self.mode_to_restore {
+                app.mode = mode;
             }
         }
         EventResult::Consumed
@@ -151,7 +151,7 @@ pub struct DialogBoxBuilder {
     title: String,
     index: usize,
     options: Vec<DialogAction>,
-    selected_to_restore: Option<Mode>,
+    mode_to_restore: Option<Mode>,
 }
 
 impl Default for DialogBoxBuilder {
@@ -161,7 +161,7 @@ impl Default for DialogBoxBuilder {
             title: String::default(),
             index: 0,
             options: Vec::new(),
-            selected_to_restore: None,
+            mode_to_restore: None,
         }
     }
 }
@@ -173,7 +173,7 @@ impl DialogBoxBuilder {
             title: self.title,
             index: self.index,
             options: self.options,
-            selected_to_restore: self.selected_to_restore,
+            mode_to_restore: self.mode_to_restore,
         }
     }
 
@@ -197,14 +197,14 @@ impl DialogBoxBuilder {
         self
     }
 
-    pub fn selected_to_restore(mut self, selected_to_restore: Option<Mode>) -> Self {
-        self.selected_to_restore = selected_to_restore;
+    pub fn mode_to_restore(mut self, mode_to_restore: Option<Mode>) -> Self {
+        self.mode_to_restore = mode_to_restore;
         self
     }
 
-    pub fn save_selected(mut self, app: &mut App) -> Self {
-        self.selected_to_restore = Some(app.selected_component);
-        app.selected_component = Mode::Overlay;
+    pub fn save_mode(mut self, app: &mut App) -> Self {
+        self.mode_to_restore = Some(app.mode);
+        app.mode = Mode::Overlay;
         self
     }
 }

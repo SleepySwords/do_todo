@@ -57,7 +57,7 @@ impl DrawableComponent for CompletedList {
             .iter()
             .enumerate()
             .map(|(i, task)| {
-                let colour = if let Mode::CompletedTasks = app.selected_component {
+                let colour = if let Mode::CompletedTasks = app.mode {
                     if selected_index == i {
                         theme.selected_task_colour
                     } else {
@@ -135,9 +135,9 @@ impl DrawableComponent for CompletedList {
         }
 
         if let MouseEventKind::Down(_) = kind {
-            if let COMPONENT_TYPE = app.selected_component {
+            if let COMPONENT_TYPE = app.mode {
             } else {
-                app.selected_component = COMPONENT_TYPE;
+                app.mode = COMPONENT_TYPE;
             }
             if row == 0 {
                 return EventResult::Ignored;

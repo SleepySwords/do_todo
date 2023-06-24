@@ -24,7 +24,7 @@ pub struct App {
     pub status_line: StatusLine,
 
     pub callbacks: VecDeque<Box<Callback>>,
-    pub selected_component: Mode,
+    pub mode: Mode,
 
     pub app_size: Rect,
     pub logs: Vec<(String, NaiveTime)>,

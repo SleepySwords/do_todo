@@ -40,16 +40,16 @@ pub fn open_help_menu(app: &mut App) {
     // Actions that are universal, should use a table?
     let mut actions: Vec<DialogAction> = vec![
         DialogAction::new(String::from("1    Change to current task window"), |app| {
-            app.selected_component = Mode::CurrentTasks;
+            app.mode = Mode::CurrentTasks;
         }),
         DialogAction::new(
             String::from("2    Change to completed task window"),
             |app| {
-                app.selected_component = Mode::CompletedTasks;
+                app.mode = Mode::CompletedTasks;
             },
         ),
     ];
-    for ac in app.selected_component.available_help_actions() {
+    for ac in app.mode.available_help_actions() {
         actions.push(DialogAction::new(
             format!("{}    {}", ac.short_hand, ac.description),
             move |app| app.execute_event(KeyEvent::new(ac.character, KeyModifiers::NONE)),
@@ -58,7 +58,7 @@ pub fn open_help_menu(app: &mut App) {
     let help_menu = DialogBoxBuilder::default()
         .title(String::from("Help Menu"))
         .options(actions)
-        .save_selected(app)
+        .save_mode(app)
         .build();
 
     app.push_layer(help_menu);
@@ -78,7 +78,7 @@ pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) 
             }
         }))
         .add_option(DialogAction::new(String::from("Cancel"), |_| {}))
-        .save_selected(app)
+        .save_mode(app)
         .build();
     app.push_layer(delete_dialog);
 }
@@ -140,7 +140,7 @@ pub fn flip_tag_menu(app: &mut App, selected_index: usize) {
     let dialog = DialogBoxBuilder::default()
         .title("Add or remove a tag".to_string())
         .options(tag_options)
-        .save_selected(app)
+        .save_mode(app)
         .build();
     app.push_layer(dialog);
 }
@@ -155,7 +155,7 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
                 open_select_tag_colour(app, selected_index, tag_name);
                 Ok(())
             })
-            .save_selected(app)
+            .save_mode(app)
             .build();
         app.push_layer(tag_menu)
     }));
@@ -170,7 +170,7 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
     let dialog = DialogBoxBuilder::default()
         .title("Add or remove a tag".to_string())
         .options(tag_options)
-        .save_selected(app)
+        .save_mode(app)
         .build();
     app.push_layer(dialog);
 }
@@ -198,7 +198,7 @@ pub fn delete_tag_menu(app: &mut App) {
                     app.task_store.delete_tag(moved)
                 }))
                 .add_option(DialogAction::new(String::from("Cancel"), move |_| {}))
-                .save_selected(app)
+                .save_mode(app)
                 .build();
             app.push_layer(tag_dialog);
         }));
@@ -208,7 +208,7 @@ pub fn delete_tag_menu(app: &mut App) {
     let delete_dialog = DialogBoxBuilder::default()
         .title("Delete a tag".to_string())
         .options(tag_options)
-        .save_selected(app)
+        .save_mode(app)
         .build();
     app.push_layer(delete_dialog);
 }
@@ -279,7 +279,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 0,
             ));
         })
-        .save_selected(app)
+        .save_mode(app)
         .build();
     app.push_layer(colour_menu);
 }
