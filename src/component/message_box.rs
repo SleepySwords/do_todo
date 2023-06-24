@@ -3,20 +3,21 @@ use tui::style::{Color, Style};
 use tui::text::Span;
 use tui::widgets::{Block, Borders, Clear, List, ListItem, ListState};
 
-use crate::app::App;
+use crate::app::{App, Mode};
 use crate::utils::centre_rect;
 use crate::view::DrawableComponent;
 
 pub struct MessageBox {
     title: String,
-    callback: Box<dyn Fn(&mut App)>,
+    callback: Option<Box<dyn FnOnce(&mut App)>>,
     message: Vec<String>,
     colour: Color,
     selected_index: usize,
+    mode_to_restore: Option<Mode>,
 }
 
 impl MessageBox {
-    pub fn new<T: Fn(&mut App) + 'static>(
+    pub fn new<T: FnOnce(&mut App) + 'static>(
         title: String,
         callback: T,
         words: String,
@@ -25,13 +26,14 @@ impl MessageBox {
     ) -> MessageBox {
         MessageBox {
             title,
-            callback: Box::new(callback),
+            callback: Some(Box::new(callback)),
             message: words
                 .split('\n')
                 .map(|f| f.to_string())
                 .collect::<Vec<String>>(),
             colour,
             selected_index,
+            mode_to_restore: None,
         }
     }
 
@@ -44,11 +46,18 @@ impl MessageBox {
     ) -> MessageBox {
         MessageBox {
             title,
-            callback: Box::new(callback),
+            callback: Some(Box::new(callback)),
             message: words,
             colour,
             selected_index,
+            mode_to_restore: None,
         }
+    }
+
+    pub fn save_mode(mut self, app: &mut App) -> Self {
+        self.mode_to_restore = Some(app.mode);
+        app.mode = Mode::Overlay;
+        self
     }
 }
 
@@ -88,7 +97,12 @@ impl DrawableComponent for MessageBox {
         _: crossterm::event::KeyEvent,
     ) -> crate::view::EventResult {
         app.pop_layer();
-        (self.callback)(app);
+        if let Some(mode) = self.mode_to_restore {
+            app.mode = mode;
+        }
+        if let Some(callback) = self.callback.take() {
+            (callback)(app);
+        }
         crate::view::EventResult::Consumed
     }
 }

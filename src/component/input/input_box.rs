@@ -10,7 +10,7 @@ use crate::error::AppError;
 use crate::utils;
 use crate::view::{DrawableComponent, EventResult};
 
-type InputBoxCallback = Box<dyn Fn(&mut App, String) -> Result<(), AppError>>;
+type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
 
 pub const PADDING: usize = 2;
@@ -72,16 +72,17 @@ impl DrawableComponent for InputBox {
         match key_code {
             KeyCode::Enter => {
                 if !self.text_area.lines().join("\n").is_empty() {
-                    // Unfortunately since the `app` uses a callback system, ie: the component is removed at the next draw.
-                    // self.callback cannot be a FnOnce
-                    // When popping the layer, probably should do the callback.
+                    // When popping the layer, probably should do the callback, rather than have an
+                    // option.
                     app.pop_layer();
                     if let Some(mode) = self.mode_to_restore {
                         app.mode = mode;
                     }
-                    let err = (self.callback)(app, self.text_area.lines().join("\n"));
-                    if err.is_err() {
-                        (self.error_callback)(app, err.err().unwrap());
+                    if let Some(callback) = self.callback.take() {
+                        let err = (callback)(app, self.text_area.lines().join("\n"));
+                        if err.is_err() {
+                            (self.error_callback)(app, err.err().unwrap());
+                        }
                     }
                 }
             }
@@ -150,7 +151,7 @@ impl Default for InputBoxBuilder {
         InputBoxBuilder {
             title: String::default(),
             text_area: TextArea::default(),
-            callback: Box::new(|_app, _task| Ok(())),
+            callback: Some(Box::new(|_app, _task| Ok(()))),
             error_callback: Box::new(|_app, _err| {}),
             draw_area: Rect::default(),
             mode_to_restore: None,
@@ -194,9 +195,9 @@ impl InputBoxBuilder {
 
     pub fn callback<T: 'static>(mut self, callback: T) -> Self
     where
-        T: Fn(&mut App, String) -> Result<(), AppError>,
+        T: FnOnce(&mut App, String) -> Result<(), AppError>,
     {
-        self.callback = Box::new(callback);
+        self.callback = Some(Box::new(callback));
         self
     }
 
@@ -210,11 +211,6 @@ impl InputBoxBuilder {
 
     pub fn draw_area(mut self, draw_area: Rect) -> Self {
         self.draw_area = draw_area;
-        self
-    }
-
-    pub fn mode_to_restore(mut self, mode_to_restore: Option<Mode>) -> Self {
-        self.mode_to_restore = mode_to_restore;
         self
     }
 

@@ -15,17 +15,17 @@ use crate::{
 
 pub struct DialogAction {
     name: String,
-    function: Box<dyn Fn(&mut App)>,
+    function: Option<Box<dyn FnOnce(&mut App)>>,
 }
 
 impl DialogAction {
     pub fn new<F: 'static>(name: String, function: F) -> DialogAction
     where
-        F: Fn(&mut App),
+        F: FnOnce(&mut App),
     {
         DialogAction {
             name,
-            function: Box::new(function),
+            function: Some(Box::new(function)),
         }
     }
 }
@@ -91,7 +91,9 @@ impl DrawableComponent for DialogBox {
                 if let Some(mode) = self.mode_to_restore {
                     app.mode = mode;
                 }
-                (self.options[self.index].function)(app);
+                if let Some(callback) = self.options[self.index].function.take() {
+                    (callback)(app);
+                }
             }
             KeyCode::Esc => {
                 // May be better to have a custom escape function
@@ -194,11 +196,6 @@ impl DialogBoxBuilder {
 
     pub fn title(mut self, title: String) -> Self {
         self.title = title;
-        self
-    }
-
-    pub fn mode_to_restore(mut self, mode_to_restore: Option<Mode>) -> Self {
-        self.mode_to_restore = mode_to_restore;
         self
     }
 

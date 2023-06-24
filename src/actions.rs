@@ -175,12 +175,6 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
     app.push_layer(dialog);
 }
 
-pub fn update_selected() {
-    // TODO: update here (ie: if cursor > items) {
-    // cursos = item.len - 1
-    // }
-}
-
 pub fn delete_tag_menu(app: &mut App) {
     let mut tag_options: Vec<DialogAction> = Vec::new();
 
@@ -256,9 +250,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
             app.task_store.tags.insert(
                 tag_id,
                 crate::task::Tag {
-                    // Unfortunately the `.to_owned` call is required as this is a Fn rather than a
-                    // FnOnce
-                    name: tag_name.to_owned(),
+                    name: tag_name,
                     colour,
                 },
             );
@@ -266,18 +258,17 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
             Ok(())
         })
         .error_callback(move |app, err| {
-            // FIX: WTF is this shit, since these functions take Fn, they each need to own their
-            // values.
-            let tag_name = tag.to_owned();
-            app.push_layer(MessageBox::new(
+            let tag_name = tag.clone();
+            let message_box = MessageBox::new(
                 String::from("Error"),
                 move |app| {
-                    open_select_tag_colour(app, selected_index, tag_name.to_owned());
+                    open_select_tag_colour(app, selected_index, tag_name);
                 },
                 err.to_string(),
                 tui::style::Color::Red,
                 0,
-            ));
+            ).save_mode(app);
+            app.push_layer(message_box);
         })
         .save_mode(app)
         .build();
