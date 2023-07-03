@@ -82,12 +82,12 @@ impl DrawableComponent for MainScreenLayer {
                 EventResult::Consumed
             }
             KeyCode::Char('s') => {
-                app.task_store.tasks.sort_by_key(|t| t.priority.clone());
+                app.task_store.tasks.sort_by_key(|t| t.priority);
                 EventResult::Consumed
             }
             KeyCode::Char('S') => {
                 // NOTE: We can be unstable because `reverse()` will change the order anyway
-                app.task_store.tasks.sort_unstable_by_key(|t| t.priority.clone());
+                app.task_store.tasks.sort_unstable_by_key(|t| t.priority);
                 app.task_store.tasks.reverse();
                 EventResult::Consumed
             }
