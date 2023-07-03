@@ -79,12 +79,12 @@ impl CompletedTask {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub enum Priority {
     None,
-    High,
-    Normal,
     Low,
+    Normal,
+    High,
 }
 
 impl Priority {
