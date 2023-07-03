@@ -61,7 +61,11 @@ impl TaskList {
             ),
             HelpAction::new(KeyCode::Char('t'), "t", "Add tags to the task"),
             HelpAction::new(KeyCode::Char('s'), "s", "Toggle task sort by priority"),
-            HelpAction::new(KeyCode::Char('S'), "S", "Toggle task sort by priority (reverse order)"),
+            HelpAction::new(
+                KeyCode::Char('S'),
+                "S",
+                "Toggle task sort by priority (reverse order)",
+            ),
         ]
     }
 }
