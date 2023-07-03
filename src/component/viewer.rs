@@ -12,7 +12,7 @@ use crate::{
     app::{App, Mode},
     task::Task,
     utils,
-    view::{DrawableComponent, Drawer, EventResult},
+    draw::{DrawableComponent, Drawer, EventResult},
 };
 
 #[derive(Default)]

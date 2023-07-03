@@ -11,9 +11,9 @@ use tui::widgets::{List, ListItem, ListState};
 use crate::actions::{self, HelpAction};
 use crate::app::{App, Mode};
 use crate::utils;
-use crate::view::{DrawableComponent, EventResult};
+use crate::draw::{DrawableComponent, EventResult};
 
-use super::input::input_box::{InputBox, InputBoxBuilder};
+use super::input::input_box::InputBoxBuilder;
 
 const COMPONENT_TYPE: Mode = Mode::CurrentTasks;
 
@@ -65,7 +65,7 @@ impl TaskList {
 }
 
 impl DrawableComponent for TaskList {
-    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::draw::Drawer) {
         let theme = &app.theme;
         let tasks: Vec<ListItem> = app
             .task_store

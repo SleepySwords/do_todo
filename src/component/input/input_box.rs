@@ -8,7 +8,7 @@ use tui_textarea::{TextArea, Input};
 use crate::app::{App, Mode};
 use crate::error::AppError;
 use crate::utils;
-use crate::view::{DrawableComponent, EventResult};
+use crate::draw::{DrawableComponent, EventResult};
 
 type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
@@ -47,7 +47,7 @@ impl InputBox {
 }
 
 impl DrawableComponent for InputBox {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::draw::Drawer) {
         let draw_area = utils::centre_rect(
             Constraint::Percentage(70),
             Constraint::Length(self.text_area.lines().len() as u16 + 2),

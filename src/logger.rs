@@ -1,7 +1,7 @@
 use chrono::NaiveTime;
 use crossterm::event::KeyCode;
 
-use crate::{component::message_box::MessageBox, utils, view::DrawableComponent};
+use crate::{component::message_box::MessageBox, utils, draw::DrawableComponent};
 
 #[derive(Default)]
 pub struct Logger {
@@ -20,7 +20,7 @@ impl DrawableComponent for Logger {
         &self,
         app: &crate::app::App,
         draw_area: tui::layout::Rect,
-        drawer: &mut crate::view::Drawer,
+        drawer: &mut crate::draw::Drawer,
     ) {
         if self.opened {
             drawer.draw_component(
@@ -48,16 +48,16 @@ impl DrawableComponent for Logger {
         &mut self,
         _: &mut crate::app::App,
         key_event: crossterm::event::KeyEvent,
-    ) -> crate::view::EventResult {
+    ) -> crate::draw::EventResult {
         let key_code = key_event.code;
         if self.opened {
             self.opened = false;
-            return crate::view::EventResult::Consumed;
+            return crate::draw::EventResult::Consumed;
         }
         if key_code == KeyCode::Char('l') {
             self.opened = true;
-            return crate::view::EventResult::Consumed;
+            return crate::draw::EventResult::Consumed;
         }
-        crate::view::EventResult::Ignored
+        crate::draw::EventResult::Ignored
     }
 }

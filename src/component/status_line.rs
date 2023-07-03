@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::App,
-    view::{DrawableComponent, Drawer, EventResult},
+    draw::{DrawableComponent, Drawer, EventResult},
 };
 
 // TODO: Proper impl with actual colours

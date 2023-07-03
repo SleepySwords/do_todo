@@ -12,7 +12,7 @@ use crate::component::status_line::StatusLine;
 use crate::component::task_list::TaskList;
 use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
-use crate::view::DrawableComponent;
+use crate::draw::DrawableComponent;
 
 type Callback = dyn FnOnce(&mut App, &mut StackLayout);
 

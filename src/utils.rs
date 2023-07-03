@@ -11,7 +11,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     app::{App, Mode},
-    view::EventResult,
+    draw::EventResult,
 };
 
 // Only available for percentages, ratios and length

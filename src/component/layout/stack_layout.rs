@@ -2,7 +2,7 @@ use tui::layout::Rect;
 
 use crate::{
     app::App,
-    view::{DrawableComponent, Drawer, EventResult},
+    draw::{DrawableComponent, Drawer, EventResult},
 };
 
 pub struct StackLayout {

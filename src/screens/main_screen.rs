@@ -9,7 +9,7 @@ use crate::{
     },
     task::Task,
     utils,
-    view::{DrawableComponent, Drawer, EventResult},
+    draw::{DrawableComponent, Drawer, EventResult},
 };
 use crossterm::event::{KeyCode, MouseEvent};
 use tui::layout::{Constraint, Direction, Layout, Rect};

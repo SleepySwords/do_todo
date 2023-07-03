@@ -9,7 +9,7 @@ mod task;
 mod test;
 mod theme;
 mod utils;
-mod view;
+mod draw;
 
 use app::App;
 use component::layout::stack_layout::StackLayout;
@@ -21,7 +21,7 @@ use crossterm::{
 };
 use logger::Logger;
 use screens::main_screen::MainScreenLayer;
-use view::{DrawBackend, DrawableComponent, Drawer, EventResult};
+use draw::{DrawFrame, DrawableComponent, Drawer, EventResult};
 
 use std::io;
 use std::{error::Error, io::Stdout};
@@ -72,7 +72,7 @@ pub fn start_app(
 ) -> io::Result<()> {
     let mut stack_layout = StackLayout {
         children: vec![Box::new(MainScreenLayer::new())],
-};
+    };
 
     let mut logger = Logger::default();
     // logger.draw(app, draw_area, drawer)
@@ -82,8 +82,8 @@ pub fn start_app(
             let draw_size = f.size();
             app.app_size = draw_size;
 
-            let mut draw_backend = DrawBackend::CrosstermRenderer(f);
-            let mut drawer = Drawer::new(&mut draw_backend);
+            let mut draw_frame = DrawFrame::CrosstermRenderer(f);
+            let mut drawer = Drawer::new(&mut draw_frame);
 
             let chunk = Layout::default()
                 .direction(tui::layout::Direction::Vertical)

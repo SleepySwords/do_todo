@@ -10,7 +10,7 @@ use tui::{
 use crate::{
     app::{App, Mode},
     utils,
-    view::{DrawableComponent, EventResult},
+    draw::{DrawableComponent, EventResult},
 };
 
 pub struct DialogAction {
@@ -49,7 +49,7 @@ impl DialogBox {
 }
 
 impl DrawableComponent for DialogBox {
-    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::draw::Drawer) {
         let draw_area = self.generate_rect();
         let list = List::new(
             self.options

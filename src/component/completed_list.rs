@@ -10,7 +10,7 @@ use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::HelpAction;
 use crate::app::{App, Mode};
-use crate::view::{DrawableComponent, EventResult};
+use crate::draw::{DrawableComponent, EventResult};
 use crate::{actions, utils};
 
 const COMPONENT_TYPE: Mode = Mode::CompletedTasks;
@@ -46,7 +46,7 @@ impl CompletedList {
 }
 
 impl DrawableComponent for CompletedList {
-    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::draw::Drawer) {
         let theme = &app.theme;
 
         let selected_index = *self.selected();

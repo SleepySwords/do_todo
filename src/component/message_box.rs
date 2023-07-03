@@ -5,7 +5,7 @@ use tui::widgets::{Block, Borders, Clear, List, ListItem, ListState};
 
 use crate::app::{App, Mode};
 use crate::utils::centre_rect;
-use crate::view::DrawableComponent;
+use crate::draw::DrawableComponent;
 
 pub struct MessageBox {
     title: String,
@@ -62,7 +62,7 @@ impl MessageBox {
 }
 
 impl DrawableComponent for MessageBox {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::draw::Drawer) {
         let style = Style::default().fg(self.colour);
         let text = self
             .message
@@ -95,7 +95,7 @@ impl DrawableComponent for MessageBox {
         &mut self,
         app: &mut App,
         _: crossterm::event::KeyEvent,
-    ) -> crate::view::EventResult {
+    ) -> crate::draw::EventResult {
         app.pop_layer();
         if let Some(mode) = self.mode_to_restore {
             app.mode = mode;
@@ -103,6 +103,6 @@ impl DrawableComponent for MessageBox {
         if let Some(callback) = self.callback.take() {
             (callback)(app);
         }
-        crate::view::EventResult::Consumed
+        crate::draw::EventResult::Consumed
     }
 }
