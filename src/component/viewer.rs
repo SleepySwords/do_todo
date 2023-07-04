@@ -37,7 +37,7 @@ impl Viewer {
         let task: &Task = &app.task_store.tasks[index];
 
         let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
-        
+
         let items = vec![
             (
                 Span::raw("Title"),
@@ -50,7 +50,7 @@ impl Viewer {
                     Style::default().fg(task.priority.colour(theme)),
                 )),
             ),
-            (Span::raw("Tags"), tag_names(app, &task)),
+            (Span::raw("Tags"), tag_names(app, task)),
         ];
 
         // NOTE: I have no idea why the width must be three less, should probably investigate.
@@ -80,7 +80,8 @@ impl Viewer {
             (
                 Span::raw("Title"),
                 Spans::from(
-                    completed_task.task
+                    completed_task
+                        .task
                         .title
                         .split('\n')
                         .map(Span::from)

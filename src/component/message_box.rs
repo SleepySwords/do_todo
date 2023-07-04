@@ -4,12 +4,14 @@ use tui::text::Span;
 use tui::widgets::{Block, Borders, Clear, List, ListItem, ListState};
 
 use crate::app::{App, Mode};
-use crate::utils::centre_rect;
 use crate::draw::DrawableComponent;
+use crate::utils::centre_rect;
+
+type MessageCallback = dyn FnOnce(&mut App);
 
 pub struct MessageBox {
     title: String,
-    callback: Option<Box<dyn FnOnce(&mut App)>>,
+    callback: Option<Box<MessageCallback>>,
     message: Vec<String>,
     colour: Color,
     selected_index: usize,

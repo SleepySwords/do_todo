@@ -1,20 +1,17 @@
 use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 
-use tui::layout::{Constraint, Rect, Margin};
+use tui::layout::{Constraint, Rect};
 use tui::style::Style;
 use tui::widgets::{Block, Borders, Clear};
-use tui_textarea::{TextArea, Input};
+use tui_textarea::{Input, TextArea};
 
 use crate::app::{App, Mode};
+use crate::draw::{DrawableComponent, EventResult};
 use crate::error::AppError;
 use crate::utils;
-use crate::draw::{DrawableComponent, EventResult};
 
 type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
-
-pub const PADDING: usize = 2;
-pub const CURSOR_SIZE: usize = 1;
 
 pub struct InputBox {
     title: String,
@@ -26,9 +23,10 @@ pub struct InputBox {
 }
 
 impl InputBox {
+    #[allow(dead_code)]
     pub fn filled(title: String, words: &str, callback: InputBoxCallback) -> InputBox {
         let words = words
-            .split("\n")
+            .split('\n')
             .map(|f| f.to_string())
             .collect::<Vec<String>>();
         let c = words[0].len();
@@ -118,11 +116,15 @@ impl DrawableComponent for InputBox {
                 // Either we use inner on draw_area to exclude border, or this to include it
                 // and set the border to jump to 0
                 if draw_area.x == mouse_event.column {
-                    self.text_area
-                        .move_cursor(tui_textarea::CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
+                    self.text_area.move_cursor(tui_textarea::CursorMove::Jump(
+                        mouse_event.row - draw_area.y - 1,
+                        0,
+                    ));
                 } else if draw_area.y == mouse_event.row {
-                    self.text_area
-                        .move_cursor(tui_textarea::CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
+                    self.text_area.move_cursor(tui_textarea::CursorMove::Jump(
+                        0,
+                        mouse_event.column - draw_area.x - 1,
+                    ));
                 } else {
                     self.text_area.move_cursor(tui_textarea::CursorMove::Jump(
                         mouse_event.row - draw_area.y - 1,
@@ -184,7 +186,7 @@ impl InputBoxBuilder {
 
     pub fn fill(self, words: &str) -> Self {
         let words = words
-            .split("\n")
+            .split('\n')
             .map(|f| f.to_string())
             .collect::<Vec<String>>();
         let c = words[0].len();
@@ -212,11 +214,6 @@ impl InputBoxBuilder {
         T: Fn(&mut App, AppError),
     {
         self.error_callback = Box::new(error_callback);
-        self
-    }
-
-    pub fn draw_area(mut self, draw_area: Rect) -> Self {
-        self.draw_area = draw_area;
         self
     }
 

@@ -7,9 +7,9 @@ use crate::{
         completed_list::CompletedList, input::input_box::InputBoxBuilder, task_list::TaskList,
         viewer::Viewer,
     },
+    draw::{DrawableComponent, Drawer, EventResult},
     task::Task,
     utils,
-    draw::{DrawableComponent, Drawer, EventResult},
 };
 use crossterm::event::{KeyCode, MouseEvent};
 use tui::layout::{Constraint, Direction, Layout, Rect};

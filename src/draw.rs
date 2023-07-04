@@ -20,7 +20,11 @@ pub trait DrawableComponent {
     /// Draws the component onto the [[Drawer]]
     fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer);
 
-    fn key_pressed(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> EventResult {
+    fn key_pressed(
+        &mut self,
+        _app: &mut App,
+        _key_code: crossterm::event::KeyEvent,
+    ) -> EventResult {
         EventResult::Ignored
     }
 
@@ -46,11 +50,11 @@ impl Drawer<'_, '_, '_> {
         Drawer { backend }
     }
 
-   pub fn draw_component(&mut self, app: &App, drawable: &dyn DrawableComponent, draw_area: Rect) {
+    pub fn draw_component(&mut self, app: &App, drawable: &dyn DrawableComponent, draw_area: Rect) {
         drawable.draw(app, draw_area, self);
     }
 
-    pub fn draw_widget<'a, T: Widget>(&mut self, widget: T, draw_area: Rect) {
+    pub fn draw_widget<T: Widget>(&mut self, widget: T, draw_area: Rect) {
         self.backend.draw_widget(widget, draw_area);
     }
 

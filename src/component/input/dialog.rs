@@ -9,13 +9,15 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    utils::{self, handle_mouse_movement},
     draw::{DrawableComponent, EventResult},
+    utils::{self, handle_mouse_movement},
 };
+
+type DialogCallback = Box<dyn FnOnce(&mut App)>;
 
 pub struct DialogAction {
     name: String,
-    function: Option<Box<dyn FnOnce(&mut App)>>,
+    function: Option<DialogCallback>,
 }
 
 impl DialogAction {
@@ -138,24 +140,13 @@ impl DrawableComponent for DialogBox {
     }
 }
 
+#[derive(Default)]
 pub struct DialogBoxBuilder {
     draw_area: Rect,
     title: String,
     index: usize,
     options: Vec<DialogAction>,
     mode_to_restore: Option<Mode>,
-}
-
-impl Default for DialogBoxBuilder {
-    fn default() -> Self {
-        DialogBoxBuilder {
-            draw_area: Rect::default(),
-            title: String::default(),
-            index: 0,
-            options: Vec::new(),
-            mode_to_restore: None,
-        }
-    }
 }
 
 impl DialogBoxBuilder {
@@ -176,11 +167,6 @@ impl DialogBoxBuilder {
 
     pub fn options(mut self, options: Vec<DialogAction>) -> Self {
         self.options = options;
-        self
-    }
-
-    pub fn draw_area(mut self, draw_area: Rect) -> Self {
-        self.draw_area = draw_area;
         self
     }
 

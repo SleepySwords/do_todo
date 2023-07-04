@@ -2,6 +2,7 @@ mod actions;
 mod app;
 mod component;
 mod config;
+mod draw;
 mod error;
 mod logger;
 mod screens;
@@ -9,7 +10,6 @@ mod task;
 mod test;
 mod theme;
 mod utils;
-mod draw;
 
 use app::App;
 use component::layout::stack_layout::StackLayout;
@@ -19,9 +19,9 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use draw::{DrawFrame, DrawableComponent, Drawer, EventResult};
 use logger::Logger;
 use screens::main_screen::MainScreenLayer;
-use draw::{DrawFrame, DrawableComponent, Drawer, EventResult};
 
 use std::io;
 use std::{error::Error, io::Stdout};

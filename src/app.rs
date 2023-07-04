@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use chrono::{Local, NaiveTime};
-use crossterm::event:: KeyEvent;
+use crossterm::event::KeyEvent;
 use serde::{Deserialize, Serialize};
 use tui::layout::Rect;
 
@@ -10,9 +10,9 @@ use crate::component::completed_list::CompletedList;
 use crate::component::layout::stack_layout::StackLayout;
 use crate::component::status_line::StatusLine;
 use crate::component::task_list::TaskList;
+use crate::draw::DrawableComponent;
 use crate::task::{CompletedTask, Tag, Task};
 use crate::theme::Theme;
-use crate::draw::DrawableComponent;
 
 type Callback = dyn FnOnce(&mut App, &mut StackLayout);
 

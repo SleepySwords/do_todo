@@ -266,7 +266,8 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 err.to_string(),
                 tui::style::Color::Red,
                 0,
-            ).save_mode(app);
+            )
+            .save_mode(app);
             app.push_layer(message_box);
         })
         .save_mode(app)

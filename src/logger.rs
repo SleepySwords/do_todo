@@ -1,7 +1,7 @@
 use chrono::NaiveTime;
 use crossterm::event::KeyCode;
 
-use crate::{component::message_box::MessageBox, utils, draw::DrawableComponent};
+use crate::{component::message_box::MessageBox, draw::DrawableComponent, utils};
 
 #[derive(Default)]
 pub struct Logger {

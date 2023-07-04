@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
+use crossterm::event::KeyCode;
 
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
