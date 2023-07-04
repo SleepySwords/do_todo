@@ -128,7 +128,6 @@ pub fn flip_tag_menu(app: &mut App, selected_index: usize) {
         }));
     }
 
-    // FIX: ooof this is some ugly ass code
     tag_options.push(DialogAction::new(
         String::from("Clear all tags"),
         move |app| {

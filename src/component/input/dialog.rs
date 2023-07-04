@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    utils,
+    utils::{self, handle_mouse_movement},
     draw::{DrawableComponent, EventResult},
 };
 
@@ -84,7 +84,7 @@ impl DrawableComponent for DialogBox {
                 return EventResult::Consumed;
             }
         }
-        utils::handle_movement(key_code, &mut self.index, self.options.len());
+        utils::handle_key_movement(key_code, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => {
                 app.pop_layer();
@@ -114,24 +114,32 @@ impl DrawableComponent for DialogBox {
     ) -> EventResult {
         let draw_area = self.generate_rect();
         if utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            if let MouseEventKind::ScrollDown = mouse_event.kind {
-                if self.index < self.options.len() - 1 {
-                    self.index += 1;
-                }
-            }
-            if let MouseEventKind::ScrollUp = mouse_event.kind {
-                if self.index > 0 {
-                    self.index -= 1;
-                }
-            }
-            if let MouseEventKind::Down(_) = mouse_event.kind {
-                let i = (mouse_event.row - draw_area.y) as usize;
-                if i == 0 || i > self.options.len() {
-                    return EventResult::Consumed;
-                }
-                self.index = i - 1usize;
-            }
-            return EventResult::Consumed;
+            // if let MouseEventKind::ScrollDown = mouse_event.kind {
+            //     if self.index < self.options.len() - 1 {
+            //         self.index += 1;
+            //     }
+            // }
+            // if let MouseEventKind::ScrollUp = mouse_event.kind {
+            //     if self.index > 0 {
+            //         self.index -= 1;
+            //     }
+            // }
+            // if let MouseEventKind::Down(_) = mouse_event.kind {
+            //     let i = (mouse_event.row - draw_area.y) as usize;
+            //     if i == 0 || i > self.options.len() {
+            //         return EventResult::Consumed;
+            //     }
+            //     self.index = i - 1usize;
+            // }
+            // return EventResult::Consumed;
+            return handle_mouse_movement(
+                app,
+                draw_area,
+                None,
+                self.options.len(),
+                &mut self.index,
+                mouse_event,
+            );
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {

@@ -10,8 +10,8 @@ use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::{self, HelpAction};
 use crate::app::{App, Mode};
-use crate::utils;
 use crate::draw::{DrawableComponent, EventResult};
+use crate::utils::{self, handle_mouse_movement};
 
 use super::input::input_box::InputBoxBuilder;
 
@@ -83,13 +83,11 @@ impl DrawableComponent for TaskList {
 
                 let progress = Span::styled(
                     if task.progress { "[~] " } else { "[ ] " },
-                    style.fg(
-                        if COMPONENT_TYPE == app.mode && *self.selected() == i {
-                            theme.selected_task_colour
-                        } else {
-                            Color::White
-                        },
-                    ),
+                    style.fg(if COMPONENT_TYPE == app.mode && *self.selected() == i {
+                        theme.selected_task_colour
+                    } else {
+                        Color::White
+                    }),
                 );
                 spans.push(progress);
 
@@ -102,13 +100,11 @@ impl DrawableComponent for TaskList {
                 // TODO: Rewrite to store as an array in the task
                 let content = Span::styled(
                     task.title.split('\n').next().unwrap(),
-                    style.fg(
-                        if COMPONENT_TYPE == app.mode && *self.selected() == i {
-                            theme.selected_task_colour
-                        } else {
-                            Color::White
-                        },
-                    ),
+                    style.fg(if COMPONENT_TYPE == app.mode && *self.selected() == i {
+                        theme.selected_task_colour
+                    } else {
+                        Color::White
+                    }),
                 );
                 spans.push(content);
 
@@ -201,7 +197,11 @@ impl DrawableComponent for TaskList {
             }
             KeyCode::Char('c') => actions::complete_task(app, &mut selected_index),
             _ => {
-                utils::handle_movement(key_code, &mut selected_index, app.task_store.tasks.len());
+                utils::handle_key_movement(
+                    key_code,
+                    &mut selected_index,
+                    app.task_store.tasks.len(),
+                );
             }
         }
         EventResult::Ignored
@@ -210,41 +210,16 @@ impl DrawableComponent for TaskList {
     fn mouse_event(
         &mut self,
         app: &mut App,
-        MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
+        mouse_event: crossterm::event::MouseEvent,
     ) -> EventResult {
-        if let MouseEventKind::ScrollUp = kind {
-            if *self.selected_index.borrow() != 0 {
-                *self.selected_index.borrow_mut() -= 1;
-            }
-        }
-
-        if let MouseEventKind::ScrollDown = kind {
-            if *self.selected_index.borrow() < app.task_store.tasks.len() - 1 {
-                *self.selected_index.borrow_mut() += 1;
-            }
-        }
-
-        if let MouseEventKind::Down(_) = kind {
-            if let COMPONENT_TYPE = app.mode {
-            } else {
-                app.mode = COMPONENT_TYPE;
-            }
-            if row == 0 {
-                return EventResult::Ignored;
-            }
-            if *self.selected_index.borrow() > self.area.height as usize - 2 {
-                let new_index =
-                    *self.selected_index.borrow() - (self.area.height as usize - 2) + row as usize;
-                *self.selected_index.borrow_mut() = new_index;
-            } else {
-                if row as usize > app.task_store.tasks.len() {
-                    *self.selected_index.borrow_mut() = app.task_store.tasks.len() - 1;
-                    return EventResult::Ignored;
-                }
-                *self.selected_index.borrow_mut() = row as usize - 1;
-            }
-        }
-        EventResult::Ignored
+        handle_mouse_movement(
+            app,
+            self.area,
+            Some(COMPONENT_TYPE),
+            app.task_store.tasks.len(),
+            &mut self.selected_index.borrow_mut(),
+            mouse_event,
+        )
     }
 
     fn update_layout(&mut self, rect: Rect) {

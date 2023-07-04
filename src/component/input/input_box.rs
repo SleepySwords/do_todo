@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 
-use tui::layout::{Constraint, Rect};
+use tui::layout::{Constraint, Rect, Margin};
 use tui::style::Style;
 use tui::widgets::{Block, Borders, Clear};
 use tui_textarea::{TextArea, Input};
@@ -119,16 +119,22 @@ impl DrawableComponent for InputBox {
                 // and set the border to jump to 0
                 if draw_area.x == mouse_event.column {
                     self.text_area
-                        .move_cursor(tui_textarea::CursorMove::Jump(0, 0));
+                        .move_cursor(tui_textarea::CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
+                } else if draw_area.y == mouse_event.row {
+                    self.text_area
+                        .move_cursor(tui_textarea::CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
                 } else {
                     self.text_area.move_cursor(tui_textarea::CursorMove::Jump(
-                        0,
+                        mouse_event.row - draw_area.y - 1,
                         mouse_event.column - draw_area.x - 1,
                     ));
                 }
                 EventResult::Consumed
             } else {
                 app.pop_layer();
+                if let Some(mode) = self.mode_to_restore {
+                    app.mode = mode;
+                }
                 EventResult::Consumed
             }
         } else {
