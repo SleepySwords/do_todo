@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Rect};
 use tui::style::Style;
 use tui::widgets::{Block, Borders, Clear};
-use tui_textarea::{Input, TextArea};
+use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::app::{App, Mode};
 use crate::draw::{DrawableComponent, EventResult};
@@ -53,21 +53,20 @@ impl DrawableComponent for InputBox {
         );
 
         let widget = self.text_area.widget();
-
         let boxes = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.theme.selected_border_colour))
             .border_type(app.theme.border_style.border_type)
             .title(self.title.as_ref());
         let box_area = boxes.inner(draw_area);
+
         drawer.draw_widget(Clear, draw_area);
         drawer.draw_widget(boxes, draw_area);
         drawer.draw_widget(widget, box_area);
     }
 
     fn key_pressed(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
-        let key_code = key_event.code;
-        match key_code {
+        match key_event.code {
             KeyCode::Enter => {
                 if !self.text_area.lines().join("\n").is_empty() {
                     // When popping the layer, probably should do the callback, rather than have an
@@ -76,6 +75,7 @@ impl DrawableComponent for InputBox {
                     if let Some(mode) = self.mode_to_restore {
                         app.mode = mode;
                     }
+
                     if let Some(callback) = self.callback.take() {
                         let err = (callback)(app, self.text_area.lines().join("\n"));
                         if err.is_err() {
@@ -105,43 +105,42 @@ impl DrawableComponent for InputBox {
     }
 
     fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
+        match mouse_event.kind {
+            MouseEventKind::Down(..) => {}
+            _ => {
+                return EventResult::Consumed;
+            }
+        }
+
         let draw_area = utils::centre_rect(
             Constraint::Percentage(70),
             Constraint::Length(self.text_area.lines().len() as u16 + 2),
             self.draw_area,
         );
-        if let MouseEventKind::Down(..) = mouse_event.kind {
-            if utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-                app.println(format!("{:?} {:?}", draw_area.x, mouse_event.column));
-                // Either we use inner on draw_area to exclude border, or this to include it
-                // and set the border to jump to 0
-                if draw_area.x == mouse_event.column {
-                    self.text_area.move_cursor(tui_textarea::CursorMove::Jump(
-                        mouse_event.row - draw_area.y - 1,
-                        0,
-                    ));
-                } else if draw_area.y == mouse_event.row {
-                    self.text_area.move_cursor(tui_textarea::CursorMove::Jump(
-                        0,
-                        mouse_event.column - draw_area.x - 1,
-                    ));
-                } else {
-                    self.text_area.move_cursor(tui_textarea::CursorMove::Jump(
-                        mouse_event.row - draw_area.y - 1,
-                        mouse_event.column - draw_area.x - 1,
-                    ));
-                }
-                EventResult::Consumed
-            } else {
-                app.pop_layer();
-                if let Some(mode) = self.mode_to_restore {
-                    app.mode = mode;
-                }
-                EventResult::Consumed
+
+        if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
+            app.pop_layer();
+            if let Some(mode) = self.mode_to_restore {
+                app.mode = mode;
             }
-        } else {
-            EventResult::Consumed
+            return EventResult::Consumed;
         }
+
+        // Either we use inner on draw_area to exclude border, or this to include it
+        // and set the border to jump to 0
+        if draw_area.x == mouse_event.column {
+            self.text_area
+                .move_cursor(CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
+        } else if draw_area.y == mouse_event.row {
+            self.text_area
+                .move_cursor(CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
+        } else {
+            self.text_area.move_cursor(CursorMove::Jump(
+                mouse_event.row - draw_area.y - 1,
+                mouse_event.column - draw_area.x - 1,
+            ));
+        }
+        EventResult::Consumed
     }
 }
 
