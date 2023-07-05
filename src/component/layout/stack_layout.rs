@@ -2,7 +2,7 @@ use tui::layout::Rect;
 
 use crate::{
     app::App,
-    view::{DrawableComponent, Drawer, EventResult},
+    draw::{DrawableComponent, Drawer, EventResult},
 };
 
 pub struct StackLayout {
@@ -20,15 +20,15 @@ impl StackLayout {
 }
 
 impl DrawableComponent for StackLayout {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         for layout in &self.children {
-            drawer.draw_component(app, layout.as_ref(), draw_area);
+            drawer.draw_component(app, layout.as_ref());
         }
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         for child in &mut self.children.iter_mut().rev() {
-            if child.key_pressed(app, key_code) == EventResult::Consumed {
+            if child.key_event(app, key_event) == EventResult::Consumed {
                 return EventResult::Consumed;
             }
         }

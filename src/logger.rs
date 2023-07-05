@@ -1,12 +1,14 @@
 use chrono::NaiveTime;
 use crossterm::event::KeyCode;
+use tui::layout::Rect;
 
-use crate::{component::message_box::MessageBox, utils, view::DrawableComponent};
+use crate::{component::message_box::MessageBox, draw::DrawableComponent, utils};
 
 #[derive(Default)]
 pub struct Logger {
     logs: Vec<(String, NaiveTime)>,
     opened: bool,
+    draw_area: Rect,
 }
 
 impl Logger {
@@ -16,12 +18,7 @@ impl Logger {
 }
 
 impl DrawableComponent for Logger {
-    fn draw(
-        &self,
-        app: &crate::app::App,
-        draw_area: tui::layout::Rect,
-        drawer: &mut crate::view::Drawer,
-    ) {
+    fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
         if self.opened {
             drawer.draw_component(
                 app,
@@ -35,28 +32,32 @@ impl DrawableComponent for Logger {
                     tui::style::Color::Red,
                     self.logs.len(),
                 ),
-                utils::centre_rect(
-                    tui::layout::Constraint::Percentage(70),
-                    tui::layout::Constraint::Percentage(70),
-                    draw_area,
-                ),
             );
         }
     }
 
-    fn key_pressed(
+    fn key_event(
         &mut self,
         _: &mut crate::app::App,
-        key_code: crossterm::event::KeyCode,
-    ) -> crate::view::EventResult {
+        key_event: crossterm::event::KeyEvent,
+    ) -> crate::draw::EventResult {
+        let key_code = key_event.code;
         if self.opened {
             self.opened = false;
-            return crate::view::EventResult::Consumed;
+            return crate::draw::EventResult::Consumed;
         }
         if key_code == KeyCode::Char('l') {
             self.opened = true;
-            return crate::view::EventResult::Consumed;
+            return crate::draw::EventResult::Consumed;
         }
-        crate::view::EventResult::Ignored
+        crate::draw::EventResult::Ignored
+    }
+
+    fn update_layout(&mut self, draw_area: tui::layout::Rect) {
+        self.draw_area = utils::centre_rect(
+            tui::layout::Constraint::Percentage(70),
+            tui::layout::Constraint::Percentage(70),
+            draw_area,
+        );
     }
 }

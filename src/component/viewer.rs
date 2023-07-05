@@ -9,10 +9,10 @@ use tui::{
 
 // A viewer of a task/something
 use crate::{
-    app::{App, SelectedComponent},
+    app::{App, Mode},
+    draw::{DrawableComponent, Drawer, EventResult},
     task::Task,
     utils,
-    view::{DrawableComponent, Drawer, EventResult},
 };
 
 #[derive(Default)]
@@ -31,27 +31,12 @@ impl Viewer {
         }
     }
 
-    fn draw_task_viewer(&self, app: &App, block: Block, draw_area: Rect, drawer: &mut Drawer) {
+    fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.theme;
         let index = *self.task_index.borrow();
         let task: &Task = &app.task_store.tasks[index];
 
         let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
-        let tags_name = if task.tags.is_empty() {
-            Spans::from("None")
-        } else {
-            // FIX: Can be replaced once https://github.com/rust-lang/rust/issues/79524 stabilises
-            let spans = itertools::intersperse(
-                task.iter_tags(app).map(|tag| {
-                    let name = &tag.name;
-                    let colour = Style::default().fg(tag.colour);
-                    Span::styled(name, colour)
-                }),
-                Span::raw(", "),
-            )
-            .collect::<Vec<Span>>();
-            Spans::from(spans)
-        };
 
         let items = vec![
             (
@@ -65,7 +50,7 @@ impl Viewer {
                     Style::default().fg(task.priority.colour(theme)),
                 )),
             ),
-            (Span::raw("Tags"), tags_name),
+            (Span::raw("Tags"), tag_names(app, task)),
         ];
 
         // NOTE: I have no idea why the width must be three less, should probably investigate.
@@ -74,7 +59,7 @@ impl Viewer {
                 .block(block)
                 .widths(&constraints);
 
-        drawer.draw_widget(table, draw_area)
+        drawer.draw_widget(table, self.area)
     }
 
     fn draw_completed_task_viewer(
@@ -84,8 +69,8 @@ impl Viewer {
         draw_area: Rect,
         drawer: &mut Drawer,
     ) {
-        let task = &app.task_store.completed_tasks[*self.completed_task_index.borrow()];
-        let completed_time = task
+        let completed_task = &app.task_store.completed_tasks[*self.completed_task_index.borrow()];
+        let completed_time = completed_task
             .time_completed
             .format("%d/%m/%y %-I:%M:%S %p")
             .to_string();
@@ -95,7 +80,8 @@ impl Viewer {
             (
                 Span::raw("Title"),
                 Spans::from(
-                    task.task
+                    completed_task
+                        .task
                         .title
                         .split('\n')
                         .map(Span::from)
@@ -106,6 +92,14 @@ impl Viewer {
                 Span::raw("Date Completed"),
                 Spans::from(&completed_time as &str),
             ),
+            (
+                Span::raw("Priority"),
+                Spans::from(Span::styled(
+                    completed_task.task.priority.display_string(),
+                    Style::default().fg(completed_task.task.priority.colour(&app.theme)),
+                )),
+            ),
+            (Span::raw("Tags"), tag_names(app, &completed_task.task)),
         ];
 
         let table =
@@ -117,8 +111,26 @@ impl Viewer {
     }
 }
 
+fn tag_names<'a>(app: &'a App, task: &'a Task) -> Spans<'a> {
+    if task.tags.is_empty() {
+        Spans::from("None")
+    } else {
+        // FIX: Can be replaced once https://github.com/rust-lang/rust/issues/79524 stabilises
+        let spans = itertools::intersperse(
+            task.iter_tags(app).map(|tag| {
+                let name = &tag.name;
+                let colour = Style::default().fg(tag.colour);
+                Span::styled(name, colour)
+            }),
+            Span::raw(", "),
+        )
+        .collect::<Vec<Span>>();
+        Spans::from(spans)
+    }
+}
+
 impl DrawableComponent for Viewer {
-    fn draw(&self, app: &App, _: tui::layout::Rect, drawer: &mut Drawer) {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         let theme = &app.theme;
         let draw_area = self.area;
         let block = Block::default()
@@ -126,24 +138,24 @@ impl DrawableComponent for Viewer {
             .borders(Borders::ALL)
             .border_type(theme.border_style.border_type);
 
-        match app.selected_component {
-            SelectedComponent::CurrentTasks => {
+        match app.mode {
+            Mode::CurrentTasks => {
                 if !app.task_store.tasks.is_empty() {
-                    self.draw_task_viewer(app, block, draw_area, drawer)
+                    self.draw_task_viewer(app, block, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
             }
-            SelectedComponent::CompletedTasks => {
+            Mode::CompletedTasks => {
                 if !app.task_store.completed_tasks.is_empty() {
                     self.draw_completed_task_viewer(app, block, draw_area, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
             }
-            SelectedComponent::Overlay => {
+            Mode::Overlay => {
                 if !app.task_store.tasks.is_empty() {
-                    self.draw_task_viewer(app, block, draw_area, drawer)
+                    self.draw_task_viewer(app, block, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
@@ -151,7 +163,7 @@ impl DrawableComponent for Viewer {
         }
     }
 
-    fn key_pressed(&mut self, _app: &mut App, _key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_event(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> EventResult {
         EventResult::Ignored
     }
 

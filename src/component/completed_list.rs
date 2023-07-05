@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
+use crossterm::event::KeyCode;
 
 use tui::layout::Rect;
 use tui::style::{Color, Style};
@@ -9,11 +9,11 @@ use tui::text::{Span, Spans};
 use tui::widgets::{List, ListItem, ListState};
 
 use crate::actions::HelpAction;
-use crate::app::{App, SelectedComponent};
-use crate::view::{DrawableComponent, EventResult};
+use crate::app::{App, Mode};
+use crate::draw::{DrawableComponent, EventResult};
 use crate::{actions, utils};
 
-const COMPONENT_TYPE: SelectedComponent = SelectedComponent::CompletedTasks;
+const COMPONENT_TYPE: Mode = Mode::CompletedTasks;
 
 pub struct CompletedList {
     pub area: Rect,
@@ -46,7 +46,7 @@ impl CompletedList {
 }
 
 impl DrawableComponent for CompletedList {
-    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::view::Drawer) {
+    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let theme = &app.theme;
 
         let selected_index = *self.selected();
@@ -57,7 +57,7 @@ impl DrawableComponent for CompletedList {
             .iter()
             .enumerate()
             .map(|(i, task)| {
-                let colour = if let SelectedComponent::CompletedTasks = app.selected_component {
+                let colour = if let Mode::CompletedTasks = app.mode {
                     if selected_index == i {
                         theme.selected_task_colour
                     } else {
@@ -94,10 +94,11 @@ impl DrawableComponent for CompletedList {
         drawer.draw_stateful_widget(completed_list, &mut completed_state, self.area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+        let key_code = key_event.code;
         let mut selected_index = self.selected_mut();
 
-        let result = utils::handle_movement(
+        let result = utils::handle_key_movement(
             key_code,
             &mut selected_index,
             app.task_store.completed_tasks.len(),
@@ -118,42 +119,16 @@ impl DrawableComponent for CompletedList {
     fn mouse_event(
         &mut self,
         app: &mut App,
-        MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
+        mouse_event: crossterm::event::MouseEvent,
     ) -> EventResult {
-        let row = row - self.area.y;
-        if let MouseEventKind::ScrollUp = kind {
-            if *self.selected_index.borrow() != 0 {
-                *self.selected_index.borrow_mut() -= 1;
-            }
-        }
-
-        if let MouseEventKind::ScrollDown = kind {
-            if *self.selected_index.borrow() < app.task_store.completed_tasks.len() - 1 {
-                *self.selected_index.borrow_mut() += 1;
-            }
-        }
-
-        if let MouseEventKind::Down(_) = kind {
-            if let COMPONENT_TYPE = app.selected_component {
-            } else {
-                app.selected_component = COMPONENT_TYPE;
-            }
-            if row == 0 {
-                return EventResult::Ignored;
-            }
-            if *self.selected_index.borrow() > self.area.height as usize - 2 {
-                let new_index =
-                    *self.selected_index.borrow() - (self.area.height as usize - 2) + row as usize;
-                *self.selected_index.borrow_mut() = new_index;
-            } else {
-                if row as usize > app.task_store.completed_tasks.len() {
-                    *self.selected_index.borrow_mut() = app.task_store.completed_tasks.len() - 1;
-                    return EventResult::Ignored;
-                }
-                *self.selected_index.borrow_mut() = row as usize - 1;
-            }
-        }
-        EventResult::Ignored
+        return utils::handle_mouse_movement(
+            app,
+            self.area,
+            Some(COMPONENT_TYPE),
+            app.task_store.completed_tasks.len(),
+            &mut self.selected_index.borrow_mut(),
+            mouse_event,
+        );
     }
 
     fn update_layout(&mut self, rect: Rect) {

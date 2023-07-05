@@ -2,14 +2,14 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     actions,
-    app::{App, SelectedComponent},
+    app::{App, Mode},
     component::{
-        completed_list::CompletedList, input::input_box::InputBox, task_list::TaskList,
+        completed_list::CompletedList, input::input_box::InputBoxBuilder, task_list::TaskList,
         viewer::Viewer,
     },
+    draw::{DrawableComponent, Drawer, EventResult},
     task::Task,
     utils,
-    view::{DrawableComponent, Drawer, EventResult},
 };
 use crossterm::event::{KeyCode, MouseEvent};
 use tui::layout::{Constraint, Direction, Layout, Rect};
@@ -37,16 +37,16 @@ impl MainScreenLayer {
 }
 
 impl DrawableComponent for MainScreenLayer {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
-        drawer.draw_component(app, &self.task_list, draw_area);
-        drawer.draw_component(app, &self.completed_list, draw_area);
-        drawer.draw_component(app, &self.viewer, draw_area);
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
+        drawer.draw_component(app, &self.task_list);
+        drawer.draw_component(app, &self.completed_list);
+        drawer.draw_component(app, &self.viewer);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_code: crossterm::event::KeyCode) -> EventResult {
-        let event_result = match app.selected_component {
-            SelectedComponent::CurrentTasks => self.task_list.key_pressed(app, key_code),
-            SelectedComponent::CompletedTasks => self.completed_list.key_pressed(app, key_code),
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+        let event_result = match app.mode {
+            Mode::CurrentTasks => self.task_list.key_event(app, key_event),
+            Mode::CompletedTasks => self.completed_list.key_event(app, key_event),
             _ => EventResult::Ignored,
         };
 
@@ -55,22 +55,27 @@ impl DrawableComponent for MainScreenLayer {
         }
 
         // Global keybindings
-        match key_code {
+        match key_event.code {
             KeyCode::Char('a') => {
-                app.push_layer(InputBox::new(String::from("Add a task"), |app, word| {
-                    app.task_store
-                        .tasks
-                        .push(Task::from_string(word.trim().to_string()));
-                    Ok(())
-                }));
+                let add_input_dialog = InputBoxBuilder::default()
+                    .title(String::from("Add a task"))
+                    .callback(move |app, word| {
+                        app.task_store
+                            .tasks
+                            .push(Task::from_string(word.trim().to_string()));
+                        Ok(())
+                    })
+                    .save_mode(app)
+                    .build();
+                app.push_layer(add_input_dialog);
                 EventResult::Consumed
             }
             KeyCode::Char('1') => {
-                app.selected_component = SelectedComponent::CurrentTasks;
+                app.mode = Mode::CurrentTasks;
                 EventResult::Consumed
             }
             KeyCode::Char('2') => {
-                app.selected_component = SelectedComponent::CompletedTasks;
+                app.mode = Mode::CompletedTasks;
                 EventResult::Consumed
             }
             KeyCode::Char('x') => {

@@ -1,6 +1,6 @@
 use std::{char, usize};
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::Style,
@@ -10,8 +10,8 @@ use tui::{
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
-    app::{App, SelectedComponent},
-    view::EventResult,
+    app::{App, Mode},
+    draw::EventResult,
 };
 
 // Only available for percentages, ratios and length
@@ -55,7 +55,7 @@ fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3
     }
 }
 
-pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) -> EventResult {
+pub fn handle_key_movement(key_code: KeyCode, index: &mut usize, max_items: usize) -> EventResult {
     match key_code {
         KeyCode::Char('g') => {
             *index = 0;
@@ -113,6 +113,48 @@ pub fn handle_movement(key_code: KeyCode, index: &mut usize, max_items: usize) -
     }
 }
 
+pub fn handle_mouse_movement(
+    app: &mut App,
+    area: Rect,
+    mode_type: Option<Mode>,
+    max_items: usize,
+    index: &mut usize,
+    MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
+) -> EventResult {
+    let offset = row - area.y;
+    if let MouseEventKind::ScrollUp = kind {
+        if *index != 0 {
+            *index -= 1;
+        }
+    }
+
+    if let MouseEventKind::ScrollDown = kind {
+        if *index < max_items - 1 {
+            *index += 1;
+        }
+    }
+
+    if let MouseEventKind::Down(_) = kind {
+        if let Some(mode) = mode_type {
+            app.mode = mode;
+        }
+        if offset == 0 {
+            return EventResult::Consumed;
+        }
+        if *index > area.height as usize - 2 {
+            let new_index = *index - (area.height as usize - 2) + offset as usize;
+            *index = new_index;
+        } else {
+            if offset as usize > max_items {
+                *index = max_items - 1;
+                return EventResult::Consumed;
+            }
+            *index = offset as usize - 1;
+        }
+    }
+    EventResult::Consumed
+}
+
 pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
     Table::new(items.into_iter().map(|(title, content)| {
         let text = wrap_text(content, width as u16);
@@ -124,10 +166,10 @@ pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Ta
 }
 
 // FIX: This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
-pub fn wrap_text(spans: Spans, width: u16) -> Text {
+pub fn wrap_text(line: Spans, width: u16) -> Text {
     let mut text = Text::default();
     let mut queue = Vec::new();
-    for span in &spans.0 {
+    for span in &line.0 {
         let mut content = String::new();
         let style = span.style;
         for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
@@ -207,16 +249,12 @@ fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
 }
 
 fn new_blank_line(text: &mut Text) {
-    text.lines.push(Spans(Vec::new()));
+    text.lines.push(Spans::default());
 }
 
 /// Generates the default block
-pub fn generate_default_block<'a>(
-    title: &'a str,
-    selected_component: SelectedComponent,
-    app: &App,
-) -> Block<'a> {
-    let border_colour = if app.selected_component == selected_component {
+pub fn generate_default_block<'a>(title: &'a str, mode: Mode, app: &App) -> Block<'a> {
+    let border_colour = if app.mode == mode {
         app.theme.selected_border_colour
     } else {
         app.theme.default_border_colour
@@ -231,7 +269,7 @@ pub fn generate_default_block<'a>(
 
 #[cfg(test)]
 pub mod test {
-    use crossterm::event::KeyCode;
+    use crossterm::event::{KeyCode, KeyModifiers};
 
     use crate::{
         app::{App, TaskStore},
@@ -240,12 +278,15 @@ pub mod test {
     };
 
     pub fn input_char(character: char, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(KeyCode::Char(character));
+        app.execute_event(crossterm::event::KeyEvent::new(
+            KeyCode::Char(character),
+            KeyModifiers::NONE,
+        ));
         execute_callbacks(app, stack_layout);
     }
 
     pub fn input_code(key: KeyCode, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(key);
+        app.execute_event(crossterm::event::KeyEvent::new(key, KeyModifiers::NONE));
         execute_callbacks(app, stack_layout);
     }
 

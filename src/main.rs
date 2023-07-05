@@ -2,6 +2,7 @@ mod actions;
 mod app;
 mod component;
 mod config;
+mod draw;
 mod error;
 mod logger;
 mod screens;
@@ -9,7 +10,6 @@ mod task;
 mod test;
 mod theme;
 mod utils;
-mod view;
 
 use app::App;
 use component::layout::stack_layout::StackLayout;
@@ -19,9 +19,9 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use draw::{DrawFrame, DrawableComponent, Drawer, EventResult};
 use logger::Logger;
 use screens::main_screen::MainScreenLayer;
-use view::{DrawBackend, DrawableComponent, Drawer, EventResult};
 
 use std::io;
 use std::{error::Error, io::Stdout};
@@ -41,6 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: Should try and recover if it fails
     let (theme, tasks) = config::get_data().expect("Could not get data");
     let mut app = App::new(theme, tasks);
+
     let result = start_app(&mut app, &mut terminal);
 
     // Shutting down application
@@ -78,10 +79,9 @@ pub fn start_app(
     while !app.should_shutdown() {
         terminal.draw(|f| {
             let draw_size = f.size();
-            app.app_size = draw_size;
 
-            let mut draw_backend = DrawBackend::CrosstermRenderer(f);
-            let mut drawer = Drawer::new(&mut draw_backend);
+            let mut draw_frame = DrawFrame::CrosstermRenderer(f);
+            let mut drawer = Drawer::new(&mut draw_frame);
 
             let chunk = Layout::default()
                 .direction(tui::layout::Direction::Vertical)
@@ -89,11 +89,13 @@ pub fn start_app(
                 .split(draw_size);
 
             stack_layout.update_layout(chunk[0]);
-            stack_layout.draw(app, chunk[0], &mut drawer);
+            stack_layout.draw(app, &mut drawer);
 
-            app.status_line.draw(app, chunk[1], &mut drawer);
+            app.status_line.update_layout(chunk[1]);
+            app.status_line.draw(app, &mut drawer);
 
-            logger.draw(app, draw_size, &mut drawer);
+            logger.update_layout(draw_size);
+            logger.draw(app, &mut drawer);
         })?;
 
         // This function blocks
@@ -105,8 +107,8 @@ pub fn start_app(
                 {
                     return Ok(());
                 }
-                if EventResult::Ignored == stack_layout.key_pressed(app, event.code) {
-                    logger.key_pressed(app, event.code);
+                if EventResult::Ignored == stack_layout.key_event(app, event) {
+                    logger.key_event(app, event);
                 }
             }
             Event::Mouse(event) => {
@@ -115,6 +117,7 @@ pub fn start_app(
             Event::Resize(x, y) => {
                 app.println(format!("{} {}", x, y));
             }
+            _ => {}
         }
         while let Some(callback) = app.callbacks.pop_front() {
             callback(app, &mut stack_layout);
