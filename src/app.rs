@@ -79,9 +79,6 @@ impl App {
             x.key_event(app, key_event);
         }));
     }
-
-    // TODO: add a selected(SelectedComponent) function to be used, could use the stacklayout to
-    // try and find if it is used.
 }
 
 #[derive(Default, Deserialize, Serialize)]

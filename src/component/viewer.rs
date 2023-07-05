@@ -163,11 +163,7 @@ impl DrawableComponent for Viewer {
         }
     }
 
-    fn key_event(
-        &mut self,
-        _app: &mut App,
-        _key_code: crossterm::event::KeyEvent,
-    ) -> EventResult {
+    fn key_event(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> EventResult {
         EventResult::Ignored
     }
 
