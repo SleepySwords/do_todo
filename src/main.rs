@@ -75,7 +75,6 @@ pub fn start_app(
     };
 
     let mut logger = Logger::default();
-    // logger.draw(app, draw_area, drawer)
 
     while !app.should_shutdown() {
         terminal.draw(|f| {

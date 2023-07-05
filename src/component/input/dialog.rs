@@ -98,7 +98,7 @@ impl DrawableComponent for DialogBox {
                 }
             }
             KeyCode::Esc => {
-                // May be better to have a custom escape function
+                // TODO: May be better to have a custom escape function
                 app.pop_layer();
                 if let Some(mode) = self.mode_to_restore {
                     app.mode = mode;
