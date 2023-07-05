@@ -65,7 +65,7 @@ impl TaskList {
 }
 
 impl DrawableComponent for TaskList {
-    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::draw::Drawer) {
+    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let theme = &app.theme;
         let tasks: Vec<ListItem> = app
             .task_store

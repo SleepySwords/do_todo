@@ -37,10 +37,10 @@ impl MainScreenLayer {
 }
 
 impl DrawableComponent for MainScreenLayer {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
-        drawer.draw_component(app, &self.task_list, draw_area);
-        drawer.draw_component(app, &self.completed_list, draw_area);
-        drawer.draw_component(app, &self.viewer, draw_area);
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
+        drawer.draw_component(app, &self.task_list);
+        drawer.draw_component(app, &self.completed_list);
+        drawer.draw_component(app, &self.viewer);
     }
 
     fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {

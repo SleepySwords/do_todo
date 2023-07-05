@@ -80,7 +80,6 @@ pub fn start_app(
     while !app.should_shutdown() {
         terminal.draw(|f| {
             let draw_size = f.size();
-            app.app_size = draw_size;
 
             let mut draw_frame = DrawFrame::CrosstermRenderer(f);
             let mut drawer = Drawer::new(&mut draw_frame);
@@ -91,11 +90,13 @@ pub fn start_app(
                 .split(draw_size);
 
             stack_layout.update_layout(chunk[0]);
-            stack_layout.draw(app, chunk[0], &mut drawer);
+            stack_layout.draw(app, &mut drawer);
 
-            app.status_line.draw(app, chunk[1], &mut drawer);
+            app.status_line.update_layout(chunk[1]);
+            app.status_line.draw(app, &mut drawer);
 
-            logger.draw(app, draw_size, &mut drawer);
+            logger.update_layout(draw_size);
+            logger.draw(app, &mut drawer);
         })?;
 
         // This function blocks

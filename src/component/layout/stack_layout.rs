@@ -20,9 +20,9 @@ impl StackLayout {
 }
 
 impl DrawableComponent for StackLayout {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer) {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         for layout in &self.children {
-            drawer.draw_component(app, layout.as_ref(), draw_area);
+            drawer.draw_component(app, layout.as_ref());
         }
     }
 

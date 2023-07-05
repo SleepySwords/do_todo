@@ -31,7 +31,7 @@ impl Viewer {
         }
     }
 
-    fn draw_task_viewer(&self, app: &App, block: Block, draw_area: Rect, drawer: &mut Drawer) {
+    fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.theme;
         let index = *self.task_index.borrow();
         let task: &Task = &app.task_store.tasks[index];
@@ -59,7 +59,7 @@ impl Viewer {
                 .block(block)
                 .widths(&constraints);
 
-        drawer.draw_widget(table, draw_area)
+        drawer.draw_widget(table, self.area)
     }
 
     fn draw_completed_task_viewer(
@@ -130,7 +130,7 @@ fn tag_names<'a>(app: &'a App, task: &'a Task) -> Spans<'a> {
 }
 
 impl DrawableComponent for Viewer {
-    fn draw(&self, app: &App, _: tui::layout::Rect, drawer: &mut Drawer) {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         let theme = &app.theme;
         let draw_area = self.area;
         let block = Block::default()
@@ -141,7 +141,7 @@ impl DrawableComponent for Viewer {
         match app.mode {
             Mode::CurrentTasks => {
                 if !app.task_store.tasks.is_empty() {
-                    self.draw_task_viewer(app, block, draw_area, drawer)
+                    self.draw_task_viewer(app, block, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
@@ -155,7 +155,7 @@ impl DrawableComponent for Viewer {
             }
             Mode::Overlay => {
                 if !app.task_store.tasks.is_empty() {
-                    self.draw_task_viewer(app, block, draw_area, drawer)
+                    self.draw_task_viewer(app, block, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }

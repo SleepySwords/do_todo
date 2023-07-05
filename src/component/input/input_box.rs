@@ -45,23 +45,17 @@ impl InputBox {
 }
 
 impl DrawableComponent for InputBox {
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut crate::draw::Drawer) {
-        let draw_area = utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.text_area.lines().len() as u16 + 2),
-            draw_area,
-        );
-
+    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let widget = self.text_area.widget();
         let boxes = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.theme.selected_border_colour))
             .border_type(app.theme.border_style.border_type)
             .title(self.title.as_ref());
-        let box_area = boxes.inner(draw_area);
+        let box_area = boxes.inner(self.draw_area);
 
-        drawer.draw_widget(Clear, draw_area);
-        drawer.draw_widget(boxes, draw_area);
+        drawer.draw_widget(Clear, self.draw_area);
+        drawer.draw_widget(boxes, self.draw_area);
         drawer.draw_widget(widget, box_area);
     }
 
@@ -100,8 +94,12 @@ impl DrawableComponent for InputBox {
         EventResult::Consumed
     }
 
-    fn update_layout(&mut self, rect: Rect) {
-        self.draw_area = rect;
+    fn update_layout(&mut self, draw_area: Rect) {
+        self.draw_area = utils::centre_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.text_area.lines().len() as u16 + 2),
+            draw_area,
+        );
     }
 
     fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
@@ -112,11 +110,7 @@ impl DrawableComponent for InputBox {
             }
         }
 
-        let draw_area = utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.text_area.lines().len() as u16 + 2),
-            self.draw_area,
-        );
+        let draw_area = self.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             app.pop_layer();

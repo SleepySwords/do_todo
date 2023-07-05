@@ -18,7 +18,7 @@ pub enum EventResult {
 /// A component that is able to be drawn on the screen.
 pub trait DrawableComponent {
     /// Draws the component onto the [[Drawer]]
-    fn draw(&self, app: &App, draw_area: Rect, drawer: &mut Drawer);
+    fn draw(&self, app: &App, drawer: &mut Drawer);
 
     fn key_pressed(
         &mut self,
@@ -36,7 +36,7 @@ pub trait DrawableComponent {
         EventResult::Ignored
     }
 
-    fn update_layout(&mut self, _rect: Rect) {}
+    fn update_layout(&mut self, draw_area: Rect);
 }
 
 // How does this even work, mind blown, wait does it give back ownership when it's done, if so
@@ -50,8 +50,9 @@ impl Drawer<'_, '_, '_> {
         Drawer { backend }
     }
 
-    pub fn draw_component(&mut self, app: &App, drawable: &dyn DrawableComponent, draw_area: Rect) {
-        drawable.draw(app, draw_area, self);
+    // update_layout works nice for now, but might experiment with adding grids.
+    pub fn draw_component(&mut self, app: &App, drawable: &dyn DrawableComponent) {
+        drawable.draw(app, self);
     }
 
     pub fn draw_widget<T: Widget>(&mut self, widget: T, draw_area: Rect) {

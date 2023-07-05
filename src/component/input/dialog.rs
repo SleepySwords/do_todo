@@ -51,7 +51,7 @@ impl DialogBox {
 }
 
 impl DrawableComponent for DialogBox {
-    fn draw(&self, app: &App, _: Rect, drawer: &mut crate::draw::Drawer) {
+    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let draw_area = self.generate_rect();
         let list = List::new(
             self.options

@@ -3,7 +3,6 @@ use std::collections::{BTreeMap, VecDeque};
 use chrono::{Local, NaiveTime};
 use crossterm::event::KeyEvent;
 use serde::{Deserialize, Serialize};
-use tui::layout::Rect;
 
 use crate::actions::HelpAction;
 use crate::component::completed_list::CompletedList;
@@ -26,7 +25,6 @@ pub struct App {
     pub callbacks: VecDeque<Box<Callback>>,
     pub mode: Mode,
 
-    pub app_size: Rect,
     pub logs: Vec<(String, NaiveTime)>,
 
     should_shutdown: bool,
