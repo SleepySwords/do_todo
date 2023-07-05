@@ -90,7 +90,7 @@ impl DrawableComponent for MessageBox {
         drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, _: crossterm::event::KeyEvent) -> EventResult {
+    fn key_event(&mut self, app: &mut App, _: crossterm::event::KeyEvent) -> EventResult {
         app.pop_layer();
         if let Some(mode) = self.mode_to_restore {
             app.mode = mode;

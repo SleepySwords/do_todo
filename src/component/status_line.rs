@@ -46,7 +46,7 @@ impl DrawableComponent for StatusLine {
         drawer.draw_widget(paragraph, self.draw_area);
     }
 
-    fn key_pressed(&mut self, _: &mut App, _: KeyEvent) -> EventResult {
+    fn key_event(&mut self, _: &mut App, _: KeyEvent) -> EventResult {
         EventResult::Ignored
     }
 

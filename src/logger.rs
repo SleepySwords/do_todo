@@ -36,7 +36,7 @@ impl DrawableComponent for Logger {
         }
     }
 
-    fn key_pressed(
+    fn key_event(
         &mut self,
         _: &mut crate::app::App,
         key_event: crossterm::event::KeyEvent,

@@ -26,9 +26,9 @@ impl DrawableComponent for StackLayout {
         }
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         for child in &mut self.children.iter_mut().rev() {
-            if child.key_pressed(app, key_event) == EventResult::Consumed {
+            if child.key_event(app, key_event) == EventResult::Consumed {
                 return EventResult::Consumed;
             }
         }

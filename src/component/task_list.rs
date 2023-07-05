@@ -135,7 +135,7 @@ impl DrawableComponent for TaskList {
         drawer.draw_stateful_widget(current, &mut state, self.area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         let mut selected_index = self.selected_mut();
         let key_code = key_event.code;
 

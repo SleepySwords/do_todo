@@ -59,7 +59,7 @@ impl DrawableComponent for InputBox {
         drawer.draw_widget(widget, box_area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
+    fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
         match key_event.code {
             KeyCode::Enter => {
                 if !self.text_area.lines().join("\n").is_empty() {

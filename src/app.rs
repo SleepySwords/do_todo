@@ -76,7 +76,7 @@ impl App {
 
     pub fn execute_event(&mut self, key_event: KeyEvent) {
         self.callbacks.push_back(Box::new(move |app, x| {
-            x.key_pressed(app, key_event);
+            x.key_event(app, key_event);
         }));
     }
 

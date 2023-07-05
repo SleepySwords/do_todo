@@ -107,8 +107,8 @@ pub fn start_app(
                 {
                     return Ok(());
                 }
-                if EventResult::Ignored == stack_layout.key_pressed(app, event) {
-                    logger.key_pressed(app, event);
+                if EventResult::Ignored == stack_layout.key_event(app, event) {
+                    logger.key_event(app, event);
                 }
             }
             Event::Mouse(event) => {

@@ -20,7 +20,7 @@ pub trait DrawableComponent {
     /// Draws the component onto the [[Drawer]]
     fn draw(&self, app: &App, drawer: &mut Drawer);
 
-    fn key_pressed(
+    fn key_event(
         &mut self,
         _app: &mut App,
         _key_code: crossterm::event::KeyEvent,

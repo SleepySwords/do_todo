@@ -94,7 +94,7 @@ impl DrawableComponent for CompletedList {
         drawer.draw_stateful_widget(completed_list, &mut completed_state, self.area);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         let key_code = key_event.code;
         let mut selected_index = self.selected_mut();
 

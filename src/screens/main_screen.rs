@@ -43,10 +43,10 @@ impl DrawableComponent for MainScreenLayer {
         drawer.draw_component(app, &self.viewer);
     }
 
-    fn key_pressed(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         let event_result = match app.mode {
-            Mode::CurrentTasks => self.task_list.key_pressed(app, key_event),
-            Mode::CompletedTasks => self.completed_list.key_pressed(app, key_event),
+            Mode::CurrentTasks => self.task_list.key_event(app, key_event),
+            Mode::CompletedTasks => self.completed_list.key_event(app, key_event),
             _ => EventResult::Ignored,
         };
 
