@@ -173,28 +173,57 @@ impl DrawableComponent for TaskList {
                     .to_owned();
             }
             KeyCode::Char('J') => {
-                if !app.task_store.auto_sort {
-                    let task_length = app.task_store.tasks.len();
+                if app.task_store.auto_sort {
+                    let tasks_length = app.task_store.tasks.len();
+                    let task = &app.task_store.tasks[*selected_index];
+                    let task_below = &app.task_store.tasks[*selected_index + 1];
+
+                    if task.priority == task_below.priority {
+                        let task = app.task_store.tasks.remove(*selected_index);
+
+                        let new_index = (*selected_index + 1) % tasks_length;
+
+                        app.task_store.tasks.insert(new_index, task);
+
+                        *selected_index = new_index;
+                    }
+                } else {
                     let task = app.task_store.tasks.remove(*selected_index);
-                    app.task_store
-                        .tasks
-                        .insert((*selected_index + 1) % task_length, task);
-                    *selected_index = (*selected_index + 1) % task_length;
+                    let tasks_length = app.task_store.tasks.len();
+                    let new_index = (*selected_index + 1) % tasks_length;
+
+                    app.task_store.tasks.insert(new_index, task);
+
+                    *selected_index = new_index;
                 }
             }
             KeyCode::Char('K') => {
-                if !app.task_store.auto_sort {
-                    let task_length = app.task_store.tasks.len();
-                    let task = app.task_store.tasks.remove(*selected_index);
+                if app.task_store.auto_sort {
                     if *selected_index == 0 {
-                        app.task_store.tasks.insert(task_length - 1, task);
-                        *selected_index = task_length - 1;
-                    } else {
-                        app.task_store
-                            .tasks
-                            .insert((*selected_index - 1) % task_length, task);
-                        *selected_index = (*selected_index - 1) % task_length;
+                        return EventResult::Ignored;
                     }
+
+                    let tasks_length = app.task_store.tasks.len();
+                    let task = &app.task_store.tasks[*selected_index];
+                    let task_above = &app.task_store.tasks[*selected_index - 1];
+
+                    if task.priority == task_above.priority {
+                        let task = app.task_store.tasks.remove(*selected_index);
+
+                        let new_index = (*selected_index - 1) % tasks_length;
+
+                        app.task_store.tasks.insert(new_index, task);
+
+                        *selected_index = new_index;
+                    }
+                } else {
+                    let task = app.task_store.tasks.remove(*selected_index);
+                    let tasks_length = app.task_store.tasks.len();
+                    let new_index = (*selected_index - 1) % tasks_length;
+
+                    app.task_store.tasks.insert(new_index, task);
+
+                    *selected_index = new_index;
                 }
             }
             KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
