@@ -174,6 +174,11 @@ impl DrawableComponent for TaskList {
             }
             KeyCode::Char('J') => {
                 let tasks_length = app.task_store.tasks.len();
+
+                if tasks_length == 0 {
+                    return EventResult::Ignored;
+                }
+
                 let new_index = (*selected_index + 1) % tasks_length;
 
                 let task = &app.task_store.tasks[*selected_index];
@@ -188,6 +193,11 @@ impl DrawableComponent for TaskList {
             }
             KeyCode::Char('K') => {
                 let tasks_length = app.task_store.tasks.len();
+
+                if tasks_length == 0 {
+                    return EventResult::Ignored;
+                }
+
                 let new_index =
                     (*selected_index as isize - 1).rem_euclid(tasks_length as isize) as usize;
 
