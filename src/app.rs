@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::{
+    cmp,
+    collections::{BTreeMap, VecDeque},
+};
 
 use chrono::{Local, NaiveTime};
 use crossterm::event::KeyEvent;
@@ -99,8 +102,7 @@ impl TaskStore {
     }
 
     pub fn sort(&mut self) {
-        self.tasks.sort_unstable_by_key(|t| t.priority);
-        self.tasks.reverse();
+        self.tasks.sort_by_key(|t| cmp::Reverse(t.priority));
     }
 
     pub fn add_task(&mut self, task: Task) {
