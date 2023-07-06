@@ -91,7 +91,7 @@ impl DrawableComponent for MainScreenLayer {
                 EventResult::Consumed
             }
             KeyCode::Char('S') => {
-                app.task_store.auto_sort ^= true; // Invert
+                app.task_store.auto_sort = !app.task_store.auto_sort; 
                 app.task_store.sort();
                 EventResult::Consumed
             }
