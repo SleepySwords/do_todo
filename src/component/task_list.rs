@@ -151,10 +151,12 @@ impl DrawableComponent for TaskList {
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;
                 }
-                app.task_store.tasks[*selected_index].priority = app.task_store.tasks
-                    [*selected_index]
-                    .priority
-                    .next_priority();
+
+                let task = &mut app.task_store.tasks[*selected_index];
+
+                task.priority = task.priority.next_priority();
+
+                app.task_store.sort();
             }
             KeyCode::Char('J') => {
                 let task_length = app.task_store.tasks.len();
