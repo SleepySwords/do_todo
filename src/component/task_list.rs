@@ -156,7 +156,9 @@ impl DrawableComponent for TaskList {
 
                 task.priority = task.priority.next_priority();
 
-                app.task_store.sort();
+                if app.task_store.auto_sort {
+                    app.task_store.sort();
+                }
             }
             KeyCode::Char('J') => {
                 let task_length = app.task_store.tasks.len();
