@@ -173,56 +173,31 @@ impl DrawableComponent for TaskList {
                     .to_owned();
             }
             KeyCode::Char('J') => {
-                if app.task_store.auto_sort {
-                    let tasks_length = app.task_store.tasks.len();
-                    let task = &app.task_store.tasks[*selected_index];
-                    let task_below = &app.task_store.tasks[*selected_index + 1];
+                let tasks_length = app.task_store.tasks.len();
+                let new_index = (*selected_index + 1) % tasks_length;
 
-                    if task.priority == task_below.priority {
-                        let task = app.task_store.tasks.remove(*selected_index);
+                let task = &app.task_store.tasks[*selected_index];
+                let task_below = &app.task_store.tasks[new_index];
 
-                        let new_index = (*selected_index + 1) % tasks_length;
-
-                        app.task_store.tasks.insert(new_index, task);
-
-                        *selected_index = new_index;
-                    }
-                } else {
+                if task.priority == task_below.priority || !app.task_store.auto_sort {
                     let task = app.task_store.tasks.remove(*selected_index);
-                    let tasks_length = app.task_store.tasks.len();
-                    let new_index = (*selected_index + 1) % tasks_length;
 
                     app.task_store.tasks.insert(new_index, task);
-
                     *selected_index = new_index;
                 }
             }
             KeyCode::Char('K') => {
-                if app.task_store.auto_sort {
-                    if *selected_index == 0 {
-                        return EventResult::Ignored;
-                    }
+                let tasks_length = app.task_store.tasks.len();
+                let new_index =
+                    (*selected_index as isize - 1).rem_euclid(tasks_length as isize) as usize;
 
-                    let tasks_length = app.task_store.tasks.len();
-                    let task = &app.task_store.tasks[*selected_index];
-                    let task_above = &app.task_store.tasks[*selected_index - 1];
+                let task = &app.task_store.tasks[*selected_index];
+                let task_above = &app.task_store.tasks[new_index];
 
-                    if task.priority == task_above.priority {
-                        let task = app.task_store.tasks.remove(*selected_index);
-
-                        let new_index = (*selected_index - 1) % tasks_length;
-
-                        app.task_store.tasks.insert(new_index, task);
-
-                        *selected_index = new_index;
-                    }
-                } else {
+                if task.priority == task_above.priority || !app.task_store.auto_sort {
                     let task = app.task_store.tasks.remove(*selected_index);
-                    let tasks_length = app.task_store.tasks.len();
-                    let new_index = (*selected_index - 1) % tasks_length;
 
                     app.task_store.tasks.insert(new_index, task);
-
                     *selected_index = new_index;
                 }
             }
