@@ -152,13 +152,25 @@ impl DrawableComponent for TaskList {
                     return EventResult::Ignored;
                 }
 
-                let task = &mut app.task_store.tasks[*selected_index];
+                let old_task = {
+                    let task = &mut app.task_store.tasks[*selected_index];
 
-                task.priority = task.priority.next_priority();
+                    task.priority = task.priority.next_priority();
+
+                    task.clone()
+                };
 
                 if app.task_store.auto_sort {
                     app.task_store.sort();
                 }
+
+                *selected_index = app
+                    .task_store
+                    .tasks
+                    .iter()
+                    .position(|t| *t == old_task)
+                    .expect("getting task index after sorting")
+                    .to_owned();
             }
             KeyCode::Char('J') => {
                 if !app.task_store.auto_sort {
