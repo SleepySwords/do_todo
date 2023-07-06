@@ -12,7 +12,7 @@ use crate::{
         message_box::MessageBox,
     },
     error::AppError,
-    task::{CompletedTask, Task},
+    task::CompletedTask,
 };
 
 // Action class maybe?!!
@@ -81,20 +81,6 @@ pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) 
         .save_mode(app)
         .build();
     app.push_layer(delete_dialog);
-}
-
-pub fn restore_task(app: &mut App, selected_index: &mut usize) {
-    if app.task_store.completed_tasks.is_empty() {
-        return;
-    }
-    app.task_store.tasks.push(Task::from_completed_task(
-        app.task_store.completed_tasks.remove(*selected_index),
-    ));
-    if *selected_index == app.task_store.completed_tasks.len()
-        && !app.task_store.completed_tasks.is_empty()
-    {
-        *selected_index -= 1;
-    }
 }
 
 pub fn complete_task(app: &mut App, selected_index: &mut usize) {

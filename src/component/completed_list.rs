@@ -11,7 +11,8 @@ use tui::widgets::{List, ListItem, ListState};
 use crate::actions::HelpAction;
 use crate::app::{App, Mode};
 use crate::draw::{DrawableComponent, EventResult};
-use crate::{actions, utils};
+use crate::task::Task;
+use crate::utils;
 
 const COMPONENT_TYPE: Mode = Mode::CompletedTasks;
 
@@ -42,6 +43,24 @@ impl CompletedList {
             "r",
             "Restores the selected task",
         )]
+    }
+
+    pub fn restore_task(&mut self, app: &mut App) {
+        if app.task_store.completed_tasks.is_empty() {
+            return;
+        }
+        app.task_store.tasks.push(Task::from_completed_task(
+            app.task_store.completed_tasks.remove(*self.selected()),
+        ));
+        if *self.selected() == app.task_store.completed_tasks.len()
+            && !app.task_store.completed_tasks.is_empty()
+        {
+            *self.selected_mut() -= 1;
+        }
+
+        if app.task_store.auto_sort {
+            app.task_store.sort();
+        }
     }
 }
 
@@ -96,11 +115,10 @@ impl DrawableComponent for CompletedList {
 
     fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
         let key_code = key_event.code;
-        let mut selected_index = self.selected_mut();
 
         let result = utils::handle_key_movement(
             key_code,
-            &mut selected_index,
+            &mut self.selected_mut(),
             app.task_store.completed_tasks.len(),
         );
 
@@ -109,7 +127,7 @@ impl DrawableComponent for CompletedList {
         }
 
         if let KeyCode::Char('r') = key_code {
-            actions::restore_task(app, &mut selected_index);
+            self.restore_task(app);
             return EventResult::Consumed;
         }
 
