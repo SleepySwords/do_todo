@@ -84,6 +84,7 @@ mod actions {
             tasks: vec![Task::from_string(String::from(TEST_TASK_NAME))],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         input_char('e', &mut app, &mut stack_layout);
         input_char('r', &mut app, &mut stack_layout);
@@ -101,6 +102,7 @@ mod actions {
             tasks: vec![Task::from_string(String::from(TEST_TASK_NAME))],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         input_char('e', &mut app, &mut stack_layout);
         input_code(KeyCode::Backspace, &mut app, &mut stack_layout);
@@ -118,6 +120,7 @@ mod actions {
             tasks: vec![Task::from_string(String::from("meme"))],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         input_char('e', &mut app, &mut stack_layout);
         input_code(KeyCode::Backspace, &mut app, &mut stack_layout);
@@ -133,6 +136,7 @@ mod actions {
             tasks: vec![Task::from_string(String::from("meme"))],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         input_char('d', &mut app, &mut stack_layout);
         input_code(KeyCode::Enter, &mut app, &mut stack_layout);
@@ -145,6 +149,7 @@ mod actions {
             tasks: vec![Task::from_string(String::from("meme"))],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         input_char('d', &mut app, &mut stack_layout);
         input_char('j', &mut app, &mut stack_layout);
@@ -161,6 +166,7 @@ mod actions {
             ],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         input_char('h', &mut app, &mut stack_layout);
         assert_eq!(app.task_store.tasks[0].priority, Priority::High);
@@ -226,6 +232,7 @@ mod tags {
             ],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
 
         let mut tag_count = 0;
@@ -297,6 +304,7 @@ mod tags {
             ],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         add_tag(&mut app, &mut stack_layout, TEST_TAG, "ewfnjaweknf");
         input_code(KeyCode::Enter, &mut app, &mut stack_layout);
@@ -321,6 +329,7 @@ mod tags {
             ],
             completed_tasks: vec![],
             tags: BTreeMap::new(),
+            auto_sort: false,
         });
         add_tag(&mut app, &mut stack_layout, TEST_TAG, "1");
         assert_eq!(app.task_store.tags.len(), 1);
@@ -358,6 +367,7 @@ mod movement {
                 ],
                 completed_tasks: vec![],
                 tags: BTreeMap::new(),
+                auto_sort: false,
             },
         );
         let index = Rc::new(RefCell::new(0));

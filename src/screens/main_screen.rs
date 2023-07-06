@@ -61,8 +61,8 @@ impl DrawableComponent for MainScreenLayer {
                     .title(String::from("Add a task"))
                     .callback(move |app, word| {
                         app.task_store
-                            .tasks
-                            .push(Task::from_string(word.trim().to_string()));
+                            .add_task(Task::from_string(word.trim().to_string()));
+
                         Ok(())
                     })
                     .save_mode(app)
@@ -87,13 +87,12 @@ impl DrawableComponent for MainScreenLayer {
                 EventResult::Consumed
             }
             KeyCode::Char('s') => {
-                app.task_store.tasks.sort_by_key(|t| t.priority);
+                app.task_store.sort();
                 EventResult::Consumed
             }
             KeyCode::Char('S') => {
-                // NOTE: We can be unstable because `reverse()` will change the order anyway
-                app.task_store.tasks.sort_unstable_by_key(|t| t.priority);
-                app.task_store.tasks.reverse();
+                app.task_store.auto_sort = !app.task_store.auto_sort;
+                app.task_store.sort();
                 EventResult::Consumed
             }
             _ => EventResult::Ignored,

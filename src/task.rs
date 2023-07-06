@@ -10,12 +10,11 @@ pub struct Tag {
     pub colour: Color,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
 pub struct Task {
     pub progress: bool,
     pub title: String,
     pub priority: Priority,
-
     pub tags: Vec<u32>,
 }
 

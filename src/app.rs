@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::{
+    cmp,
+    collections::{BTreeMap, VecDeque},
+};
 
 use chrono::{Local, NaiveTime};
 use crossterm::event::KeyEvent;
@@ -85,9 +88,9 @@ impl App {
 #[serde(default)]
 pub struct TaskStore {
     pub tags: BTreeMap<u32, Tag>,
-
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
+    pub auto_sort: bool,
 }
 
 impl TaskStore {
@@ -95,6 +98,19 @@ impl TaskStore {
         self.tags.remove(&tag_id);
         for task in &mut self.tasks {
             task.tags.retain(|f| f != &tag_id);
+        }
+    }
+
+    pub fn sort(&mut self) {
+        self.tasks.sort_by_key(|t| cmp::Reverse(t.priority));
+    }
+
+    pub fn add_task(&mut self, task: Task) {
+        if self.auto_sort {
+            self.tasks.push(task);
+            self.sort();
+        } else {
+            self.tasks.push(task);
         }
     }
 }
