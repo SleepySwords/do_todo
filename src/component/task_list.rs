@@ -161,24 +161,28 @@ impl DrawableComponent for TaskList {
                 }
             }
             KeyCode::Char('J') => {
-                let task_length = app.task_store.tasks.len();
-                let task = app.task_store.tasks.remove(*selected_index);
-                app.task_store
-                    .tasks
-                    .insert((*selected_index + 1) % task_length, task);
-                *selected_index = (*selected_index + 1) % task_length;
-            }
-            KeyCode::Char('K') => {
-                let task_length = app.task_store.tasks.len();
-                let task = app.task_store.tasks.remove(*selected_index);
-                if *selected_index == 0 {
-                    app.task_store.tasks.insert(task_length - 1, task);
-                    *selected_index = task_length - 1;
-                } else {
+                if !app.task_store.auto_sort {
+                    let task_length = app.task_store.tasks.len();
+                    let task = app.task_store.tasks.remove(*selected_index);
                     app.task_store
                         .tasks
-                        .insert((*selected_index - 1) % task_length, task);
-                    *selected_index = (*selected_index - 1) % task_length;
+                        .insert((*selected_index + 1) % task_length, task);
+                    *selected_index = (*selected_index + 1) % task_length;
+                }
+            }
+            KeyCode::Char('K') => {
+                if !app.task_store.auto_sort {
+                    let task_length = app.task_store.tasks.len();
+                    let task = app.task_store.tasks.remove(*selected_index);
+                    if *selected_index == 0 {
+                        app.task_store.tasks.insert(task_length - 1, task);
+                        *selected_index = task_length - 1;
+                    } else {
+                        app.task_store
+                            .tasks
+                            .insert((*selected_index - 1) % task_length, task);
+                        *selected_index = (*selected_index - 1) % task_length;
+                    }
                 }
             }
             KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
