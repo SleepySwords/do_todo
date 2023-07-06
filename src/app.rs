@@ -82,6 +82,7 @@ impl App {
 }
 
 #[derive(Default, Deserialize, Serialize)]
+#[serde(default)]
 pub struct TaskStore {
     pub tags: BTreeMap<u32, Tag>,
 
