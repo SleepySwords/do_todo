@@ -52,9 +52,8 @@ impl CompletedList {
 
         let current_selected_task = app.task_store.completed_tasks.remove(*self.selected());
 
-        app.task_store.add_task(Task::from_completed_task(
-                current_selected_task
-        ));
+        app.task_store
+            .add_task(Task::from_completed_task(current_selected_task));
 
         if *self.selected() == app.task_store.completed_tasks.len()
             && !app.task_store.completed_tasks.is_empty()
