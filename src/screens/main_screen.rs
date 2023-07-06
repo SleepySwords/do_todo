@@ -60,9 +60,8 @@ impl DrawableComponent for MainScreenLayer {
                 let add_input_dialog = InputBoxBuilder::default()
                     .title(String::from("Add a task"))
                     .callback(move |app, word| {
-                        app.task_store.add_task(
-                            Task::from_string(word.trim().to_string())
-                        );
+                        app.task_store
+                            .add_task(Task::from_string(word.trim().to_string()));
 
                         Ok(())
                     })
@@ -92,7 +91,7 @@ impl DrawableComponent for MainScreenLayer {
                 EventResult::Consumed
             }
             KeyCode::Char('S') => {
-                app.task_store.auto_sort = !app.task_store.auto_sort; 
+                app.task_store.auto_sort = !app.task_store.auto_sort;
                 app.task_store.sort();
                 EventResult::Consumed
             }
