@@ -61,13 +61,9 @@ impl TaskList {
                 "h",
                 "Gives selected task lower priority",
             ),
-            HelpAction::new(KeyCode::Char('t'), "t", "Add tags to the task"),
-            HelpAction::new(KeyCode::Char('s'), "s", "Toggle task sort (by priority)"),
-            HelpAction::new(
-                KeyCode::Char('S'),
-                "S",
-                "Toggle automatic task sort (by priority)",
-            ),
+            HelpAction::new(KeyCode::Char('t'), "t", "Adds tags to the task"),
+            HelpAction::new(KeyCode::Char('s'), "s", "Sorts tasks (by priority)"),
+            HelpAction::new(KeyCode::Char('S'), "S", "Toggles automatic task sort"),
         ]
     }
 }
