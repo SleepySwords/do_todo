@@ -1,8 +1,10 @@
-use crate::{app::App, theme::Theme};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 use tui::style::Color;
+
+use std::fmt::Display;
+
+use crate::{app::App, theme::Theme};
 
 #[derive(Deserialize, Serialize)]
 pub struct Tag {
