@@ -2,49 +2,45 @@ use dirs;
 
 use std::{error::Error, fs};
 
-use crate::{app::TaskStore, theme::Theme, task::Task};
+use crate::{app::TaskStore, theme::Theme};
 
 const CONFIG_PATH: &str = ".config/dotodo/config.yml";
 const DATA_PATH: &str = ".config/dotodo/data.json";
 
-pub fn get_data() -> Result<(Theme, TaskStore), Box<dyn Error>> {
+pub fn get_data() -> (Theme, TaskStore) {
     match dirs::home_dir() {
         Some(home_dir) => {
             let config_path = home_dir.join(CONFIG_PATH);
             let data_path = home_dir.join(DATA_PATH);
 
-            let theme = if !config_path.exists() {
-                Theme::default()
-            } else {
-                let config_contents = fs::read_to_string(&config_path);
-                match config_contents {
-                    Ok(file) => serde_yaml::from_str::<Theme>(&file)?,
-                    Err(_) => {
-                        let theme = Theme::default();
-                        fs::write(&config_path, serde_yaml::to_string(&theme)?)?;
-                        theme
-                    }
-                }
-            };
+            let mut theme = Theme::default();
 
-            let task_store = if !data_path.exists() {
-                TaskStore::default()
-            } else {
-                let data_contents = fs::read_to_string(&data_path);
-                match data_contents {
-                    Ok(file) => serde_json::from_str::<TaskStore>(&file)?,
-                    Err(_) => {
-                        let tasks: Vec<Task> = vec![];
-                        fs::write(&data_path, serde_json::to_string(&tasks)?)?;
-                        TaskStore::default()
+            if config_path.exists() {
+                if let Ok(config) = fs::read_to_string(&config_path) {
+                    if let Ok(theme_config) =
+                        serde_yaml::from_str::<Theme>(&config) {
+                        theme = theme_config;
                     }
                 }
-            };
-            Ok((theme, task_store))
+            }
+
+            let mut task_store = TaskStore::default();
+
+            if data_path.exists() {
+                if let Ok(data) = fs::read_to_string(&data_path) {
+                    if let Ok(task_store_data)
+                        = serde_json::from_str::<TaskStore>(&data) {
+                        task_store = task_store_data;
+                    }
+                }
+            }
+
+            (theme, task_store)
         }
         None => {
-            println!("Not found");
-            Ok((Theme::default(), TaskStore::default()))
+            eprintln!("WARNING: Couldn't find home directory");
+
+            Default::default()
         }
     }
 }

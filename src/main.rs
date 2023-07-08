@@ -43,8 +43,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // TODO: Should try and recover if it fails
-    let (theme, tasks) = config::get_data().expect("Could not get data");
+    let (theme, tasks) = config::get_data();
+
     let mut app = App::new(theme, tasks);
 
     let result = start_app(&mut app, &mut terminal);
