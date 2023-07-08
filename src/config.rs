@@ -5,7 +5,7 @@ use std::{error::Error, fs};
 use crate::{app::TaskStore, theme::Theme};
 
 const CONFIG_PATH: &str = ".config/dotodo/config.yml";
-const DATA_PATH: &str = ".config/dotodo/data.json";
+const DATA_PATH: &str = ".local/share/dotodo/data.json";
 
 pub fn get_data() -> (Theme, TaskStore) {
     match dirs::home_dir() {

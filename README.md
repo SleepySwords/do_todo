@@ -11,3 +11,13 @@ This project in its current state is extremely unstable. Features may break exis
 1. Run `git clone git@github.com/SleepySwords/do_todo.git`
 2. Run `cd do_todo`
 3. Run `cargo install --path ./`
+
+## Configuration/data paths
+Theme's location is `Home directory -> .config -> dotodo -> config.yml`.
+Tasks data is located at `Home directory -> .local -> share -> dotodo -> data.json`.
+
+Depending on your OS, `Home directory` is:
+- Windows: `\Users\YOUR_USERNAME`
+- Linux: `/home/YOUR_USERNAME`
+- MacOS: `/Users/YOUR_USERNAME`
+where `YOUR_USERNAME` is your username (obviously).
