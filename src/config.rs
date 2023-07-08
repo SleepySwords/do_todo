@@ -1,5 +1,3 @@
-use dirs;
-
 use std::{error::Error, fs};
 
 use crate::{app::TaskStore, theme::Theme};
