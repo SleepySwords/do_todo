@@ -8,40 +8,37 @@ const CONFIG_PATH: &str = ".config/dotodo/config.yml";
 const DATA_PATH: &str = ".local/share/dotodo/data.json";
 
 pub fn get_data() -> (Theme, TaskStore) {
-    match dirs::home_dir() {
-        Some(home_dir) => {
-            let config_path = home_dir.join(CONFIG_PATH);
-            let data_path = home_dir.join(DATA_PATH);
+    if let Some(home_dir) = dirs::home_dir() {
+        let config_path = home_dir.join(CONFIG_PATH);
+        let data_path = home_dir.join(DATA_PATH);
 
-            let mut theme = Theme::default();
+        let mut theme = Theme::default();
 
-            if config_path.exists() {
-                if let Ok(config) = fs::read_to_string(&config_path) {
-                    if let Ok(theme_config) =
-                        serde_yaml::from_str::<Theme>(&config) {
-                        theme = theme_config;
-                    }
+        if config_path.exists() {
+            if let Ok(config) = fs::read_to_string(&config_path) {
+                if let Ok(theme_config) =
+                    serde_yaml::from_str::<Theme>(&config) {
+                    theme = theme_config;
                 }
             }
+        }
 
-            let mut task_store = TaskStore::default();
+        let mut task_store = TaskStore::default();
 
-            if data_path.exists() {
-                if let Ok(data) = fs::read_to_string(&data_path) {
-                    if let Ok(task_store_data)
-                        = serde_json::from_str::<TaskStore>(&data) {
-                        task_store = task_store_data;
-                    }
+        if data_path.exists() {
+            if let Ok(data) = fs::read_to_string(&data_path) {
+                if let Ok(task_store_data)
+                    = serde_json::from_str::<TaskStore>(&data) {
+                    task_store = task_store_data;
                 }
             }
-
-            (theme, task_store)
         }
-        None => {
-            eprintln!("WARNING: Couldn't find home directory");
 
-            Default::default()
-        }
+        (theme, task_store)
+    } else {
+        eprintln!("WARNING: Couldn't find home directory");
+
+        Default::default()
     }
 }
 
