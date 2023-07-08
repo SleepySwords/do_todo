@@ -13,11 +13,17 @@ This project in its current state is extremely unstable. Features may break exis
 3. Run `cargo install --path ./`
 
 ## Configuration/data paths
-Theme's location is `Home directory -> .config -> dotodo -> config.yml`.
-Tasks data is located at `Home directory -> .local -> share -> dotodo -> data.json`.
+### Windows
+Theme: `C:\Users\YOUR_USERNAME\AppData\Local\dotodo`
+Tasks: `C:\Users\YOUR_USERNAME\AppData\Local\dotodo`
+Replace `YOUR_USERNAME` with your username.
 
-Depending on your OS, `Home directory` is:
-- Windows: `\Users\YOUR_USERNAME`
-- Linux: `/home/YOUR_USERNAME`
-- MacOS: `/Users/YOUR_USERNAME`
-where `YOUR_USERNAME` is your username (obviously).
+### Linux
+Theme: `/home/YOUR_USERNAME/.config/dotodo`
+Tasks: `/home/YOUR_USERNAME/.local/share/dotodo`
+Replace `YOUR_USERNAME` with your username.
+
+### MasOS
+Theme: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
+Tasks: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
+Replace `YOUR_USERNAME` with your username.
