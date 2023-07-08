@@ -1,14 +1,17 @@
-use std::{error::Error, fs, path::Path};
+use dirs;
 
-use crate::{app::TaskStore, task::Task, theme::Theme};
+use std::{error::Error, fs};
 
-// FIX: Proper handling, data should not be stored in the config file and needes testing
-// Add a swp file.
+use crate::{app::TaskStore, theme::Theme, task::Task};
+
+const CONFIG_PATH: &str = ".config/dotodo/config.yml";
+const DATA_PATH: &str = ".config/dotodo/data.json";
+
 pub fn get_data() -> Result<(Theme, TaskStore), Box<dyn Error>> {
     match dirs::home_dir() {
         Some(home_dir) => {
-            let config_path = Path::new(&home_dir).join(".config/dotodo/config.yml");
-            let data_path = Path::new(&home_dir).join(".config/dotodo/data.json");
+            let config_path = home_dir.join(CONFIG_PATH);
+            let data_path = home_dir.join(DATA_PATH);
 
             let theme = if !config_path.exists() {
                 Theme::default()
@@ -48,16 +51,21 @@ pub fn get_data() -> Result<(Theme, TaskStore), Box<dyn Error>> {
 
 // FIX: proper error handling, pring data out if cannout save.
 pub fn save_data(theme: &Theme, task_store: &TaskStore) -> Result<(), Box<dyn Error>> {
-    let dotodo_path = dirs::home_dir().unwrap().join(".config/dotodo/");
+    let config_path = dirs::home_dir().unwrap().join(CONFIG_PATH);
+    let data_path = dirs::home_dir().unwrap().join(DATA_PATH);
 
-    fs::create_dir_all(dotodo_path)?;
+    fs::create_dir_all(config_path.parent().unwrap())?;
+    fs::create_dir_all(data_path.parent().unwrap())?;
+
     fs::write(
-        dirs::home_dir().unwrap().join(".config/dotodo/data.json"),
-        serde_json::to_string(task_store)?,
-    )?;
-    fs::write(
-        dirs::home_dir().unwrap().join(".config/dotodo/config.yml"),
+        dirs::home_dir().unwrap().join(config_path),
         serde_yaml::to_string(theme)?,
     )?;
+
+    fs::write(
+        dirs::home_dir().unwrap().join(data_path),
+        serde_json::to_string(task_store)?,
+    )?;
+
     Ok(())
 }
