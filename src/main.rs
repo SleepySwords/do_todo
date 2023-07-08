@@ -11,24 +11,29 @@ mod test;
 mod theme;
 mod utils;
 
-use app::App;
-use component::layout::stack_layout::StackLayout;
-use config::save_data;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use draw::{DrawFrame, DrawableComponent, Drawer, EventResult};
-use logger::Logger;
-use screens::main_screen::MainScreenLayer;
-
-use std::io;
-use std::{error::Error, io::Stdout};
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Layout},
     Terminal,
+};
+
+use std::{
+    error::Error,
+    io::{self, Stdout},
+};
+
+use crate::{
+    app::App,
+    component::layout::stack_layout::StackLayout,
+    config::save_data,
+    draw::{DrawFrame, DrawableComponent, Drawer, EventResult},
+    logger::Logger,
+    screens::main_screen::MainScreenLayer,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {

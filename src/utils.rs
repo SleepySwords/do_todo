@@ -1,5 +1,3 @@
-use std::{char, usize};
-
 use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -8,6 +6,8 @@ use tui::{
     widgets::{Block, Borders, Cell, Row, Table},
 };
 use unicode_segmentation::UnicodeSegmentation;
+
+use std::{char, usize};
 
 use crate::{
     app::{App, Mode},

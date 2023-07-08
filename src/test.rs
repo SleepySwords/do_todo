@@ -1,8 +1,8 @@
 use tui::backend::Backend;
 
-struct FakeBacked {}
+struct FakeBackend {}
 
-impl Backend for FakeBacked {
+impl Backend for FakeBackend {
     fn draw<'a, I>(&mut self, _content: I) -> Result<(), std::io::Error>
     where
         I: Iterator<Item = (u16, u16, &'a tui::buffer::Cell)>,

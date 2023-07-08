@@ -1,12 +1,16 @@
 use crossterm::event::{MouseEvent, MouseEventKind};
-use tui::layout::{Constraint, Rect};
-use tui::style::{Color, Style};
-use tui::text::Span;
-use tui::widgets::{Block, Borders, Clear, List, ListItem, ListState};
+use tui::{
+    layout::{Constraint, Rect},
+    style::{Color, Style},
+    text::Span,
+    widgets::{Block, Borders, Clear, List, ListItem, ListState},
+};
 
-use crate::app::{App, Mode};
-use crate::draw::{DrawableComponent, EventResult};
-use crate::utils::{self, centre_rect};
+use crate::{
+    app::{App, Mode},
+    draw::{DrawableComponent, EventResult},
+    utils::{self, centre_rect},
+};
 
 type MessageCallback = dyn FnOnce(&mut App);
 

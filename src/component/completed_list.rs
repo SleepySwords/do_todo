@@ -1,18 +1,23 @@
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
-
 use crossterm::event::KeyCode;
+use tui::{
+    layout::Rect,
+    style::{Color, Style},
+    text::{Span, Spans},
+    widgets::{List, ListItem, ListState},
+};
 
-use tui::layout::Rect;
-use tui::style::{Color, Style};
-use tui::text::{Span, Spans};
-use tui::widgets::{List, ListItem, ListState};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    rc::Rc,
+};
 
-use crate::actions::HelpAction;
-use crate::app::{App, Mode};
-use crate::draw::{DrawableComponent, EventResult};
-use crate::task::Task;
-use crate::utils;
+use crate::{
+    actions::HelpAction,
+    app::{App, Mode},
+    draw::{DrawableComponent, EventResult},
+    task::Task,
+    utils,
+};
 
 const COMPONENT_TYPE: Mode = Mode::CompletedTasks;
 

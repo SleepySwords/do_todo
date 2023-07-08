@@ -1,20 +1,22 @@
+use chrono::{Local, NaiveTime};
+use crossterm::event::KeyEvent;
+use serde::{Deserialize, Serialize};
+
 use std::{
     cmp,
     collections::{BTreeMap, VecDeque},
 };
 
-use chrono::{Local, NaiveTime};
-use crossterm::event::KeyEvent;
-use serde::{Deserialize, Serialize};
-
-use crate::actions::HelpAction;
-use crate::component::completed_list::CompletedList;
-use crate::component::layout::stack_layout::StackLayout;
-use crate::component::status_line::StatusLine;
-use crate::component::task_list::TaskList;
-use crate::draw::DrawableComponent;
-use crate::task::{CompletedTask, Tag, Task};
-use crate::theme::Theme;
+use crate::{
+    actions::HelpAction,
+    component::completed_list::CompletedList,
+    component::layout::stack_layout::StackLayout,
+    component::status_line::StatusLine,
+    component::task_list::TaskList,
+    draw::DrawableComponent,
+    task::{CompletedTask, Tag, Task},
+    theme::Theme,
+};
 
 type Callback = dyn FnOnce(&mut App, &mut StackLayout);
 

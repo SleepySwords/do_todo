@@ -1,19 +1,23 @@
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    rc::Rc,
+};
 
 use crossterm::event::KeyCode;
-
-use tui::layout::Rect;
-use tui::style::{Color, Modifier, Style};
-use tui::text::{Span, Spans};
-use tui::widgets::{List, ListItem, ListState};
-
-use crate::actions::{self, HelpAction};
-use crate::app::{App, Mode};
-use crate::draw::{DrawableComponent, EventResult};
-use crate::utils::{self, handle_mouse_movement};
+use tui::{
+    layout::Rect,
+    style::{Color, Modifier, Style},
+    text::{Span, Spans},
+    widgets::{List, ListItem, ListState},
+};
 
 use super::input::input_box::InputBoxBuilder;
+use crate::{
+    actions::{self, HelpAction},
+    app::{App, Mode},
+    draw::{DrawableComponent, EventResult},
+    utils::{self, handle_mouse_movement},
+};
 
 const COMPONENT_TYPE: Mode = Mode::CurrentTasks;
 

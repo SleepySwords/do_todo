@@ -1,14 +1,18 @@
 use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 
-use tui::layout::{Constraint, Rect};
-use tui::style::Style;
-use tui::widgets::{Block, Borders, Clear};
+use tui::{
+    layout::{Constraint, Rect},
+    style::Style,
+    widgets::{Block, Borders, Clear},
+};
 use tui_textarea::{CursorMove, Input, TextArea};
 
-use crate::app::{App, Mode};
-use crate::draw::{DrawableComponent, EventResult};
-use crate::error::AppError;
-use crate::utils;
+use crate::{
+    app::{App, Mode},
+    draw::{DrawableComponent, EventResult},
+    error::AppError,
+    utils,
+};
 
 type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;

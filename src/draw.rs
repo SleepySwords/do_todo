@@ -1,11 +1,11 @@
-use std::io::Stdout;
-
 use tui::{
     backend::CrosstermBackend,
     layout::Rect,
     widgets::{StatefulWidget, Widget},
     Frame,
 };
+
+use std::io::Stdout;
 
 use crate::app::App;
 
