@@ -30,7 +30,6 @@ use std::{
 use crate::{
     app::App,
     component::layout::stack_layout::StackLayout,
-    config::save_data,
     draw::{DrawFrame, DrawableComponent, Drawer, EventResult},
     logger::Logger,
     screens::main_screen::MainScreenLayer,
@@ -62,11 +61,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     if let Err(err) = result {
-        println!("{:?}", err);
+        eprintln!("{:?}", err);
         return Err(Box::new(err));
     }
-
-    save_data(&app.theme, &app.task_store)?;
 
     Ok(())
 }

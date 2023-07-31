@@ -90,9 +90,8 @@ pub fn get_data() -> (Theme, TaskStore) {
     let task_store = load_from_file(
         data_local_dir,
         DATA_FILE,
-        // I've no fucking clue why just passing the fn ptr won't work.
-        // I've spent 3 hours on this and I still have no idea.
-        // Maybe that's my punishment for unnecessary abstraction...
+        // NOTE: This doesn't work:
+        // serde_json::from_str::<TaskStore>,
         |x| serde_json::from_str::<TaskStore>(x),
         "tasks data",
     );
@@ -120,10 +119,6 @@ where
             let serialized = ser_f();
 
             match serialized {
-                // Ok(ser) => match fs::write(path.join(file_name), ser) {
-                //     Err(e) => eprintln!("Failed to write to {kind} file: {e}"),
-                //     _ => ()
-                // },
                 Ok(ser) => {
                     if let Err(e) = fs::write(path.join(file_name), ser) {
                         eprintln!("Failed to write to {kind} file: {e}");
