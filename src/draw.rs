@@ -1,7 +1,7 @@
 use std::io::Stdout;
 
 use tui::{
-    backend::CrosstermBackend,
+    backend::{CrosstermBackend, TestBackend},
     layout::Rect,
     widgets::{StatefulWidget, Widget},
     Frame,
@@ -70,13 +70,17 @@ impl Drawer<'_, '_, '_> {
 }
 
 pub enum DrawFrame<'a, 'b> {
-    CrosstermRenderer(&'a mut Frame<'b, CrosstermBackend<Stdout>>),
+    CrosstermFrame(&'a mut Frame<'b, CrosstermBackend<Stdout>>),
+    TestFrame(&'a mut Frame<'b, TestBackend>),
 }
 
 impl DrawFrame<'_, '_> {
     fn draw_widget<T: Widget>(&mut self, widget: T, draw_area: Rect) {
         match self {
-            DrawFrame::CrosstermRenderer(f) => {
+            DrawFrame::CrosstermFrame(f) => {
+                f.render_widget(widget, draw_area);
+            }
+            DrawFrame::TestFrame(f) => {
                 f.render_widget(widget, draw_area);
             }
         }
@@ -89,7 +93,10 @@ impl DrawFrame<'_, '_> {
         draw_area: Rect,
     ) {
         match self {
-            DrawFrame::CrosstermRenderer(f) => {
+            DrawFrame::CrosstermFrame(f) => {
+                f.render_stateful_widget(widget, draw_area, state);
+            }
+            DrawFrame::TestFrame(f) => {
                 f.render_stateful_widget(widget, draw_area, state);
             }
         }
@@ -97,7 +104,10 @@ impl DrawFrame<'_, '_> {
 
     fn set_cursor(&mut self, x: u16, y: u16) {
         match self {
-            DrawFrame::CrosstermRenderer(f) => {
+            DrawFrame::CrosstermFrame(f) => {
+                f.set_cursor(x, y);
+            }
+            DrawFrame::TestFrame(f) => {
                 f.set_cursor(x, y);
             }
         }

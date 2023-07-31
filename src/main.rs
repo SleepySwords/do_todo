@@ -7,7 +7,7 @@ mod error;
 mod logger;
 mod screens;
 mod task;
-mod test;
+mod tests;
 mod theme;
 mod utils;
 
@@ -80,7 +80,7 @@ pub fn start_app(
         terminal.draw(|f| {
             let draw_size = f.size();
 
-            let mut draw_frame = DrawFrame::CrosstermRenderer(f);
+            let mut draw_frame = DrawFrame::CrosstermFrame(f);
             let mut drawer = Drawer::new(&mut draw_frame);
 
             let chunk = Layout::default()
