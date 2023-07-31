@@ -1,4 +1,15 @@
-use std::{error::Error, fs};
+use std::{
+    error::Error,
+    fs,
+    io::Write,
+    io::{stdin, stdout},
+    path::PathBuf,
+    process::exit,
+};
+
+// TODOs:
+// - Create a custom error type and return it from functions to handle it
+// outside of them
 
 use crate::{app::TaskStore, theme::Theme};
 
@@ -7,63 +18,135 @@ const DIR: &str = "dotodo";
 const CONFIG_FILE: &str = "config.yml";
 const DATA_FILE: &str = "data.json";
 
+fn should_load_if_de_failed(what_to_load: &str) -> std::io::Result<bool> {
+    // println!("{what_to_load} seems to be corrupted. If you continue, it will be overwritten.");
+    // print!("Continue (y/n)? ");
+    print!(
+        r"{what_to_load} seems to be corrupted. If you continue, it will be overwritten.
+Continue (y/n)? "
+    );
+    stdout().flush()?;
+
+    let mut answer = String::new();
+    stdin().read_line(&mut answer)?; // TODO: Handle Result
+
+    let answer = answer.trim();
+    let answer_check_len = answer.len().clamp(0, 2);
+    let should_load = *answer == "yes"[..answer_check_len];
+
+    Ok(should_load)
+}
+
+// NOTE: Hacky, but could've saved me 6-8 duplicate changes already
+fn load_from_file<T, F, E>(
+    local_dir: Option<PathBuf>,
+    file_name: &'static str,
+    de_f: F,
+    kind: &'static str,
+) -> T
+where
+    T: Default,
+    F: Fn(&str) -> Result<T, E>,
+{
+    if let Some(dir) = local_dir {
+        let path = dir.join(DIR).join(file_name);
+
+        if path.exists() {
+            if let Ok(contents) = fs::read_to_string(&path) {
+                let deserialized = de_f(&contents);
+
+                if let Ok(de) = deserialized {
+                    return de;
+                } else {
+                    match should_load_if_de_failed(kind) {
+                        Ok(true) => return Default::default(),
+                        Ok(false) | Err(_) => exit(0),
+                    }
+                }
+            } else {
+                eprintln!("Failed to load {kind} file, using defaults")
+            }
+        } else {
+            eprintln!("{kind} file doesn't seem to exist - creating");
+        }
+    } else {
+        eprintln!("Failed to determine {kind} directory on your system. Please report this issue at https://github.com/SleepySwords/do_todo/issues/new");
+    }
+
+    Default::default()
+}
+
 pub fn get_data() -> (Theme, TaskStore) {
     let config_local_dir = dirs::config_local_dir();
     let data_local_dir = dirs::data_local_dir();
 
-    let mut theme = Theme::default();
+    let theme = load_from_file(
+        config_local_dir,
+        CONFIG_FILE,
+        serde_yaml::from_str::<Theme>,
+        "config",
+    );
 
-    if let Some(dir) = config_local_dir {
-        let config_path = dir.join(DIR).join(CONFIG_FILE);
-
-        if config_path.exists() {
-            if let Ok(config) = fs::read_to_string(&config_path) {
-                if let Ok(theme_config) = serde_yaml::from_str::<Theme>(&config) {
-                    theme = theme_config;
-                }
-            }
-        }
-    }
-
-    let mut task_store = TaskStore::default();
-
-    if let Some(dir) = data_local_dir {
-        let data_path = dir.join(DIR).join(DATA_FILE);
-
-        if data_path.exists() {
-            if let Ok(data) = fs::read_to_string(&data_path) {
-                if let Ok(task_store_data) = serde_json::from_str::<TaskStore>(&data) {
-                    task_store = task_store_data;
-                }
-            }
-        }
-    }
+    let task_store = load_from_file(
+        data_local_dir,
+        DATA_FILE,
+        // I've no fucking clue why just passing the fn ptr won't work.
+        // I've spent 3 hours on this and I still have no idea.
+        // Maybe that's my punishment for unnecessary abstraction...
+        |x| serde_json::from_str::<TaskStore>(x),
+        "tasks data",
+    );
 
     (theme, task_store)
 }
 
-// FIX: proper error handling, pring data out if cannout save.
-pub fn save_data(theme: &Theme, task_store: &TaskStore) -> Result<(), Box<dyn Error>> {
-    let config_local_dir = dirs::config_local_dir();
-    let data_local_dir = dirs::data_local_dir();
+fn save_to_file<T, F, E>(local_dir: Option<PathBuf>, file_name: &str, ser_f: F, kind: &str)
+where
+    T: AsRef<[u8]>,
+    F: FnOnce() -> Result<T, E>,
+    E: Error,
+{
+    match local_dir {
+        None => eprintln!("Failed to determine {kind} directory on your system. Please report this issue at https://github.com/SleepySwords/do_todo/issues/new"),
+        Some(dir) => {
+            let path = dir.join(DIR);
 
-    if let Some(dir) = config_local_dir {
-        let config_dir = dir.join(DIR);
+            // NOTE: It's _technically_ possible for OS-specific utils that this fn calls
+            // to fail if the path already exists.
+            fs::create_dir_all(path.clone()).is_err().then(|| {
+                eprintln!("Failed to create config directory")
+            });
 
-        // NOTE: It's technically possible for OS-specific utils that this fn calls
-        // to fail if the path already exists.
-        fs::create_dir_all(config_dir.clone())?;
+            let serialized = ser_f();
 
-        fs::write(config_dir.join(CONFIG_FILE), serde_yaml::to_string(theme)?)?;
+            match serialized {
+                // Ok(ser) => match fs::write(path.join(file_name), ser) {
+                //     Err(e) => eprintln!("Failed to write to {kind} file: {e}"),
+                //     _ => ()
+                // },
+                Ok(ser) => {
+                    if let Err(e) = fs::write(path.join(file_name), ser) {
+                        eprintln!("Failed to write to {kind} file: {e}");
+                    }
+                },
+                Err(e) => eprintln!("Failed to serialize {kind}: {e}")
+            }
+        }
     }
+}
 
-    if let Some(dir) = data_local_dir {
-        let data_dir = dir.join(DIR);
+pub fn save_data(theme: &Theme, task_store: &TaskStore) {
+    save_to_file(
+        dirs::config_local_dir(),
+        CONFIG_FILE,
+        || serde_json::to_string(theme),
+        "config",
+    );
 
-        fs::create_dir_all(data_dir.clone())?;
-
-        fs::write(data_dir.join(DATA_FILE), serde_json::to_string(task_store)?)?;
-    }
-
-    Ok(())
+    save_to_file(
+        dirs::data_local_dir(),
+        DATA_FILE,
+        || serde_json::to_string(task_store),
+        "data",
+    );
 }

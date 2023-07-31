@@ -37,21 +37,21 @@ use crate::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let (theme, tasks) = config::get_data();
+
     enable_raw_mode()?;
+
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-
-    let (theme, tasks) = config::get_data();
 
     let mut app = App::new(theme, tasks);
 
     let result = start_app(&mut app, &mut terminal);
 
     // Shutting down application
-
-    config::save_data(&app.theme, &app.task_store)?;
+    config::save_data(&app.theme, &app.task_store);
 
     disable_raw_mode()?;
     execute!(
