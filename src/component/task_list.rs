@@ -1,19 +1,23 @@
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    rc::Rc,
+};
 
 use crossterm::event::KeyCode;
-
-use tui::layout::Rect;
-use tui::style::{Color, Modifier, Style};
-use tui::text::{Span, Spans};
-use tui::widgets::{List, ListItem, ListState};
-
-use crate::actions::{self, HelpAction};
-use crate::app::{App, Mode};
-use crate::draw::{DrawableComponent, EventResult};
-use crate::utils::{self, handle_mouse_movement};
+use tui::{
+    layout::Rect,
+    style::{Color, Modifier, Style},
+    text::{Span, Spans},
+    widgets::{List, ListItem, ListState},
+};
 
 use super::input::input_box::InputBoxBuilder;
+use crate::{
+    actions::{self, HelpAction},
+    app::{App, Mode},
+    draw::{DrawableComponent, EventResult},
+    utils::{self, handle_mouse_movement},
+};
 
 const COMPONENT_TYPE: Mode = Mode::CurrentTasks;
 
@@ -50,23 +54,18 @@ impl TaskList {
                 "h",
                 "Gives selected task lower priority",
             ),
-            HelpAction::new(
-                KeyCode::Char('J'),
-                "J",
-                "Moves the task down on the task list",
-            ),
-            HelpAction::new(
-                KeyCode::Char('K'),
-                "K",
-                "Moves the task up on the task list",
-            ),
+            HelpAction::new(KeyCode::Char('j'), "j", "Moves down one task"),
+            HelpAction::new(KeyCode::Char('k'), "k", "Moves up one task"),
             HelpAction::new(KeyCode::Char('t'), "t", "Add or remove the tags for this project"),
             HelpAction::new(KeyCode::Char('s'), "s", "Toggle task sort by priority"),
             HelpAction::new(
-                KeyCode::Char('S'),
-                "S",
-                "Toggle task sort by priority (reverse order)",
+                KeyCode::Char('h'),
+                "h",
+                "Gives selected task lower priority",
             ),
+            HelpAction::new(KeyCode::Char('t'), "t", "Adds tags to the task"),
+            HelpAction::new(KeyCode::Char('s'), "s", "Sorts tasks (by priority)"),
+            HelpAction::new(KeyCode::Char('S'), "S", "Toggles automatic task sort"),
         ]
     }
 }

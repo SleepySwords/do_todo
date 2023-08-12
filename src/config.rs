@@ -1,63 +1,147 @@
-use std::{error::Error, fs, path::Path};
+use std::{
+    error::Error,
+    fs,
+    io::Write,
+    io::{stdin, stdout},
+    path::PathBuf,
+    process::exit,
+};
 
-use crate::{app::TaskStore, task::Task, theme::Theme};
+// TODOs:
+// - Create a custom error type and return it from functions to handle it
+// outside of them
 
-// FIX: Proper handling, data should not be stored in the config file and needes testing
-// Add a swp file.
-pub fn get_data() -> Result<(Theme, TaskStore), Box<dyn Error>> {
-    match dirs::home_dir() {
-        Some(home_dir) => {
-            let config_path = Path::new(&home_dir).join(".config/dotodo/config.yml");
-            let data_path = Path::new(&home_dir).join(".config/dotodo/data.json");
+use crate::{app::TaskStore, theme::Theme};
 
-            let theme = if !config_path.exists() {
-                Theme::default()
-            } else {
-                let config_contents = fs::read_to_string(&config_path);
-                match config_contents {
-                    Ok(file) => serde_yaml::from_str::<Theme>(&file)?,
-                    Err(_) => {
-                        let theme = Theme::default();
-                        fs::write(&config_path, serde_yaml::to_string(&theme)?)?;
-                        theme
+const DIR: &str = "dotodo";
+
+const CONFIG_FILE: &str = "config.yml";
+const DATA_FILE: &str = "data.json";
+
+fn should_load_if_de_failed(what_to_load: &str) -> std::io::Result<bool> {
+    // println!("{what_to_load} seems to be corrupted. If you continue, it will be overwritten.");
+    // print!("Continue (y/n)? ");
+    print!(
+        r"{what_to_load} seems to be corrupted. If you continue, it will be overwritten.
+Continue (y/n)? "
+    );
+    stdout().flush()?;
+
+    let mut answer = String::new();
+    stdin().read_line(&mut answer)?; // TODO: Handle Result
+
+    let answer = answer.trim();
+    let answer_check_len = answer.len().clamp(0, 2);
+    let should_load = *answer == "yes"[..answer_check_len];
+
+    Ok(should_load)
+}
+
+// NOTE: Hacky, but could've saved me 6-8 duplicate changes already
+fn load_from_file<T, F, E>(
+    local_dir: Option<PathBuf>,
+    file_name: &'static str,
+    de_f: F,
+    kind: &'static str,
+) -> T
+where
+    T: Default,
+    F: Fn(&str) -> Result<T, E>,
+{
+    if let Some(dir) = local_dir {
+        let path = dir.join(DIR).join(file_name);
+
+        if path.exists() {
+            if let Ok(contents) = fs::read_to_string(&path) {
+                let deserialized = de_f(&contents);
+
+                if let Ok(de) = deserialized {
+                    return de;
+                } else {
+                    match should_load_if_de_failed(kind) {
+                        Ok(true) => return Default::default(),
+                        Ok(false) | Err(_) => exit(0),
                     }
                 }
-            };
-
-            let task_store = if !data_path.exists() {
-                TaskStore::default()
             } else {
-                let data_contents = fs::read_to_string(&data_path);
-                match data_contents {
-                    Ok(file) => serde_json::from_str::<TaskStore>(&file)?,
-                    Err(_) => {
-                        let tasks: Vec<Task> = vec![];
-                        fs::write(&data_path, serde_json::to_string(&tasks)?)?;
-                        TaskStore::default()
-                    }
-                }
-            };
-            Ok((theme, task_store))
+                eprintln!("Failed to load {kind} file, using defaults")
+            }
+        } else {
+            eprintln!("{kind} file doesn't seem to exist - creating");
         }
-        None => {
-            println!("Not found");
-            Ok((Theme::default(), TaskStore::default()))
+    } else {
+        eprintln!("Failed to determine {kind} directory on your system. Please report this issue at https://github.com/SleepySwords/do_todo/issues/new");
+    }
+
+    Default::default()
+}
+
+pub fn get_data() -> (Theme, TaskStore) {
+    let config_local_dir = dirs::config_local_dir();
+    let data_local_dir = dirs::data_local_dir();
+
+    let theme = load_from_file(
+        config_local_dir,
+        CONFIG_FILE,
+        serde_yaml::from_str::<Theme>,
+        "config",
+    );
+
+    let task_store = load_from_file(
+        data_local_dir,
+        DATA_FILE,
+        // NOTE: This doesn't work:
+        // serde_json::from_str::<TaskStore>,
+        |x| serde_json::from_str::<TaskStore>(x),
+        "tasks data",
+    );
+
+    (theme, task_store)
+}
+
+fn save_to_file<T, F, E>(local_dir: Option<PathBuf>, file_name: &str, ser_f: F, kind: &str)
+where
+    T: AsRef<[u8]>,
+    F: FnOnce() -> Result<T, E>,
+    E: Error,
+{
+    match local_dir {
+        None => eprintln!("Failed to determine {kind} directory on your system. Please report this issue at https://github.com/SleepySwords/do_todo/issues/new"),
+        Some(dir) => {
+            let path = dir.join(DIR);
+
+            // NOTE: It's _technically_ possible for OS-specific utils that this fn calls
+            // to fail if the path already exists.
+            fs::create_dir_all(path.clone()).is_err().then(|| {
+                eprintln!("Failed to create config directory")
+            });
+
+            let serialized = ser_f();
+
+            match serialized {
+                Ok(ser) => {
+                    if let Err(e) = fs::write(path.join(file_name), ser) {
+                        eprintln!("Failed to write to {kind} file: {e}");
+                    }
+                },
+                Err(e) => eprintln!("Failed to serialize {kind}: {e}")
+            }
         }
     }
 }
 
-// FIX: proper error handling, pring data out if cannout save.
-pub fn save_data(theme: &Theme, task_store: &TaskStore) -> Result<(), Box<dyn Error>> {
-    let dotodo_path = dirs::home_dir().unwrap().join(".config/dotodo/");
+pub fn save_data(theme: &Theme, task_store: &TaskStore) {
+    save_to_file(
+        dirs::config_local_dir(),
+        CONFIG_FILE,
+        || serde_json::to_string(theme),
+        "config",
+    );
 
-    fs::create_dir_all(dotodo_path)?;
-    fs::write(
-        dirs::home_dir().unwrap().join(".config/dotodo/data.json"),
-        serde_json::to_string(task_store)?,
-    )?;
-    fs::write(
-        dirs::home_dir().unwrap().join(".config/dotodo/config.yml"),
-        serde_yaml::to_string(theme)?,
-    )?;
-    Ok(())
+    save_to_file(
+        dirs::data_local_dir(),
+        DATA_FILE,
+        || serde_json::to_string(task_store),
+        "data",
+    );
 }

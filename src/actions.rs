@@ -1,8 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
-
 use chrono::Local;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tui::style::Color;
+
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     app::{App, Mode},

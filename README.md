@@ -11,3 +11,19 @@ This project in its current state is extremely unstable. Features may break exis
 1. Run `git clone git@github.com/SleepySwords/do_todo.git`
 2. Run `cd do_todo`
 3. Run `cargo install --path ./`
+
+## Configuration/data paths
+### Windows
+Theme: `C:\Users\YOUR_USERNAME\AppData\Local\dotodo`
+Tasks: `C:\Users\YOUR_USERNAME\AppData\Local\dotodo`
+Replace `YOUR_USERNAME` with your username.
+
+### Linux
+Theme: `/home/YOUR_USERNAME/.config/dotodo`
+Tasks: `/home/YOUR_USERNAME/.local/share/dotodo`
+Replace `YOUR_USERNAME` with your username.
+
+### MasOS
+Theme: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
+Tasks: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
+Replace `YOUR_USERNAME` with your username.
