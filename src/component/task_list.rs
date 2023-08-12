@@ -50,13 +50,27 @@ impl TaskList {
             HelpAction::new(KeyCode::Char('e'), "e", "Edits the selected task"),
             HelpAction::new(KeyCode::Char('e'), "f", "Flip a tag to the selected task"),
             HelpAction::new(
+                KeyCode::Char('J'),
+                "J",
+                "Moves the task down on the task list",
+            ),
+            HelpAction::new(
+                KeyCode::Char('K'),
+                "K",
+                "Moves the task up on the task list",
+            ),
+            HelpAction::new(
                 KeyCode::Char('h'),
                 "h",
                 "Gives selected task lower priority",
             ),
             HelpAction::new(KeyCode::Char('j'), "j", "Moves down one task"),
             HelpAction::new(KeyCode::Char('k'), "k", "Moves up one task"),
-            HelpAction::new(KeyCode::Char('t'), "t", "Add or remove the tags for this project"),
+            HelpAction::new(
+                KeyCode::Char('t'),
+                "t",
+                "Add or remove the tags for this project",
+            ),
             HelpAction::new(KeyCode::Char('s'), "s", "Toggle task sort by priority"),
             HelpAction::new(
                 KeyCode::Char('h'),
