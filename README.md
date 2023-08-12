@@ -13,17 +13,21 @@ This project in its current state is extremely unstable. Features may break exis
 3. Run `cargo install --path ./`
 
 ## Configuration/data paths
+Paths to your data.
+
+For the following, replace `YOUR_USERNAME` with your username.
+
 ### Windows
 Theme: `C:\Users\YOUR_USERNAME\AppData\Local\dotodo`
+
 Tasks: `C:\Users\YOUR_USERNAME\AppData\Local\dotodo`
-Replace `YOUR_USERNAME` with your username.
 
 ### Linux
 Theme: `/home/YOUR_USERNAME/.config/dotodo`
+
 Tasks: `/home/YOUR_USERNAME/.local/share/dotodo`
-Replace `YOUR_USERNAME` with your username.
 
 ### MasOS
 Theme: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
+
 Tasks: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
-Replace `YOUR_USERNAME` with your username.
