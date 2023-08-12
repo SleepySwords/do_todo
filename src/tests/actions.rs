@@ -1,10 +1,12 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, cmp};
 
+use chrono::Local;
 use crossterm::event::KeyCode;
+use itertools::Itertools;
 
 use crate::{
     app::TaskStore,
-    task::{Priority, Task},
+    task::{CompletedTask, Priority, Task},
     utils::test::{input_char, input_code, setup},
 };
 
@@ -146,4 +148,101 @@ fn test_priority() {
     input_char('h', &mut app, &mut stack_layout);
     assert_eq!(app.task_store.tasks[0].priority, Priority::None);
     assert_eq!(app.task_store.tasks[1].priority, Priority::None);
+}
+
+#[test]
+fn test_complete_task() {
+    let (mut app, mut stack_layout) = setup(TaskStore {
+        tasks: vec![Task::from_string(String::from("meme"))],
+        completed_tasks: vec![],
+        tags: BTreeMap::new(),
+        auto_sort: false,
+    });
+    input_char('c', &mut app, &mut stack_layout);
+    assert_eq!(app.task_store.tasks.len(), 0);
+    assert_eq!(app.task_store.completed_tasks.len(), 1);
+}
+
+#[test]
+fn test_restore_task() {
+    let (mut app, mut stack_layout) = setup(TaskStore {
+        tasks: vec![],
+        completed_tasks: vec![CompletedTask::from_string(
+            String::from("meme"),
+            Local::now().naive_local(),
+        )],
+        tags: BTreeMap::new(),
+        auto_sort: false,
+    });
+    input_char('2', &mut app, &mut stack_layout);
+    input_char('r', &mut app, &mut stack_layout);
+    assert_eq!(app.task_store.tasks.len(), 1);
+    assert_eq!(app.task_store.completed_tasks.len(), 0);
+}
+
+#[test]
+fn sort() {
+    let (mut app, mut stack_layout) = setup(TaskStore {
+        tasks: vec![
+            Task {
+                progress: false,
+                title: String::from("Toaj"),
+                priority: Priority::Low,
+                tags: Vec::new(),
+            },
+            Task {
+                progress: false,
+                title: String::from("Toajeoifj"),
+                priority: Priority::High,
+                tags: Vec::new(),
+            },
+        ],
+        completed_tasks: vec![CompletedTask::from_string(
+            String::from("meme"),
+            Local::now().naive_local(),
+        )],
+        tags: BTreeMap::new(),
+        auto_sort: false,
+    });
+    input_char('s', &mut app, &mut stack_layout);
+    assert!(app
+        .task_store
+        .tasks
+        .iter()
+        .sorted_by_key(|t| cmp::Reverse(t.priority))
+        .eq(app.task_store.tasks.iter()));
+}
+
+#[test]
+fn test_autosort() {
+    let (mut app, mut stack_layout) = setup(TaskStore {
+        tasks: vec![
+            Task {
+                progress: false,
+                title: String::from("Toaj"),
+                priority: Priority::Low,
+                tags: Vec::new(),
+            },
+            Task {
+                progress: false,
+                title: String::from("Toajeoifj"),
+                priority: Priority::High,
+                tags: Vec::new(),
+            },
+        ],
+        completed_tasks: vec![CompletedTask::from_string(
+            String::from("meme"),
+            Local::now().naive_local(),
+        )],
+        tags: BTreeMap::new(),
+        auto_sort: false,
+    });
+    input_char('S', &mut app, &mut stack_layout);
+    input_char('J', &mut app, &mut stack_layout);
+    assert!(app
+        .task_store
+        .tasks
+        .iter()
+        .sorted_by_key(|t| cmp::Reverse(t.priority))
+        .eq(app.task_store.tasks.iter()));
 }
