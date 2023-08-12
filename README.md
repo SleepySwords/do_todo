@@ -15,7 +15,7 @@ This project in its current state is extremely unstable. Features may break exis
 ## Configuration/data paths
 Paths to your data.
 
-Fore the following, replace `YOUR_USERNAME` with your username.
+For the following, replace `YOUR_USERNAME` with your username.
 
 ### Windows
 Theme: `C:\Users\YOUR_USERNAME\AppData\Local\dotodo`
