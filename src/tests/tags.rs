@@ -6,7 +6,7 @@ use tui::style::Color;
 use crate::{
     app::{App, TaskStore},
     component::layout::stack_layout::StackLayout,
-    task::{Task, Tag},
+    task::{Tag, Task},
     utils::test::{input_char, input_code, setup},
 };
 
@@ -149,14 +149,15 @@ fn test_tag_removal() {
 #[test]
 fn test_flip_tag() {
     let mut tags = BTreeMap::new();
-    tags.insert(0, Tag {
-        name: String::from("test"),
-        colour: Color::Red,
-    });
+    tags.insert(
+        0,
+        Tag {
+            name: String::from("test"),
+            colour: Color::Red,
+        },
+    );
     let (mut app, mut stack_layout) = setup(TaskStore {
-        tasks: vec![
-            Task::from_string(String::from("oof")),
-        ],
+        tasks: vec![Task::from_string(String::from("oof"))],
         completed_tasks: vec![],
         tags,
         auto_sort: false,

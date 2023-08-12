@@ -68,19 +68,19 @@ fn test_shifting_tasks() {
     };
     input_char('J', &mut app, &mut stack_layout);
     assert_task_cursor_eq(&index, 1);
-    assert_task_eq(&mut app, vec!["based", "meme"]);
+    assert_task_eq(&app, vec!["based", "meme"]);
 
     input_char('J', &mut app, &mut stack_layout);
     assert_task_cursor_eq(&index, 0);
-    assert_task_eq(&mut app, vec!["meme", "based"]);
+    assert_task_eq(&app, vec!["meme", "based"]);
 
     input_char('j', &mut app, &mut stack_layout);
 
     input_char('K', &mut app, &mut stack_layout);
     assert_task_cursor_eq(&index, 0);
-    assert_task_eq(&mut app, vec!["based", "meme"]);
+    assert_task_eq(&app, vec!["based", "meme"]);
 
     input_char('K', &mut app, &mut stack_layout);
     assert_task_cursor_eq(&index, 1);
-    assert_task_eq(&mut app, vec!["meme", "based"]);
+    assert_task_eq(&app, vec!["meme", "based"]);
 }

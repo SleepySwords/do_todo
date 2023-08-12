@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, cmp};
+use std::{cmp, collections::BTreeMap};
 
 use chrono::Local;
 use crossterm::event::KeyCode;

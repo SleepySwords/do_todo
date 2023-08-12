@@ -20,9 +20,9 @@ mod actions;
 #[cfg(test)]
 mod movement;
 #[cfg(test)]
-mod visual;
-#[cfg(test)]
 mod tags;
+#[cfg(test)]
+mod visual;
 
 fn assert_task_eq(app: &App, task_names: Vec<&str>) {
     assert_eq!(
@@ -101,12 +101,12 @@ fn assert_screen(
     let buffered = buffer.trim().split('\n').collect_vec();
     let mut expected = String::new();
 
-    for y in 0..expect_result.len() {
-        if *buffered.get(y).unwrap_or(&"") != expect_result[y] {
+    for (y, &expect) in expect_result.iter().enumerate() {
+        if *buffered.get(y).unwrap_or(&"") != expect {
             failed = true;
-            expected.push_str(&format!("*{}\n", expect_result[y]));
+            expected.push_str(&format!("*{}\n", expect));
         } else {
-            expected.push_str(&format!("{}\n", expect_result[y]));
+            expected.push_str(&format!("{}\n", expect));
         }
     }
 
