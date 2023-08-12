@@ -1,6 +1,9 @@
+#[cfg(test)]
 use std::{cell::RefCell, rc::Rc};
 
+#[cfg(test)]
 use itertools::Itertools;
+#[cfg(test)]
 use tui::{
     backend::TestBackend,
     buffer::Buffer,
@@ -9,6 +12,7 @@ use tui::{
     Terminal,
 };
 
+#[cfg(test)]
 use crate::{
     app::App,
     component::layout::stack_layout::StackLayout,
@@ -24,6 +28,7 @@ mod tags;
 #[cfg(test)]
 mod visual;
 
+#[cfg(test)]
 fn assert_task_eq(app: &App, task_names: Vec<&str>) {
     assert_eq!(
         app.task_store
@@ -35,11 +40,13 @@ fn assert_task_eq(app: &App, task_names: Vec<&str>) {
     );
 }
 
+#[cfg(test)]
 fn assert_task_cursor_eq(current: &Rc<RefCell<usize>>, selected_index: usize) {
     let current_index = *current.borrow();
     assert_eq!(current_index, selected_index);
 }
 
+#[cfg(test)]
 fn generate_buffer(buffer: &Buffer, format_styles: Vec<Style>) -> String {
     let mut current_style = Style::default();
     let mut drawn_screen = String::new();
@@ -66,6 +73,7 @@ fn generate_buffer(buffer: &Buffer, format_styles: Vec<Style>) -> String {
     drawn_screen
 }
 
+#[cfg(test)]
 fn assert_screen(
     app: &mut App,
     stack_layout: &mut StackLayout,
