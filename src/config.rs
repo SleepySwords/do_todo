@@ -24,7 +24,7 @@ fn should_load_if_de_failed(
     err: AppError,
 ) -> std::io::Result<bool> {
     print!(
-        r"Failed to load {common_name} '{file_name}' because of {err}. If you continue, it will be overwritten.
+        r"Failed to load {common_name} '{file_name}', {err}. If you continue, it will be overwritten.
 Continue (y/n)? "
     );
     stdout().flush()?;
@@ -55,20 +55,24 @@ where
         let path = dir.join(DIR).join(file_name);
 
         if path.exists() {
-            if let Ok(contents) = fs::read_to_string(&path) {
-                let deserialized = de_f(&contents);
+            match fs::read_to_string(&path) {
+                Ok(contents) => {
+                    let deserialized = de_f(&contents);
 
-                match deserialized {
-                    Ok(de) => {
-                        return de;
+                    match deserialized {
+                        Ok(de) => {
+                            return de;
+                        }
+                        Err(err) => match should_load_if_de_failed(kind, file_name, err.into()) {
+                            Ok(true) => return Default::default(),
+                            Ok(false) | Err(_) => exit(0),
+                        },
                     }
-                    Err(err) => match should_load_if_de_failed(kind, file_name, err.into()) {
-                        Ok(true) => return Default::default(),
-                        Ok(false) | Err(_) => exit(0),
-                    },
                 }
-            } else {
-                eprintln!("Failed to load {kind} file, using defaults")
+                Err(err) => match should_load_if_de_failed(kind, file_name, err.into()) {
+                    Ok(true) => return Default::default(),
+                    Ok(false) | Err(_) => exit(0),
+                },
             }
         } else {
             eprintln!("{kind} file doesn't seem to exist - creating");
