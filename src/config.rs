@@ -129,7 +129,7 @@ where
                 }).map_err(|err| err.into());
 
                 if let Err(e) | Ok(Err(e)) = result {
-                    match should_overwrite(fail_write_string(kind, file_name, e.into())) {
+                    match should_overwrite(fail_write_string(kind, file_name, e)) {
                         Ok(false) | Err(_) => continue,
                         _ => {},
                     }
