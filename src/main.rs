@@ -50,8 +50,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let result = start_app(&mut app, &mut terminal);
 
     // Shutting down application
-    config::save_data(&app.theme, &app.task_store);
 
+    // Restore terminal
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
@@ -59,6 +59,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
+
+    config::save_data(&app.theme, &app.task_store);
 
     if let Err(err) = result {
         eprintln!("{:?}", err);
