@@ -227,7 +227,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                     "lightmagenta" => Color::LightMagenta,
                     "lightcyan" => Color::LightCyan,
                     "white" => Color::White,
-                    _ => return Err(AppError::InvalidColour()),
+                    _ => return Err(AppError::InvalidColour),
                 }
             };
 

@@ -24,6 +24,7 @@ lazy_static = "1.4.0"
 unicode-segmentation = "1.10.0"
 
 textwrap = { version = "0.15" }
+thiserror = "1.0.48"
 
 
 [[bin]]

@@ -11,18 +11,20 @@ use std::{
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
-use crate::{app::TaskStore, theme::Theme};
+use crate::{app::TaskStore, error::AppError, theme::Theme};
 
 const DIR: &str = "dotodo";
 
 const CONFIG_FILE: &str = "config.yml";
 const DATA_FILE: &str = "data.json";
 
-fn should_load_if_de_failed(what_to_load: &str) -> std::io::Result<bool> {
-    // println!("{what_to_load} seems to be corrupted. If you continue, it will be overwritten.");
-    // print!("Continue (y/n)? ");
+fn should_load_if_de_failed(
+    common_name: &str,
+    file_name: &str,
+    err: AppError,
+) -> std::io::Result<bool> {
     print!(
-        r"{what_to_load} seems to be corrupted. If you continue, it will be overwritten.
+        r"Failed to load {common_name} '{file_name}' because of {err}. If you continue, it will be overwritten.
 Continue (y/n)? "
     );
     stdout().flush()?;
@@ -46,6 +48,7 @@ fn load_from_file<T, F, E>(
 ) -> T
 where
     T: Default,
+    E: Into<AppError>,
     F: Fn(&str) -> Result<T, E>,
 {
     if let Some(dir) = local_dir {
@@ -55,13 +58,14 @@ where
             if let Ok(contents) = fs::read_to_string(&path) {
                 let deserialized = de_f(&contents);
 
-                if let Ok(de) = deserialized {
-                    return de;
-                } else {
-                    match should_load_if_de_failed(kind) {
+                match deserialized {
+                    Ok(de) => {
+                        return de;
+                    }
+                    Err(err) => match should_load_if_de_failed(kind, file_name, err.into()) {
                         Ok(true) => return Default::default(),
                         Ok(false) | Err(_) => exit(0),
-                    }
+                    },
                 }
             } else {
                 eprintln!("Failed to load {kind} file, using defaults")
@@ -93,7 +97,7 @@ pub fn get_data() -> (Theme, TaskStore) {
         // NOTE: This doesn't work:
         // serde_json::from_str::<TaskStore>,
         |x| serde_json::from_str::<TaskStore>(x),
-        "tasks data",
+        "task data",
     );
 
     (theme, task_store)
