@@ -224,9 +224,8 @@ impl DrawableComponent for TaskList {
                 let edit_box = InputBoxBuilder::default()
                     .title(String::from("Edit the selected task"))
                     .fill(app.task_store.tasks[*selected_index].title.as_str())
-                    .callback(move |app, mut word| {
-                        app.task_store.tasks[index].title =
-                            word.drain(..).collect::<String>().trim().to_string();
+                    .callback(move |app, word| {
+                        app.task_store.tasks[index].title = word.trim().to_string();
                         Ok(())
                     })
                     .save_mode(app)
