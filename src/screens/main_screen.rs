@@ -14,6 +14,8 @@ use crate::{
 use crossterm::event::{KeyCode, MouseEvent};
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
+const MINIMUM_SCREEN: u16 = 100;
+
 pub struct MainScreenLayer {
     task_list: TaskList,
     completed_list: CompletedList,
@@ -115,18 +117,32 @@ impl DrawableComponent for MainScreenLayer {
 
     fn update_layout(&mut self, layout: Rect) {
         self.layout = layout;
-        let main_chunk = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(layout);
+        let (task_layout, completed_layout, viewer_layout) = if layout.width < MINIMUM_SCREEN {
+            let main_chunk = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Percentage(40),
+                    Constraint::Percentage(30),
+                    Constraint::Percentage(30),
+                ])
+                .split(layout);
+            (main_chunk[1], main_chunk[2], main_chunk[0])
+        } else {
+            let main_chunk = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .split(layout);
 
-        let layout_chunk = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-            .split(main_chunk[0]);
+            let layout_chunk = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+                .split(main_chunk[0]);
 
-        self.task_list.update_layout(layout_chunk[0]);
-        self.completed_list.update_layout(layout_chunk[1]);
-        self.viewer.update_layout(main_chunk[1]);
+            (layout_chunk[0], layout_chunk[1], main_chunk[1])
+        };
+
+        self.task_list.update_layout(task_layout);
+        self.completed_list.update_layout(completed_layout);
+        self.viewer.update_layout(viewer_layout);
     }
 }
