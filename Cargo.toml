@@ -7,13 +7,13 @@ edition = "2021"
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
-crossterm = "0.26"
+crossterm = "0.27"
 dirs = "5.0.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 serde_json = "1.0"
-tui = { package = "ratatui", version = "0.20.1", features = ["serde"]}
-tui-textarea = { git = "https://github.com/rhysd/tui-textarea", features = ["ratatui-crossterm"], default-features=false }
+tui = { package = "ratatui", version = "0.24.0", features = ["serde"]}
+tui-textarea = { git = "https://github.com/rhysd/tui-textarea", features = ["crossterm", "ratatui"], default-features=false }
 itertools = "0.10.5"
 lazy_static = "1.4.0"
 

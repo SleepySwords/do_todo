@@ -46,7 +46,7 @@ impl DrawableComponent for Logger {
             self.opened = false;
             return crate::draw::EventResult::Consumed;
         }
-        if key_code == KeyCode::Char('l') {
+        if key_code == KeyCode::Char('p') {
             self.opened = true;
             return crate::draw::EventResult::Consumed;
         }

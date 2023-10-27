@@ -7,7 +7,7 @@ use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{List, ListItem, ListState},
 };
 
@@ -127,7 +127,7 @@ impl DrawableComponent for TaskList {
                     spans.push(tag_label);
                 }
 
-                let content = Spans::from(spans);
+                let content = Line::from(spans);
                 ListItem::new(content)
             })
             .collect();

@@ -2,7 +2,7 @@ use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{List, ListItem, ListState},
 };
 
@@ -89,7 +89,7 @@ impl DrawableComponent for CompletedList {
                 } else {
                     Color::White
                 };
-                let content = Spans::from(Span::styled(
+                let content = Line::from(Span::styled(
                     format!(
                         "{} {}",
                         task.time_completed.format("%d/%m/%y %-I:%M:%S %p"),

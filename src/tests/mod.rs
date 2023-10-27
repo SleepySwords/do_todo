@@ -16,7 +16,7 @@ use tui::{
 use crate::{
     app::App,
     component::layout::stack_layout::StackLayout,
-    draw::{DrawFrame, DrawableComponent, Drawer},
+    draw::{DrawableComponent, Drawer},
 };
 
 #[cfg(test)]
@@ -88,8 +88,7 @@ fn assert_screen(
         .draw(|f| {
             let draw_size = f.size();
 
-            let mut draw_frame = DrawFrame::TestFrame(f);
-            let mut drawer = Drawer::new(&mut draw_frame);
+            let mut drawer = Drawer::new(f);
 
             let chunk = Layout::default()
                 .direction(tui::layout::Direction::Vertical)

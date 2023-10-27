@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::Style,
-    text::{Span, Spans, Text},
+    text::{Line, Span, Text},
     widgets::{Block, Borders, Cell, Row, Table},
 };
 use unicode_segmentation::UnicodeSegmentation;
@@ -155,7 +155,7 @@ pub fn handle_mouse_movement(
     EventResult::Consumed
 }
 
-pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
+pub fn generate_table<'a>(items: Vec<(Span<'a>, Line<'a>)>, width: usize) -> Table<'a> {
     Table::new(items.into_iter().map(|(title, content)| {
         let text = wrap_text(content, width as u16);
 
@@ -166,10 +166,10 @@ pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Ta
 }
 
 // FIX: This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
-pub fn wrap_text(line: Spans, width: u16) -> Text {
+pub fn wrap_text(line: Line, width: u16) -> Text {
     let mut text = Text::default();
     let mut queue = Vec::new();
-    for span in &line.0 {
+    for span in &line.spans {
         let mut content = String::new();
         let style = span.style;
         for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
@@ -224,7 +224,7 @@ pub fn wrap_text(line: Spans, width: u16) -> Text {
         .into_iter()
         .for_each(|x| add_to_current_line(&mut text, x));
     if let Some(l) = text.lines.last() {
-        if l.0.is_empty() {
+        if l.spans.is_empty() {
             text.lines.pop();
         }
     }
@@ -233,7 +233,7 @@ pub fn wrap_text(line: Spans, width: u16) -> Text {
 
 fn current_width(text: &Text) -> usize {
     text.lines.last().map_or(0usize, |x| {
-        x.0.iter().fold(0usize, |mut acc, e| {
+        x.spans.iter().fold(0usize, |mut acc, e| {
             acc += e.width();
             acc
         })
@@ -242,14 +242,14 @@ fn current_width(text: &Text) -> usize {
 
 fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
     if let Some(last) = text.lines.last_mut() {
-        last.0.push(span);
+        last.spans.push(span);
     } else {
-        text.lines.push(Spans::from(span));
+        text.lines.push(Line::from(span));
     }
 }
 
 fn new_blank_line(text: &mut Text) {
-    text.lines.push(Spans::default());
+    text.lines.push(Line::default());
 }
 
 /// Generates the default block

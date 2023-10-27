@@ -24,6 +24,7 @@ pub struct InputBox {
     error_callback: ErrorCallback,
     draw_area: Rect,
     mode_to_restore: Option<Mode>,
+    full_width: bool,
 }
 
 impl InputBox {
@@ -44,7 +45,12 @@ impl InputBox {
             error_callback: Box::new(|_, _| {}),
             draw_area: Rect::default(),
             mode_to_restore: None,
+            full_width: false,
         }
+    }
+
+    pub fn text(&self) -> String {
+        self.text_area.lines().join("\n")
     }
 }
 
@@ -99,11 +105,15 @@ impl DrawableComponent for InputBox {
     }
 
     fn update_layout(&mut self, draw_area: Rect) {
-        self.draw_area = utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.text_area.lines().len() as u16 + 2),
-            draw_area,
-        );
+        if self.full_width {
+            self.draw_area = draw_area
+        } else {
+            self.draw_area = utils::centre_rect(
+                Constraint::Percentage(70),
+                Constraint::Length(self.text_area.lines().len() as u16 + 2),
+                draw_area,
+            );
+        }
     }
 
     fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
@@ -149,6 +159,7 @@ pub struct InputBoxBuilder {
     error_callback: ErrorCallback,
     draw_area: Rect,
     mode_to_restore: Option<Mode>,
+    full_width: bool,
 }
 
 impl Default for InputBoxBuilder {
@@ -160,6 +171,7 @@ impl Default for InputBoxBuilder {
             error_callback: Box::new(|_app, _err| {}),
             draw_area: Rect::default(),
             mode_to_restore: None,
+            full_width: false,
         }
     }
 }
@@ -173,6 +185,7 @@ impl InputBoxBuilder {
             error_callback: self.error_callback,
             draw_area: self.draw_area,
             mode_to_restore: self.mode_to_restore,
+            full_width: self.full_width,
         }
     }
 
@@ -217,6 +230,11 @@ impl InputBoxBuilder {
     pub fn save_mode(mut self, app: &mut App) -> Self {
         self.mode_to_restore = Some(app.mode);
         app.mode = Mode::Overlay;
+        self
+    }
+
+    pub fn full_width(mut self, full_width: bool) -> Self {
+        self.full_width = full_width;
         self
     }
 }

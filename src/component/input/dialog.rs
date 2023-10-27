@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, MouseEventKind};
 use tui::{
     layout::{Constraint, Rect},
     style::{Modifier, Style},
-    text::Spans,
+    text::Line,
     widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
@@ -16,8 +16,8 @@ use crate::{
 type DialogCallback = Box<dyn FnOnce(&mut App)>;
 
 pub struct DialogAction {
-    name: String,
-    function: Option<DialogCallback>,
+    pub name: String,
+    pub function: Option<DialogCallback>,
 }
 
 impl DialogAction {
@@ -33,11 +33,12 @@ impl DialogAction {
 }
 
 pub struct DialogBox {
-    draw_area: Rect,
+    pub draw_area: Rect,
     title: String,
     index: usize,
-    options: Vec<DialogAction>,
+    pub options: Vec<DialogAction>,
     mode_to_restore: Option<Mode>,
+    full_width: bool,
 }
 
 impl DialogBox {
@@ -52,11 +53,15 @@ impl DialogBox {
 
 impl DrawableComponent for DialogBox {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let draw_area = self.generate_rect();
+        let draw_area = if self.full_width {
+            self.draw_area
+        } else {
+            self.generate_rect()
+        };
         let list = List::new(
             self.options
                 .iter()
-                .map(|action| ListItem::new(Spans::from(action.name.as_str())))
+                .map(|action| ListItem::new(Line::from(action.name.as_str())))
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_style(
@@ -93,8 +98,10 @@ impl DrawableComponent for DialogBox {
                 if let Some(mode) = self.mode_to_restore {
                     app.mode = mode;
                 }
-                if let Some(callback) = self.options[self.index].function.take() {
-                    (callback)(app);
+                if let Some(opt) = self.options.get_mut(self.index) {
+                    if let Some(callback) = opt.function.take() {
+                        (callback)(app);
+                    }
                 }
             }
             KeyCode::Esc => {
@@ -147,6 +154,7 @@ pub struct DialogBoxBuilder {
     index: usize,
     options: Vec<DialogAction>,
     mode_to_restore: Option<Mode>,
+    full_width: bool,
 }
 
 impl DialogBoxBuilder {
@@ -157,6 +165,7 @@ impl DialogBoxBuilder {
             index: self.index,
             options: self.options,
             mode_to_restore: self.mode_to_restore,
+            full_width: self.full_width,
         }
     }
 
@@ -178,6 +187,11 @@ impl DialogBoxBuilder {
     pub fn save_mode(mut self, app: &mut App) -> Self {
         self.mode_to_restore = Some(app.mode);
         app.mode = Mode::Overlay;
+        self
+    }
+
+    pub fn full_width(mut self, full_width: bool) -> Self {
+        self.full_width = full_width;
         self
     }
 }

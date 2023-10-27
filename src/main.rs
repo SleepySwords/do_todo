@@ -30,7 +30,7 @@ use std::{
 use crate::{
     app::App,
     component::layout::stack_layout::StackLayout,
-    draw::{DrawFrame, DrawableComponent, Drawer, EventResult},
+    draw::{DrawableComponent, Drawer, EventResult},
     logger::Logger,
     screens::main_screen::MainScreenLayer,
 };
@@ -84,8 +84,7 @@ pub fn start_app(
         terminal.draw(|f| {
             let draw_size = f.size();
 
-            let mut draw_frame = DrawFrame::CrosstermFrame(f);
-            let mut drawer = Drawer::new(&mut draw_frame);
+            let mut drawer = Drawer::new(f);
 
             let chunk = Layout::default()
                 .direction(tui::layout::Direction::Vertical)

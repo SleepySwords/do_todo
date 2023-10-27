@@ -4,7 +4,13 @@ use crate::{
     actions,
     app::{App, Mode},
     component::{
-        completed_list::CompletedList, input::input_box::InputBoxBuilder, task_list::TaskList,
+        completed_list::CompletedList,
+        input::{
+            dialog::{DialogAction, DialogBoxBuilder},
+            fuzzy::FuzzyBox,
+            input_box::InputBoxBuilder,
+        },
+        task_list::TaskList,
         viewer::Viewer,
     },
     draw::{DrawableComponent, Drawer, EventResult},
@@ -74,6 +80,24 @@ impl DrawableComponent for MainScreenLayer {
             }
             KeyCode::Char('1') => {
                 app.mode = Mode::CurrentTasks;
+                EventResult::Consumed
+            }
+            KeyCode::Char('m') => {
+                let fuzzy = FuzzyBox {
+                    draw_area: Rect::default(),
+                    input: InputBoxBuilder::default().full_width(true).build(),
+                    inactive: Vec::default(),
+                    dialog: DialogBoxBuilder::default()
+                        .add_option(DialogAction::new("Test".to_string(), |app| {
+                            app.println(String::from("This is a testa"))
+                        }))
+                        .full_width(true)
+                        .add_option(DialogAction::new("Not test".to_string(), |app| {
+                            app.println(String::from("This is a testa"))
+                        }))
+                        .build(),
+                };
+                app.push_layer(fuzzy);
                 EventResult::Consumed
             }
             KeyCode::Char('2') => {

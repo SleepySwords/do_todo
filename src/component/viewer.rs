@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use tui::{
     layout::{Constraint, Rect},
     style::Style,
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders},
 };
 
@@ -41,11 +41,11 @@ impl Viewer {
         let items = vec![
             (
                 Span::raw("Title"),
-                Spans::from(Span::from(task.title.as_str())),
+                Line::from(Span::from(task.title.as_str())),
             ),
             (
                 Span::raw("Priority"),
-                Spans::from(Span::styled(
+                Line::from(Span::styled(
                     task.priority.display_string(),
                     Style::default().fg(task.priority.colour(theme)),
                 )),
@@ -79,7 +79,7 @@ impl Viewer {
         let items = vec![
             (
                 Span::raw("Title"),
-                Spans::from(
+                Line::from(
                     completed_task
                         .task
                         .title
@@ -90,11 +90,11 @@ impl Viewer {
             ),
             (
                 Span::raw("Date Completed"),
-                Spans::from(&completed_time as &str),
+                Line::from(&completed_time as &str),
             ),
             (
                 Span::raw("Priority"),
-                Spans::from(Span::styled(
+                Line::from(Span::styled(
                     completed_task.task.priority.display_string(),
                     Style::default().fg(completed_task.task.priority.colour(&app.theme)),
                 )),
@@ -111,12 +111,12 @@ impl Viewer {
     }
 }
 
-fn tag_names<'a>(app: &'a App, task: &'a Task) -> Spans<'a> {
+fn tag_names<'a>(app: &'a App, task: &'a Task) -> Line<'a> {
     if task.tags.is_empty() {
-        Spans::from("None")
+        Line::from("None")
     } else {
         // FIX: Can be replaced once https://github.com/rust-lang/rust/issues/79524 stabilises
-        let spans = itertools::intersperse(
+        let line = itertools::intersperse(
             task.iter_tags(app).map(|tag| {
                 let name = &tag.name;
                 let colour = Style::default().fg(tag.colour);
@@ -125,7 +125,7 @@ fn tag_names<'a>(app: &'a App, task: &'a Task) -> Spans<'a> {
             Span::raw(", "),
         )
         .collect::<Vec<Span>>();
-        Spans::from(spans)
+        Line::from(line)
     }
 }
 
