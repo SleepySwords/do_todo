@@ -29,7 +29,7 @@ impl Default for Theme {
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::LightYellow,
             low_priority_colour: Color::Green,
-            use_fuzzy: false,
+            use_fuzzy: true,
             border_style: BorderStyle::default(),
         }
     }

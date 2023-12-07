@@ -31,3 +31,16 @@ Tasks: `/home/YOUR_USERNAME/.local/share/dotodo`
 Theme: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
 
 Tasks: `/Users/YOUR_USERNAME/Library/Application Support/dotodo`
+
+## Keybindings
+
+| Key          | Action                      |
+|--------------|-----------------------------|
+| `1`          | Select tasklist             |
+| `2`          | Select completed tasklist   |
+| `h`          | Move up                     |
+| `j`          | Move down                   |
+| `Ctrl` + `n` | Move up in the fuzzy list   |
+| `Ctrl` + `p` | Move down in the fuzzy list |
+| `x`          | Open the help menu          |
+| `q`          | Quit do_todo                |

@@ -19,12 +19,12 @@ use super::{
 };
 
 pub struct FuzzyBox {
-    pub draw_area: Rect,
-    pub input: InputBox,
-    pub active: Vec<usize>,
-    pub list_draw_area: Rect,
-    pub list_index: usize,
-    pub options: Vec<DialogAction>,
+    draw_area: Rect,
+    input: InputBox,
+    active: Vec<usize>,
+    list_draw_area: Rect,
+    list_index: usize,
+    options: Vec<DialogAction>,
     prev_mode: Option<Mode>,
 }
 

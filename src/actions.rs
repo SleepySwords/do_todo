@@ -73,13 +73,9 @@ pub fn open_help_menu(app: &mut App) {
             move |app| app.execute_event(KeyEvent::new(ac.character, KeyModifiers::NONE)),
         ));
     }
-    let help_menu = DialogBoxBuilder::default()
-        .title(String::from("Help Menu"))
-        .options(actions)
-        .save_mode(app)
-        .build();
 
-    app.push_layer(help_menu);
+    open_dialog_or_fuzzy(app, "Help menu", actions);
+
 }
 
 pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
