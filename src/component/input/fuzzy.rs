@@ -2,9 +2,9 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKi
 use itertools::Itertools;
 use tui::{
     layout::{Constraint, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::Color,
     text::Line,
-    widgets::{Block, Borders, Clear, List, ListItem, ListState},
+    widgets::{Clear, List, ListItem, ListState},
 };
 
 use crate::{
@@ -67,7 +67,7 @@ impl DrawableComponent for FuzzyBox {
 
     fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
         if utils::inside_rect((mouse_event.row, mouse_event.column), self.input.draw_area) {
-            return self.input.mouse_event(app, mouse_event);
+            self.input.mouse_event(app, mouse_event)
         } else if utils::inside_rect((mouse_event.row, mouse_event.column), self.list_draw_area) {
             return handle_mouse_movement(
                 app,

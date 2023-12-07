@@ -47,7 +47,7 @@ impl Theme {
             .borders(Borders::ALL)
             .border_type(self.border_style.border_type)
             .title(title)
-            .border_style(Style::default().fg(tui::style::Color::Green))
+            .border_style(Style::default().fg(border_color))
     }
 }
 

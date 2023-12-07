@@ -37,26 +37,10 @@ pub struct DialogBox {
     index: usize,
     options: Vec<DialogAction>,
     prev_mode: Option<Mode>,
-    full_width: bool,
-}
-
-impl DialogBox {
-    fn generate_rect(&self) -> Rect {
-        utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.options.len() as u16 + 2),
-            self.draw_area,
-        )
-    }
 }
 
 impl DrawableComponent for DialogBox {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let draw_area = if self.full_width {
-            self.draw_area
-        } else {
-            self.generate_rect()
-        };
         let list = List::new(
             self.options
                 .iter()
@@ -74,8 +58,8 @@ impl DrawableComponent for DialogBox {
         let mut list_state = ListState::default();
         list_state.select(Some(self.index));
 
-        drawer.draw_widget(Clear, draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, draw_area);
+        drawer.draw_widget(Clear, self.draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
     fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
@@ -115,11 +99,10 @@ impl DrawableComponent for DialogBox {
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
     ) -> EventResult {
-        let draw_area = self.generate_rect();
-        if utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
+        if utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
             return handle_mouse_movement(
                 app,
-                draw_area,
+                self.draw_area,
                 None,
                 self.options.len(),
                 &mut self.index,
@@ -137,7 +120,11 @@ impl DrawableComponent for DialogBox {
     }
 
     fn update_layout(&mut self, area: Rect) {
-        self.draw_area = area;
+        self.draw_area = utils::centre_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.options.len() as u16 + 2),
+            area,
+        )
     }
 }
 
@@ -148,7 +135,6 @@ pub struct DialogBoxBuilder {
     index: usize,
     options: Vec<DialogAction>,
     prev_mode: Option<Mode>,
-    full_width: bool,
 }
 
 impl DialogBoxBuilder {
@@ -159,7 +145,6 @@ impl DialogBoxBuilder {
             index: self.index,
             options: self.options,
             prev_mode: self.prev_mode,
-            full_width: self.full_width,
         }
     }
 
@@ -181,11 +166,6 @@ impl DialogBoxBuilder {
     pub fn save_mode(mut self, app: &mut App) -> Self {
         self.prev_mode = Some(app.mode);
         app.mode = Mode::Overlay;
-        self
-    }
-
-    pub fn full_width(mut self, full_width: bool) -> Self {
-        self.full_width = full_width;
         self
     }
 }

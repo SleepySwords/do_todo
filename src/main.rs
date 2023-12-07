@@ -24,7 +24,8 @@ use tui::{
 
 use std::{
     error::Error,
-    io::{self, Stdout}, time::Duration,
+    io::{self, Stdout},
+    time::Duration,
 };
 
 use crate::{
