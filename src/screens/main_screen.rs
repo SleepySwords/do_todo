@@ -84,6 +84,7 @@ impl DrawableComponent for MainScreenLayer {
             KeyCode::Char('m') => {
                 let fuzzy = FuzzyBoxBuilder::default()
                     .title("Test".to_string())
+                    .save_mode(app)
                     .add_option("Test".to_string(), |app| {
                         app.println(String::from("First"))
                     })

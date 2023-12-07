@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use tui::{style::Color, widgets::BorderType};
 
 #[derive(Deserialize, Serialize)]
+#[serde(default)]
 pub struct Theme {
     pub default_border_colour: Color,
     pub selected_border_colour: Color,
@@ -9,6 +10,8 @@ pub struct Theme {
     pub high_priority_colour: Color,
     pub normal_priority_colour: Color,
     pub low_priority_colour: Color,
+    
+    pub use_fuzzy: bool,
 
     #[serde(skip_serializing, skip_deserializing)]
     pub border_style: BorderStyle,
@@ -23,6 +26,7 @@ impl Default for Theme {
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::LightYellow,
             low_priority_colour: Color::Green,
+            use_fuzzy: false,
             border_style: BorderStyle::default(),
         }
     }

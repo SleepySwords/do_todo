@@ -8,7 +8,7 @@ use crate::{
     app::{App, Mode},
     component::{
         input::dialog::DialogAction,
-        input::{dialog::DialogBoxBuilder, input_box::InputBoxBuilder},
+        input::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
         message_box::MessageBox,
     },
     error::AppError,
@@ -33,6 +33,24 @@ impl HelpAction<'_> {
             short_hand,
             description,
         }
+    }
+}
+
+fn open_dialog_or_fuzzy(app: &mut App, title: &str, options: Vec<DialogAction>) {
+    if app.theme.use_fuzzy {
+        let fuzzy = FuzzyBoxBuilder::default()
+            .title(title.to_string())
+            .options(options)
+            .save_mode(app)
+            .build();
+        app.push_layer(fuzzy);
+    } else {
+        let dialog = DialogBoxBuilder::default()
+            .title(title.to_string())
+            .options(options)
+            .save_mode(app)
+            .build();
+        app.push_layer(dialog);
     }
 }
 
@@ -122,12 +140,7 @@ pub fn flip_tag_menu(app: &mut App, selected_index: usize) {
     ));
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 
-    let dialog = DialogBoxBuilder::default()
-        .title("Add or remove a tag".to_string())
-        .options(tag_options)
-        .save_mode(app)
-        .build();
-    app.push_layer(dialog);
+    open_dialog_or_fuzzy(app, "Add or remove a tag", tag_options);
 }
 
 pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
@@ -152,12 +165,7 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
     ));
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 
-    let dialog = DialogBoxBuilder::default()
-        .title("Add or remove a tag".to_string())
-        .options(tag_options)
-        .save_mode(app)
-        .build();
-    app.push_layer(dialog);
+    open_dialog_or_fuzzy(app, "Add or remove a tag", tag_options);
 }
 
 pub fn delete_tag_menu(app: &mut App) {
@@ -184,12 +192,7 @@ pub fn delete_tag_menu(app: &mut App) {
     }
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 
-    let delete_dialog = DialogBoxBuilder::default()
-        .title("Delete a tag".to_string())
-        .options(tag_options)
-        .save_mode(app)
-        .build();
-    app.push_layer(delete_dialog);
+    open_dialog_or_fuzzy(app, "Delete a tag", tag_options);
 }
 
 fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String) {
@@ -209,25 +212,10 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                     .to_lowercase()
                     .replace([' ', '_', '-'], "")
                     .as_str()
+                    .parse::<Color>()
                 {
-                    "reset" => Color::Reset,
-                    "black" => Color::Black,
-                    "red" => Color::Red,
-                    "green" => Color::Green,
-                    "yellow" => Color::Yellow,
-                    "blue" => Color::Blue,
-                    "magenta" => Color::Magenta,
-                    "cyan" => Color::Cyan,
-                    "gray" => Color::Gray,
-                    "darkgray" => Color::DarkGray,
-                    "lightred" => Color::LightRed,
-                    "lightgreen" => Color::LightGreen,
-                    "lightyellow" => Color::LightYellow,
-                    "lightblue" => Color::LightBlue,
-                    "lightmagenta" => Color::LightMagenta,
-                    "lightcyan" => Color::LightCyan,
-                    "white" => Color::White,
-                    _ => return Err(AppError::InvalidColour),
+                    Ok(colour) => colour,
+                    Err(_) => return Err(AppError::InvalidColour),
                 }
             };
 

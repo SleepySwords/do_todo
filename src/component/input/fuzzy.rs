@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    app::App,
+    app::{App, Mode},
     draw::{DrawableComponent, EventResult},
     utils,
 };
@@ -25,6 +25,7 @@ pub struct FuzzyBox {
     pub list_draw_area: Rect,
     pub list_index: usize,
     pub options: Vec<DialogAction>,
+    prev_mode: Option<Mode>,
 }
 
 impl FuzzyBox {
@@ -103,6 +104,9 @@ impl DrawableComponent for FuzzyBox {
         match code {
             KeyCode::Enter => {
                 app.pop_layer();
+                if let Some(mode) = self.prev_mode {
+                    app.mode = mode;
+                }
                 if let Some(Some(opt)) = self
                     .active
                     .get(self.list_index)
@@ -135,6 +139,7 @@ pub struct FuzzyBoxBuilder {
     draw_area: Rect,
     title: String,
     options: Vec<DialogAction>,
+    prev_mode: Option<Mode>,
 }
 
 impl FuzzyBoxBuilder {
@@ -143,7 +148,12 @@ impl FuzzyBoxBuilder {
         FuzzyBox {
             draw_area: self.draw_area,
             options: self.options,
-            input: InputBoxBuilder::default().full_width(true).title(self.title).build(),
+            prev_mode: self.prev_mode,
+            input: InputBoxBuilder::default()
+                .full_width(true)
+                .title(self.title)
+                .prev_mode(self.prev_mode)
+                .build(),
             active,
             list_draw_area: Rect::default(),
             list_index: 0,
@@ -164,6 +174,12 @@ impl FuzzyBoxBuilder {
 
     pub fn options(mut self, options: Vec<DialogAction>) -> Self {
         self.options = options;
+        self
+    }
+
+    pub fn save_mode(mut self, app: &mut App) -> Self {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
         self
     }
 
