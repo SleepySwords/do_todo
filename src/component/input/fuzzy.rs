@@ -93,25 +93,25 @@ impl DrawableComponent for FuzzyBox {
         match code {
             KeyCode::Char('n') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
-                return EventResult::Consumed;
+                EventResult::Consumed
             }
             KeyCode::Down => {
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
-                return EventResult::Consumed;
+                EventResult::Consumed
             }
             KeyCode::Char('p') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,
                 }
-                return EventResult::Consumed;
+                EventResult::Consumed
             }
             KeyCode::Up => {
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,
                 }
-                return EventResult::Consumed;
+                EventResult::Consumed
             }
             KeyCode::Enter => {
                 app.pop_layer();
