@@ -24,6 +24,7 @@ impl DrawableComponent for Logger {
                 app,
                 &MessageBox::new_by_list(
                     "Log".to_string(),
+                    self.draw_area,
                     |_| {},
                     self.logs
                         .iter()

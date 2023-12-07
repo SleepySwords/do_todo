@@ -190,6 +190,7 @@ impl DialogBoxBuilder {
         self
     }
 
+
     pub fn full_width(mut self, full_width: bool) -> Self {
         self.full_width = full_width;
         self

@@ -48,6 +48,7 @@ impl MessageBox {
 
     pub fn new_by_list<T: Fn(&mut App) + 'static>(
         title: String,
+        draw_area: Rect,
         callback: T,
         words: Vec<String>,
         colour: Color,
@@ -60,7 +61,7 @@ impl MessageBox {
             colour,
             selected_index,
             mode_to_restore: None,
-            draw_area: Rect::default(),
+            draw_area,
         }
     }
 

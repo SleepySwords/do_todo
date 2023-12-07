@@ -16,7 +16,7 @@ use crate::{
     actions::{self, HelpAction},
     app::{App, Mode},
     draw::{DrawableComponent, EventResult},
-    utils::{self, handle_mouse_movement},
+    utils::{self, handle_mouse_movement}, task::Task,
 };
 
 const COMPONENT_TYPE: Mode = Mode::CurrentTasks;

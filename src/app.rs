@@ -14,7 +14,7 @@ use crate::{
     component::status_line::StatusLine,
     component::task_list::TaskList,
     draw::DrawableComponent,
-    task::{CompletedTask, Tag, Task},
+    task::{CompletedTask, Tag, Task, Category},
     theme::Theme,
 };
 
@@ -92,6 +92,7 @@ pub struct TaskStore {
     pub tags: BTreeMap<u32, Tag>,
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
+    pub categories: Vec<Category>,
     pub auto_sort: bool,
 }
 

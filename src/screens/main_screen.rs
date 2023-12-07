@@ -6,8 +6,7 @@ use crate::{
     component::{
         completed_list::CompletedList,
         input::{
-            dialog::{DialogAction, DialogBoxBuilder},
-            fuzzy::FuzzyBox,
+            fuzzy::FuzzyBoxBuilder,
             input_box::InputBoxBuilder,
         },
         task_list::TaskList,
@@ -83,20 +82,18 @@ impl DrawableComponent for MainScreenLayer {
                 EventResult::Consumed
             }
             KeyCode::Char('m') => {
-                let fuzzy = FuzzyBox {
-                    draw_area: Rect::default(),
-                    input: InputBoxBuilder::default().full_width(true).build(),
-                    inactive: Vec::default(),
-                    dialog: DialogBoxBuilder::default()
-                        .add_option(DialogAction::new("Test".to_string(), |app| {
-                            app.println(String::from("This is a testa"))
-                        }))
-                        .full_width(true)
-                        .add_option(DialogAction::new("Not test".to_string(), |app| {
-                            app.println(String::from("This is a testa"))
-                        }))
-                        .build(),
-                };
+                let fuzzy = FuzzyBoxBuilder::default()
+                    .title("Test".to_string())
+                    .add_option("Test".to_string(), |app| {
+                        app.println(String::from("First"))
+                    })
+                    .add_option("Not test".to_string(), |app| {
+                        app.println(String::from("Second"))
+                    })
+                    .add_option("This is another option".to_string(), |app| {
+                        app.println(String::from("Third"))
+                    })
+                    .build();
                 app.push_layer(fuzzy);
                 EventResult::Consumed
             }
