@@ -132,10 +132,10 @@ impl DrawableComponent for TaskList {
             })
             .collect();
 
-        let current = List::new(tasks).block(utils::generate_default_block(
+        let current = List::new(tasks).block(utils::ui::generate_default_block(
+            app,
             "Current List",
             COMPONENT_TYPE,
-            app,
         ));
 
         let mut state = ListState::default();

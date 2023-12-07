@@ -102,10 +102,10 @@ impl DrawableComponent for CompletedList {
             .collect();
 
         let completed_list = List::new(completed_tasks)
-            .block(utils::generate_default_block(
+            .block(utils::ui::generate_default_block(
+                app,
                 "Completed tasks",
                 COMPONENT_TYPE,
-                app,
             ))
             .style(Style::default().fg(Color::White));
 

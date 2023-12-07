@@ -2,9 +2,8 @@ use crossterm::event::{KeyCode, MouseEventKind};
 
 use tui::{
     layout::{Constraint, Rect},
-    style::{Modifier, Style},
     text::Line,
-    widgets::{Block, Borders, Clear, List, ListItem, ListState},
+    widgets::{Clear, List, ListItem, ListState},
 };
 
 use crate::{
@@ -61,18 +60,15 @@ impl DrawableComponent for DialogBox {
         let list = List::new(
             self.options
                 .iter()
-                .map(|action| ListItem::new(Line::from(action.name.as_str())))
+                .map(|action| action.name.as_str())
+                .map(|action| ListItem::new(Line::from(action)))
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_style(
-            Style::default()
-                .add_modifier(Modifier::BOLD)
-                .fg(tui::style::Color::LightMagenta),
-        )
-        .block(utils::generate_default_block(
+        .highlight_style(app.theme.highlight_dropdown_style())
+        .block(utils::ui::generate_default_block(
+            app,
             self.title.as_str(),
             Mode::Overlay,
-            app,
         ));
 
         let mut list_state = ListState::default();

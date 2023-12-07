@@ -1,8 +1,8 @@
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
 use itertools::Itertools;
 use tui::{
     layout::{Constraint, Layout, Rect},
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::Line,
     widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
@@ -10,7 +10,7 @@ use tui::{
 use crate::{
     app::{App, Mode},
     draw::{DrawableComponent, EventResult},
-    utils,
+    utils::{self, handle_mouse_movement},
 };
 
 use super::{
@@ -41,21 +41,11 @@ impl DrawableComponent for FuzzyBox {
             self.active
                 .iter()
                 .map(|&id| self.options[id].name.as_str())
-                .map(|action| ListItem::new(Line::from(action)))
+                .map(|name| ListItem::new(Line::from(name)))
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_style(
-            Style::default()
-                .add_modifier(Modifier::BOLD)
-                .fg(tui::style::Color::LightMagenta),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(app.theme.border_style.border_type)
-                .title("")
-                .border_style(Style::default().fg(tui::style::Color::Green)),
-        );
+        .highlight_style(app.theme.highlight_dropdown_style())
+        .block(app.theme.styled_block("", Color::Green));
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.list_index));
@@ -75,26 +65,41 @@ impl DrawableComponent for FuzzyBox {
         self.list_draw_area = layout[1];
     }
 
-    fn key_event(
-        &mut self,
-        app: &mut crate::app::App,
-        key_event: crossterm::event::KeyEvent,
-    ) -> crate::draw::EventResult {
+    fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
+        if utils::inside_rect((mouse_event.row, mouse_event.column), self.input.draw_area) {
+            return self.input.mouse_event(app, mouse_event);
+        } else if utils::inside_rect((mouse_event.row, mouse_event.column), self.list_draw_area) {
+            return handle_mouse_movement(
+                app,
+                self.list_draw_area,
+                None,
+                self.active.len(),
+                &mut self.list_index,
+                mouse_event,
+            );
+        } else {
+            if let MouseEventKind::Down(_) = mouse_event.kind {
+                app.pop_layer();
+                if let Some(mode) = self.prev_mode {
+                    app.mode = mode;
+                }
+            }
+            EventResult::Consumed
+        }
+    }
+
+    fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
         let code = key_event.code;
         if key_event.modifiers.contains(KeyModifiers::CONTROL) {
             match key_event.code {
                 KeyCode::Char('n') => {
-                    self.list_index += 1;
-                    if self.list_index >= self.active.len() {
-                        self.list_index = 0;
-                    }
+                    self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                     return EventResult::Consumed;
                 }
                 KeyCode::Char('p') => {
-                    if self.list_index == 0 {
-                        self.list_index = self.active.len() - 1;
-                    } else {
-                        self.list_index -= 1;
+                    match self.list_index.checked_sub(1) {
+                        Some(val) => self.list_index = val,
+                        None => self.list_index = self.active.len() - 1,
                     }
                     return EventResult::Consumed;
                 }

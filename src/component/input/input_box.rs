@@ -18,11 +18,11 @@ type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), Ap
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
 
 pub struct InputBox {
+    pub draw_area: Rect,
     title: String,
     text_area: TextArea<'static>,
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
-    draw_area: Rect,
     prev_mode: Option<Mode>,
     full_width: bool,
 }

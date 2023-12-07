@@ -55,7 +55,7 @@ impl Viewer {
 
         // NOTE: I have no idea why the width must be three less, should probably investigate.
         let table =
-            utils::generate_table(items, constraints[1].apply(self.area.width) as usize - 3)
+            utils::ui::generate_table(items, constraints[1].apply(self.area.width) as usize - 3)
                 .block(block)
                 .widths(&constraints);
 
@@ -103,7 +103,7 @@ impl Viewer {
         ];
 
         let table =
-            utils::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
+            utils::ui::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
                 .block(block)
                 .widths(&constraints);
 

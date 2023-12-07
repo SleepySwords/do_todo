@@ -5,10 +5,7 @@ use crate::{
     app::{App, Mode},
     component::{
         completed_list::CompletedList,
-        input::{
-            fuzzy::FuzzyBoxBuilder,
-            input_box::InputBoxBuilder,
-        },
+        input::{fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
         task_list::TaskList,
         viewer::Viewer,
     },
@@ -85,9 +82,7 @@ impl DrawableComponent for MainScreenLayer {
                 let fuzzy = FuzzyBoxBuilder::default()
                     .title("Test".to_string())
                     .save_mode(app)
-                    .add_option("Test".to_string(), |app| {
-                        app.println(String::from("First"))
-                    })
+                    .add_option("Test".to_string(), |app| app.println(String::from("First")))
                     .add_option("Not test".to_string(), |app| {
                         app.println(String::from("Second"))
                     })
@@ -143,8 +138,8 @@ impl DrawableComponent for MainScreenLayer {
             let main_chunk = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Percentage(40),
                     Constraint::Percentage(30),
+                    Constraint::Percentage(40),
                     Constraint::Percentage(30),
                 ])
                 .split(layout);
