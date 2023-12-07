@@ -90,23 +90,29 @@ impl DrawableComponent for FuzzyBox {
 
     fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
         let code = key_event.code;
-        if key_event.modifiers.contains(KeyModifiers::CONTROL) {
-            match key_event.code {
-                KeyCode::Char('n') => {
-                    self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
-                    return EventResult::Consumed;
-                }
-                KeyCode::Char('p') => {
-                    match self.list_index.checked_sub(1) {
-                        Some(val) => self.list_index = val,
-                        None => self.list_index = self.active.len() - 1,
-                    }
-                    return EventResult::Consumed;
-                }
-                _ => {}
-            }
-        }
         match code {
+            KeyCode::Char('n') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
+                return EventResult::Consumed;
+            }
+            KeyCode::Down => {
+                self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
+                return EventResult::Consumed;
+            }
+            KeyCode::Char('p') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                match self.list_index.checked_sub(1) {
+                    Some(val) => self.list_index = val,
+                    None => self.list_index = self.active.len() - 1,
+                }
+                return EventResult::Consumed;
+            }
+            KeyCode::Up => {
+                match self.list_index.checked_sub(1) {
+                    Some(val) => self.list_index = val,
+                    None => self.list_index = self.active.len() - 1,
+                }
+                return EventResult::Consumed;
+            }
             KeyCode::Enter => {
                 app.pop_layer();
                 if let Some(mode) = self.prev_mode {
