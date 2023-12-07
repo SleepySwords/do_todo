@@ -43,7 +43,6 @@ fn test_edit_task() {
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('e', &mut app, &mut stack_layout);
     input_char('r', &mut app, &mut stack_layout);
@@ -62,7 +61,6 @@ fn test_edit_delete_task() {
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('e', &mut app, &mut stack_layout);
     input_code(KeyCode::Backspace, &mut app, &mut stack_layout);
@@ -81,7 +79,6 @@ fn test_cancel_edit_task() {
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('e', &mut app, &mut stack_layout);
     input_code(KeyCode::Backspace, &mut app, &mut stack_layout);
@@ -98,7 +95,6 @@ fn test_delete_task() {
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('d', &mut app, &mut stack_layout);
     input_code(KeyCode::Enter, &mut app, &mut stack_layout);
@@ -112,7 +108,6 @@ fn test_cancel_delete_task() {
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('d', &mut app, &mut stack_layout);
     input_char('j', &mut app, &mut stack_layout);
@@ -130,7 +125,6 @@ fn test_priority() {
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('h', &mut app, &mut stack_layout);
     assert_eq!(app.task_store.tasks[0].priority, Priority::High);
@@ -163,7 +157,6 @@ fn test_complete_task() {
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('c', &mut app, &mut stack_layout);
     assert_eq!(app.task_store.tasks.len(), 0);
@@ -180,7 +173,6 @@ fn test_restore_task() {
         )],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('2', &mut app, &mut stack_layout);
     input_char('r', &mut app, &mut stack_layout);
@@ -211,7 +203,6 @@ fn sort() {
         )],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('s', &mut app, &mut stack_layout);
     assert!(app
@@ -245,7 +236,6 @@ fn test_autosort() {
         )],
         tags: BTreeMap::new(),
         auto_sort: false,
-        ..Default::default()
     });
     input_char('S', &mut app, &mut stack_layout);
     input_char('J', &mut app, &mut stack_layout);

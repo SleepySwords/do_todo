@@ -75,7 +75,6 @@ pub fn open_help_menu(app: &mut App) {
     }
 
     open_dialog_or_fuzzy(app, "Help menu", actions);
-
 }
 
 pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
