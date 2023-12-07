@@ -12,6 +12,13 @@ pub struct Tag {
     pub colour: Color,
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct Category {
+    pub title: String,
+    pub opened: bool,
+    pub tasks: Vec<Task>,
+}
+
 #[derive(Clone, PartialEq, Deserialize, Serialize)]
 pub struct Task {
     pub progress: bool,

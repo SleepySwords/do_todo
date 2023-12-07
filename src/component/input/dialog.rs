@@ -2,9 +2,8 @@ use crossterm::event::{KeyCode, MouseEventKind};
 
 use tui::{
     layout::{Constraint, Rect},
-    style::{Modifier, Style},
-    text::Spans,
-    widgets::{Block, Borders, Clear, List, ListItem, ListState},
+    text::Line,
+    widgets::{Clear, List, ListItem, ListState},
 };
 
 use crate::{
@@ -16,8 +15,8 @@ use crate::{
 type DialogCallback = Box<dyn FnOnce(&mut App)>;
 
 pub struct DialogAction {
-    name: String,
-    function: Option<DialogCallback>,
+    pub name: String,
+    pub function: Option<DialogCallback>,
 }
 
 impl DialogAction {
@@ -37,46 +36,30 @@ pub struct DialogBox {
     title: String,
     index: usize,
     options: Vec<DialogAction>,
-    mode_to_restore: Option<Mode>,
-}
-
-impl DialogBox {
-    fn generate_rect(&self) -> Rect {
-        utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.options.len() as u16 + 2),
-            self.draw_area,
-        )
-    }
+    prev_mode: Option<Mode>,
 }
 
 impl DrawableComponent for DialogBox {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let draw_area = self.generate_rect();
         let list = List::new(
             self.options
                 .iter()
-                .map(|action| ListItem::new(Spans::from(action.name.as_str())))
+                .map(|action| action.name.as_str())
+                .map(|action| ListItem::new(Line::from(action)))
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_style(
-            Style::default()
-                .add_modifier(Modifier::BOLD)
-                .fg(tui::style::Color::LightMagenta),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(app.theme.border_style.border_type)
-                .title(self.title.as_str())
-                .border_style(Style::default().fg(tui::style::Color::Green)),
-        );
+        .highlight_style(app.theme.highlight_dropdown_style())
+        .block(utils::ui::generate_default_block(
+            app,
+            self.title.as_str(),
+            Mode::Overlay,
+        ));
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.index));
 
-        drawer.draw_widget(Clear, draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, draw_area);
+        drawer.draw_widget(Clear, self.draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
     fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
@@ -90,17 +73,19 @@ impl DrawableComponent for DialogBox {
         match key_code {
             KeyCode::Enter => {
                 app.pop_layer();
-                if let Some(mode) = self.mode_to_restore {
+                if let Some(mode) = self.prev_mode {
                     app.mode = mode;
                 }
-                if let Some(callback) = self.options[self.index].function.take() {
-                    (callback)(app);
+                if let Some(opt) = self.options.get_mut(self.index) {
+                    if let Some(callback) = opt.function.take() {
+                        (callback)(app);
+                    }
                 }
             }
             KeyCode::Esc => {
                 // TODO: May be better to have a custom escape function
                 app.pop_layer();
-                if let Some(mode) = self.mode_to_restore {
+                if let Some(mode) = self.prev_mode {
                     app.mode = mode;
                 }
             }
@@ -114,11 +99,10 @@ impl DrawableComponent for DialogBox {
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
     ) -> EventResult {
-        let draw_area = self.generate_rect();
-        if utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
+        if utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
             return handle_mouse_movement(
                 app,
-                draw_area,
+                self.draw_area,
                 None,
                 self.options.len(),
                 &mut self.index,
@@ -128,7 +112,7 @@ impl DrawableComponent for DialogBox {
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
             app.pop_layer();
-            if let Some(mode) = self.mode_to_restore {
+            if let Some(mode) = self.prev_mode {
                 app.mode = mode;
             }
         }
@@ -136,7 +120,11 @@ impl DrawableComponent for DialogBox {
     }
 
     fn update_layout(&mut self, area: Rect) {
-        self.draw_area = area;
+        self.draw_area = utils::centre_rect(
+            Constraint::Percentage(70),
+            Constraint::Length(self.options.len() as u16 + 2),
+            area,
+        )
     }
 }
 
@@ -146,7 +134,7 @@ pub struct DialogBoxBuilder {
     title: String,
     index: usize,
     options: Vec<DialogAction>,
-    mode_to_restore: Option<Mode>,
+    prev_mode: Option<Mode>,
 }
 
 impl DialogBoxBuilder {
@@ -156,7 +144,7 @@ impl DialogBoxBuilder {
             title: self.title,
             index: self.index,
             options: self.options,
-            mode_to_restore: self.mode_to_restore,
+            prev_mode: self.prev_mode,
         }
     }
 
@@ -176,7 +164,7 @@ impl DialogBoxBuilder {
     }
 
     pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.mode_to_restore = Some(app.mode);
+        self.prev_mode = Some(app.mode);
         app.mode = Mode::Overlay;
         self
     }

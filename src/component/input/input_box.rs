@@ -18,12 +18,13 @@ type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), Ap
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
 
 pub struct InputBox {
+    pub draw_area: Rect,
     title: String,
     text_area: TextArea<'static>,
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
-    draw_area: Rect,
-    mode_to_restore: Option<Mode>,
+    prev_mode: Option<Mode>,
+    full_width: bool,
 }
 
 impl InputBox {
@@ -43,8 +44,13 @@ impl InputBox {
             callback,
             error_callback: Box::new(|_, _| {}),
             draw_area: Rect::default(),
-            mode_to_restore: None,
+            prev_mode: None,
+            full_width: false,
         }
+    }
+
+    pub fn text(&self) -> String {
+        self.text_area.lines().join("\n")
     }
 }
 
@@ -70,7 +76,7 @@ impl DrawableComponent for InputBox {
                     // When popping the layer, probably should do the callback, rather than have an
                     // option.
                     app.pop_layer();
-                    if let Some(mode) = self.mode_to_restore {
+                    if let Some(mode) = self.prev_mode {
                         app.mode = mode;
                     }
 
@@ -87,7 +93,7 @@ impl DrawableComponent for InputBox {
             }
             KeyCode::Esc => {
                 app.pop_layer();
-                if let Some(mode) = self.mode_to_restore {
+                if let Some(mode) = self.prev_mode {
                     app.mode = mode;
                 }
             }
@@ -99,11 +105,15 @@ impl DrawableComponent for InputBox {
     }
 
     fn update_layout(&mut self, draw_area: Rect) {
-        self.draw_area = utils::centre_rect(
-            Constraint::Percentage(70),
-            Constraint::Length(self.text_area.lines().len() as u16 + 2),
-            draw_area,
-        );
+        if self.full_width {
+            self.draw_area = draw_area
+        } else {
+            self.draw_area = utils::centre_rect(
+                Constraint::Percentage(70),
+                Constraint::Length(self.text_area.lines().len() as u16 + 2),
+                draw_area,
+            );
+        }
     }
 
     fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
@@ -118,7 +128,7 @@ impl DrawableComponent for InputBox {
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             app.pop_layer();
-            if let Some(mode) = self.mode_to_restore {
+            if let Some(mode) = self.prev_mode {
                 app.mode = mode;
             }
             return EventResult::Consumed;
@@ -148,7 +158,8 @@ pub struct InputBoxBuilder {
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
     draw_area: Rect,
-    mode_to_restore: Option<Mode>,
+    prev_mode: Option<Mode>,
+    full_width: bool,
 }
 
 impl Default for InputBoxBuilder {
@@ -159,7 +170,8 @@ impl Default for InputBoxBuilder {
             callback: Some(Box::new(|_app, _task| Ok(()))),
             error_callback: Box::new(|_app, _err| {}),
             draw_area: Rect::default(),
-            mode_to_restore: None,
+            prev_mode: None,
+            full_width: false,
         }
     }
 }
@@ -172,7 +184,8 @@ impl InputBoxBuilder {
             callback: self.callback,
             error_callback: self.error_callback,
             draw_area: self.draw_area,
-            mode_to_restore: self.mode_to_restore,
+            prev_mode: self.prev_mode,
+            full_width: self.full_width,
         }
     }
 
@@ -214,9 +227,19 @@ impl InputBoxBuilder {
         self
     }
 
+    pub fn prev_mode(mut self, mode: Option<Mode>) -> Self {
+        self.prev_mode = mode;
+        self
+    }
+
     pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.mode_to_restore = Some(app.mode);
+        self.prev_mode = Some(app.mode);
         app.mode = Mode::Overlay;
+        self
+    }
+
+    pub fn full_width(mut self, full_width: bool) -> Self {
+        self.full_width = full_width;
         self
     }
 }

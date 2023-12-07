@@ -25,12 +25,13 @@ use tui::{
 use std::{
     error::Error,
     io::{self, Stdout},
+    time::Duration,
 };
 
 use crate::{
     app::App,
     component::layout::stack_layout::StackLayout,
-    draw::{DrawFrame, DrawableComponent, Drawer, EventResult},
+    draw::{DrawableComponent, Drawer, EventResult},
     logger::Logger,
     screens::main_screen::MainScreenLayer,
 };
@@ -84,8 +85,7 @@ pub fn start_app(
         terminal.draw(|f| {
             let draw_size = f.size();
 
-            let mut draw_frame = DrawFrame::CrosstermFrame(f);
-            let mut drawer = Drawer::new(&mut draw_frame);
+            let mut drawer = Drawer::new(f);
 
             let chunk = Layout::default()
                 .direction(tui::layout::Direction::Vertical)
@@ -104,29 +104,31 @@ pub fn start_app(
 
         // This function blocks
         // TODO: We are probably going to have to implement a Tick system eventually, using mspc
-        match event::read()? {
-            Event::Key(event) => {
-                if event.code == KeyCode::Char('c')
-                    && event.modifiers.contains(KeyModifiers::CONTROL)
-                {
-                    return Ok(());
+        if event::poll(Duration::from_millis(50))? {
+            match event::read()? {
+                Event::Key(event) => {
+                    if event.code == KeyCode::Char('c')
+                        && event.modifiers.contains(KeyModifiers::CONTROL)
+                    {
+                        return Ok(());
+                    }
+                    if EventResult::Ignored == stack_layout.key_event(app, event) {
+                        logger.key_event(app, event);
+                    }
                 }
-                if EventResult::Ignored == stack_layout.key_event(app, event) {
-                    logger.key_event(app, event);
+                Event::Mouse(event) => {
+                    stack_layout.mouse_event(app, event);
                 }
+                Event::Resize(x, y) => {
+                    app.println(format!("{} {}", x, y));
+                }
+                _ => {}
             }
-            Event::Mouse(event) => {
-                stack_layout.mouse_event(app, event);
+            while let Some(callback) = app.callbacks.pop_front() {
+                callback(app, &mut stack_layout);
             }
-            Event::Resize(x, y) => {
-                app.println(format!("{} {}", x, y));
-            }
-            _ => {}
+            logger.update(app.logs.clone());
         }
-        while let Some(callback) = app.callbacks.pop_front() {
-            callback(app, &mut stack_layout);
-        }
-        logger.update(app.logs.clone());
     }
     Ok(())
 }

@@ -1,13 +1,7 @@
 use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
-use tui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    style::Style,
-    text::{Span, Spans, Text},
-    widgets::{Block, Borders, Cell, Row, Table},
-};
-use unicode_segmentation::UnicodeSegmentation;
+use tui::layout::{Constraint, Direction, Layout, Rect};
 
-use std::{char, usize};
+use std::usize;
 
 use crate::{
     app::{App, Mode},
@@ -65,47 +59,20 @@ pub fn handle_key_movement(key_code: KeyCode, index: &mut usize, max_items: usiz
             *index = max_items - 1;
             EventResult::Consumed
         }
-        KeyCode::Char('j') => {
+        KeyCode::Down | KeyCode::Char('j') => {
             if max_items == 0 {
                 return EventResult::Ignored;
             }
-            if *index == max_items - 1 {
-                *index = 0;
-            } else {
-                *index += 1;
-            }
+            *index = (*index + 1).rem_euclid(max_items);
             EventResult::Consumed
         }
-        KeyCode::Down => {
+        KeyCode::Up | KeyCode::Char('k') => {
             if max_items == 0 {
                 return EventResult::Ignored;
             }
-            if *index == max_items - 1 {
-                *index = 0;
-            } else {
-                *index += 1;
-            }
-            EventResult::Consumed
-        }
-        KeyCode::Char('k') => {
-            if max_items == 0 {
-                return EventResult::Ignored;
-            }
-            if *index == 0 {
-                *index = max_items - 1;
-            } else {
-                *index -= 1;
-            }
-            EventResult::Consumed
-        }
-        KeyCode::Up => {
-            if max_items == 0 {
-                return EventResult::Ignored;
-            }
-            if *index == 0 {
-                *index = max_items - 1;
-            } else {
-                *index -= 1;
+            match index.checked_sub(1) {
+                Some(val) => *index = val,
+                None => *index = max_items - 1,
             }
             EventResult::Consumed
         }
@@ -155,116 +122,133 @@ pub fn handle_mouse_movement(
     EventResult::Consumed
 }
 
-pub fn generate_table<'a>(items: Vec<(Span<'a>, Spans<'a>)>, width: usize) -> Table<'a> {
-    Table::new(items.into_iter().map(|(title, content)| {
-        let text = wrap_text(content, width as u16);
-
-        let height = text.height();
-        let cells = vec![Cell::from(title), Cell::from(text)];
-        Row::new(cells).height(height as u16).bottom_margin(1)
-    }))
-}
-
-// FIX: This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
-pub fn wrap_text(line: Spans, width: u16) -> Text {
-    let mut text = Text::default();
-    let mut queue = Vec::new();
-    for span in &line.0 {
-        let mut content = String::new();
-        let style = span.style;
-        for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
-            let is_newline = grapheme.chars().any(|chr| chr == '\n');
-            if is_newline {
-                queue
-                    .into_iter()
-                    .for_each(|x| add_to_current_line(&mut text, x));
-                add_to_current_line(&mut text, Span::styled(content, style));
-                queue = Vec::new();
-                content = String::new();
-                new_blank_line(&mut text);
-            }
-
-            // Insert when encountering a space.
-            let is_whitespace = grapheme.chars().all(&char::is_whitespace);
-            if is_whitespace {
-                if current_width(&text) as u16 + content.len() as u16 != width {
-                    content.push_str(grapheme);
-                }
-                queue
-                    .into_iter()
-                    .for_each(|x| add_to_current_line(&mut text, x));
-                add_to_current_line(&mut text, Span::styled(content, style));
-                queue = Vec::new();
-                content = String::new();
-                continue;
-            }
-            content.push_str(grapheme);
-
-            // If the content exceeds the current length, break the content up
-            if content.len() as u16 == width {
-                queue
-                    .into_iter()
-                    .for_each(|x| add_to_current_line(&mut text, x));
-                add_to_current_line(&mut text, Span::styled(content, style));
-                queue = Vec::new();
-                content = String::new();
-                new_blank_line(&mut text);
-            }
-
-            // If the content + current width exceeds the width make a new line to break it up.
-            if current_width(&text) as u16 + content.len() as u16 > width {
-                new_blank_line(&mut text);
-            }
-        }
-        if !content.is_empty() {
-            queue.push(Span::styled(content, style));
-        }
-    }
-    queue
-        .into_iter()
-        .for_each(|x| add_to_current_line(&mut text, x));
-    if let Some(l) = text.lines.last() {
-        if l.0.is_empty() {
-            text.lines.pop();
-        }
-    }
-    text
-}
-
-fn current_width(text: &Text) -> usize {
-    text.lines.last().map_or(0usize, |x| {
-        x.0.iter().fold(0usize, |mut acc, e| {
-            acc += e.width();
-            acc
-        })
-    })
-}
-
-fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
-    if let Some(last) = text.lines.last_mut() {
-        last.0.push(span);
-    } else {
-        text.lines.push(Spans::from(span));
-    }
-}
-
-fn new_blank_line(text: &mut Text) {
-    text.lines.push(Spans::default());
-}
-
-/// Generates the default block
-pub fn generate_default_block<'a>(title: &'a str, mode: Mode, app: &App) -> Block<'a> {
-    let border_colour = if app.mode == mode {
-        app.theme.selected_border_colour
-    } else {
-        app.theme.default_border_colour
+pub(crate) mod ui {
+    use tui::{
+        style::Style,
+        text::{Line, Span},
+        widgets::{Block, Borders, Cell, Row, Table},
     };
 
-    Block::default()
-        .title(title)
-        .borders(Borders::ALL)
-        .border_type(app.theme.border_style.border_type)
-        .border_style(Style::default().fg(border_colour))
+    use crate::app::{App, Mode};
+
+    use super::wrap;
+
+    pub fn generate_table<'a>(items: Vec<(Span<'a>, Line<'a>)>, width: usize) -> Table<'a> {
+        Table::new(items.into_iter().map(|(title, content)| {
+            let text = wrap::wrap_text(content, width as u16);
+
+            let height = text.height();
+            let cells = vec![Cell::from(title), Cell::from(text)];
+            Row::new(cells).height(height as u16).bottom_margin(1)
+        }))
+    }
+
+    /// Generates the default block
+    pub fn generate_default_block<'a>(app: &App, title: &'a str, mode: Mode) -> Block<'a> {
+        let border_colour = if app.mode == mode {
+            app.theme.selected_border_colour
+        } else {
+            app.theme.default_border_colour
+        };
+
+        Block::default()
+            .title(title)
+            .borders(Borders::ALL)
+            .border_type(app.theme.border_style.border_type)
+            .border_style(Style::default().fg(border_colour))
+    }
+}
+
+mod wrap {
+    use tui::text::{Line, Span, Text};
+    use unicode_segmentation::UnicodeSegmentation;
+
+    // FIX: This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
+    pub fn wrap_text(line: Line, width: u16) -> Text {
+        let mut text = Text::default();
+        let mut queue = Vec::new();
+        for span in &line.spans {
+            let mut content = String::new();
+            let style = span.style;
+            for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
+                let is_newline = grapheme.chars().any(|chr| chr == '\n');
+                if is_newline {
+                    queue
+                        .into_iter()
+                        .for_each(|x| add_to_current_line(&mut text, x));
+                    add_to_current_line(&mut text, Span::styled(content, style));
+                    queue = Vec::new();
+                    content = String::new();
+                    new_blank_line(&mut text);
+                }
+
+                // Insert when encountering a space.
+                let is_whitespace = grapheme.chars().all(&char::is_whitespace);
+                if is_whitespace {
+                    if current_width(&text) as u16 + content.len() as u16 != width {
+                        content.push_str(grapheme);
+                    }
+                    queue
+                        .into_iter()
+                        .for_each(|x| add_to_current_line(&mut text, x));
+                    add_to_current_line(&mut text, Span::styled(content, style));
+                    queue = Vec::new();
+                    content = String::new();
+                    continue;
+                }
+                content.push_str(grapheme);
+
+                // If the content exceeds the current length, break the content up
+                if content.len() as u16 == width {
+                    queue
+                        .into_iter()
+                        .for_each(|x| add_to_current_line(&mut text, x));
+                    add_to_current_line(&mut text, Span::styled(content, style));
+                    queue = Vec::new();
+                    content = String::new();
+                    new_blank_line(&mut text);
+                }
+
+                // If the content + current width exceeds the width make a new line to break it up.
+                if current_width(&text) as u16 + content.len() as u16 > width {
+                    new_blank_line(&mut text);
+                }
+            }
+            if !content.is_empty() {
+                queue.push(Span::styled(content, style));
+            }
+        }
+        queue
+            .into_iter()
+            .for_each(|x| add_to_current_line(&mut text, x));
+        if let Some(l) = text.lines.last() {
+            if l.spans.is_empty() {
+                text.lines.pop();
+            }
+        }
+        text
+    }
+
+    fn current_width(text: &Text) -> usize {
+        text.lines.last().map_or(0usize, |x| {
+            x.spans.iter().fold(0usize, |mut acc, e| {
+                acc += e.width();
+                acc
+            })
+        })
+    }
+
+    fn add_to_current_line<'a>(text: &mut Text<'a>, span: Span<'a>) {
+        if let Some(last) = text.lines.last_mut() {
+            last.spans.push(span);
+        } else {
+            text.lines.push(Line::from(span));
+        }
+    }
+
+    fn new_blank_line(text: &mut Text) {
+        text.lines.push(Line::default());
+    }
 }
 
 #[cfg(test)]

@@ -1,11 +1,8 @@
 use tui::{
-    backend::{CrosstermBackend, TestBackend},
     layout::Rect,
     widgets::{StatefulWidget, Widget},
     Frame,
 };
-
-use std::io::Stdout;
 
 use crate::app::App;
 
@@ -20,7 +17,7 @@ pub trait DrawableComponent {
     /// Draws the component onto the [[Drawer]]
     fn draw(&self, app: &App, drawer: &mut Drawer);
 
-    fn key_event(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> EventResult {
+    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> EventResult {
         EventResult::Ignored
     }
 
@@ -37,13 +34,13 @@ pub trait DrawableComponent {
 
 // How does this even work, mind blown, wait does it give back ownership when it's done, if so
 // that's just really fucking cool.
-pub struct Drawer<'a, 'b, 'c> {
-    backend: &'a mut DrawFrame<'b, 'c>,
+pub struct Drawer<'a, 'b> {
+    frame: &'a mut Frame<'b>,
 }
 
-impl Drawer<'_, '_, '_> {
-    pub fn new<'a, 'b, 'c>(backend: &'a mut DrawFrame<'b, 'c>) -> Drawer<'a, 'b, 'c> {
-        Drawer { backend }
+impl Drawer<'_, '_> {
+    pub fn new<'a, 'b>(frame: &'a mut Frame<'b>) -> Drawer<'a, 'b> {
+        Drawer { frame }
     }
 
     // update_layout works nice for now, but might experiment with adding grids.
@@ -52,7 +49,7 @@ impl Drawer<'_, '_, '_> {
     }
 
     pub fn draw_widget<T: Widget>(&mut self, widget: T, draw_area: Rect) {
-        self.backend.draw_widget(widget, draw_area);
+        self.frame.render_widget(widget, draw_area);
     }
 
     pub fn draw_stateful_widget<T: StatefulWidget>(
@@ -61,55 +58,10 @@ impl Drawer<'_, '_, '_> {
         state: &mut T::State,
         draw_area: Rect,
     ) {
-        self.backend.draw_stateful_widget(widget, state, draw_area);
+        self.frame.render_stateful_widget(widget, draw_area, state);
     }
 
     pub fn set_cursor(&mut self, x: u16, y: u16) {
-        self.backend.set_cursor(x, y);
-    }
-}
-
-pub enum DrawFrame<'a, 'b> {
-    CrosstermFrame(&'a mut Frame<'b, CrosstermBackend<Stdout>>),
-    TestFrame(&'a mut Frame<'b, TestBackend>),
-}
-
-impl DrawFrame<'_, '_> {
-    fn draw_widget<T: Widget>(&mut self, widget: T, draw_area: Rect) {
-        match self {
-            DrawFrame::CrosstermFrame(f) => {
-                f.render_widget(widget, draw_area);
-            }
-            DrawFrame::TestFrame(f) => {
-                f.render_widget(widget, draw_area);
-            }
-        }
-    }
-
-    fn draw_stateful_widget<T: StatefulWidget>(
-        &mut self,
-        widget: T,
-        state: &mut T::State,
-        draw_area: Rect,
-    ) {
-        match self {
-            DrawFrame::CrosstermFrame(f) => {
-                f.render_stateful_widget(widget, draw_area, state);
-            }
-            DrawFrame::TestFrame(f) => {
-                f.render_stateful_widget(widget, draw_area, state);
-            }
-        }
-    }
-
-    fn set_cursor(&mut self, x: u16, y: u16) {
-        match self {
-            DrawFrame::CrosstermFrame(f) => {
-                f.set_cursor(x, y);
-            }
-            DrawFrame::TestFrame(f) => {
-                f.set_cursor(x, y);
-            }
-        }
+        self.frame.set_cursor(x, y);
     }
 }

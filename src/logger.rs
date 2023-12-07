@@ -24,6 +24,7 @@ impl DrawableComponent for Logger {
                 app,
                 &MessageBox::new_by_list(
                     "Log".to_string(),
+                    self.draw_area,
                     |_| {},
                     self.logs
                         .iter()
@@ -46,7 +47,7 @@ impl DrawableComponent for Logger {
             self.opened = false;
             return crate::draw::EventResult::Consumed;
         }
-        if key_code == KeyCode::Char('l') {
+        if key_code == KeyCode::Char('p') {
             self.opened = true;
             return crate::draw::EventResult::Consumed;
         }

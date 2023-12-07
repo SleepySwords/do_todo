@@ -4,7 +4,9 @@ use crate::{
     actions,
     app::{App, Mode},
     component::{
-        completed_list::CompletedList, input::input_box::InputBoxBuilder, task_list::TaskList,
+        completed_list::CompletedList,
+        input::{fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
+        task_list::TaskList,
         viewer::Viewer,
     },
     draw::{DrawableComponent, Drawer, EventResult},
@@ -13,6 +15,8 @@ use crate::{
 };
 use crossterm::event::{KeyCode, MouseEvent};
 use tui::layout::{Constraint, Direction, Layout, Rect};
+
+const MINIMUM_SCREEN: u16 = 100;
 
 pub struct MainScreenLayer {
     task_list: TaskList,
@@ -74,6 +78,21 @@ impl DrawableComponent for MainScreenLayer {
                 app.mode = Mode::CurrentTasks;
                 EventResult::Consumed
             }
+            KeyCode::Char('m') => {
+                let fuzzy = FuzzyBoxBuilder::default()
+                    .title("Test".to_string())
+                    .save_mode(app)
+                    .add_option("Test".to_string(), |app| app.println(String::from("First")))
+                    .add_option("Not test".to_string(), |app| {
+                        app.println(String::from("Second"))
+                    })
+                    .add_option("This is another option".to_string(), |app| {
+                        app.println(String::from("Third"))
+                    })
+                    .build();
+                app.push_layer(fuzzy);
+                EventResult::Consumed
+            }
             KeyCode::Char('2') => {
                 app.mode = Mode::CompletedTasks;
                 EventResult::Consumed
@@ -115,18 +134,32 @@ impl DrawableComponent for MainScreenLayer {
 
     fn update_layout(&mut self, layout: Rect) {
         self.layout = layout;
-        let main_chunk = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(layout);
+        let (task_layout, completed_layout, viewer_layout) = if layout.width < MINIMUM_SCREEN {
+            let main_chunk = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Percentage(30),
+                    Constraint::Percentage(40),
+                    Constraint::Percentage(30),
+                ])
+                .split(layout);
+            (main_chunk[1], main_chunk[2], main_chunk[0])
+        } else {
+            let main_chunk = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .split(layout);
 
-        let layout_chunk = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-            .split(main_chunk[0]);
+            let layout_chunk = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+                .split(main_chunk[0]);
 
-        self.task_list.update_layout(layout_chunk[0]);
-        self.completed_list.update_layout(layout_chunk[1]);
-        self.viewer.update_layout(main_chunk[1]);
+            (layout_chunk[0], layout_chunk[1], main_chunk[1])
+        };
+
+        self.task_list.update_layout(task_layout);
+        self.completed_list.update_layout(completed_layout);
+        self.viewer.update_layout(viewer_layout);
     }
 }
