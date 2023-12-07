@@ -92,7 +92,7 @@ pub struct TaskStore {
     pub tags: BTreeMap<u32, Tag>,
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
-    pub categories: Vec<Category>,
+    // pub categories: Vec<Category>,
     pub auto_sort: bool,
 }
 
