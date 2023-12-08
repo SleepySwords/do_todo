@@ -40,11 +40,17 @@ fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3
             Constraint::Ratio(num, den),
             Constraint::Ratio((den - num) / 2, den),
         ],
-        Constraint::Length(length) => [
-            Constraint::Length((rect_bound - length) / 2),
-            Constraint::Length(length),
-            Constraint::Length((rect_bound - length) / 2),
-        ],
+        Constraint::Length(length) => {
+            let var = match rect_bound.checked_sub(length) {
+                Some(var) => var / 2,
+                _ => 0,
+            };
+            [
+                Constraint::Length(var),
+                Constraint::Length(length),
+                Constraint::Length(var),
+            ]
+        }
         _ => [constraint, constraint, constraint],
     }
 }

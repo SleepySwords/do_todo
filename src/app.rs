@@ -14,7 +14,7 @@ use crate::{
     component::status_line::StatusLine,
     component::task_list::TaskList,
     draw::DrawableComponent,
-    task::{CompletedTask, Tag, Task},
+    task::{CompletedTask, Tag, Task, Category},
     theme::Theme,
 };
 

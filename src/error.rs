@@ -15,6 +15,8 @@ pub enum AppError {
     JsonError(JsonError),
     #[error("YAML parsing error: {0}")]
     YamlError(YamlError),
+    #[error("Key parsing error: {0}")]
+    InvalidKey(String),
 }
 
 impl From<ParseIntError> for AppError {

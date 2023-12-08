@@ -30,6 +30,7 @@ pub struct FuzzyBox {
 
 impl FuzzyBox {
     fn generate_rect(&self, rect: Rect) -> Rect {
+        // FIXME: consider using length of options.
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
 }

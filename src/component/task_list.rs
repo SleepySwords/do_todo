@@ -234,7 +234,7 @@ impl DrawableComponent for TaskList {
             }
             KeyCode::Char('f') => actions::flip_tag_menu(app, *selected_index),
             KeyCode::Char('t') => actions::edit_tag_menu(app, *selected_index),
-            KeyCode::Enter => {
+            KeyCode::Char(' ') => {
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;
                 }
