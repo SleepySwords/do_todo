@@ -69,7 +69,7 @@ impl DrawableComponent for DialogBox {
                 return EventResult::Consumed;
             }
         }
-        utils::handle_key_movement(key_code, &mut self.index, self.options.len());
+        utils::handle_key_movement(&app.theme, key_event, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => {
                 app.pop_layer();

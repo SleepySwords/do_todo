@@ -62,7 +62,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     config::save_data(&app.theme, &app.task_store);
-    println!("{:?}", app.theme.up_key);
 
     if let Err(err) = result {
         eprintln!("{:?}", err);

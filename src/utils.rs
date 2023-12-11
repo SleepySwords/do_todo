@@ -1,8 +1,9 @@
-use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
+use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
 
+use crate::theme::Theme;
 use crate::{
     app::{App, Mode},
     draw::EventResult,
@@ -55,24 +56,29 @@ fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3
     }
 }
 
-pub fn handle_key_movement(key_code: KeyCode, index: &mut usize, max_items: usize) -> EventResult {
-    match key_code {
-        KeyCode::Char('g') => {
+pub fn handle_key_movement(
+    theme: &Theme,
+    key_event: KeyEvent,
+    index: &mut usize,
+    max_items: usize,
+) -> EventResult {
+    match key_event.code {
+        _ if theme.move_top.is_pressed(key_event) => {
             *index = 0;
             EventResult::Consumed
         }
-        KeyCode::Char('G') => {
+        _ if theme.move_bottom.is_pressed(key_event) => {
             *index = max_items - 1;
             EventResult::Consumed
         }
-        KeyCode::Down | KeyCode::Char('j') => {
+        _ if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) => {
             if max_items == 0 {
                 return EventResult::Ignored;
             }
             *index = (*index + 1).rem_euclid(max_items);
             EventResult::Consumed
         }
-        KeyCode::Up | KeyCode::Char('k') => {
+        _ if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) => {
             if max_items == 0 {
                 return EventResult::Ignored;
             }

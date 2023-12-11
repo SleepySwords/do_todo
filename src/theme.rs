@@ -1,6 +1,6 @@
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use itertools::Itertools;
-use serde::de::{Deserializer, Error, Unexpected};
+use serde::de::{Deserializer, Error};
 use serde::{Deserialize, Serialize, Serializer};
 use tui::{
     style::{Color, Modifier, Style},
@@ -20,7 +20,12 @@ pub struct Theme {
     pub low_priority_colour: Color,
 
     pub use_fuzzy: bool,
-    pub up_key: Key,
+    pub up_keys: [Key; 2],
+    pub down_keys: [Key; 2],
+    pub move_up_fuzzy: Key,
+    pub move_down_fuzzy: Key,
+    pub move_top: Key,
+    pub move_bottom: Key,
 
     #[serde(skip_serializing, skip_deserializing)]
     pub border_style: BorderStyle,
@@ -37,9 +42,41 @@ impl Default for Theme {
             low_priority_colour: Color::Green,
             use_fuzzy: true,
             border_style: BorderStyle::default(),
-            up_key: Key {
-                code: KeyCode::Char('u'),
-                modifiers: KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+            up_keys: [
+                Key {
+                    code: KeyCode::Char('k'),
+                    modifiers: KeyModifiers::NONE,
+                },
+                Key {
+                    code: KeyCode::Up,
+                    modifiers: KeyModifiers::NONE,
+                },
+            ],
+            down_keys: [
+                Key {
+                    code: KeyCode::Char('j'),
+                    modifiers: KeyModifiers::NONE,
+                },
+                Key {
+                    code: KeyCode::Down,
+                    modifiers: KeyModifiers::NONE,
+                },
+            ],
+            move_up_fuzzy: Key {
+                code: KeyCode::Char('p'),
+                modifiers: KeyModifiers::CONTROL,
+            },
+            move_down_fuzzy: Key {
+                code: KeyCode::Char('n'),
+                modifiers: KeyModifiers::CONTROL,
+            },
+            move_top: Key {
+                code: KeyCode::Char('g'),
+                modifiers: KeyModifiers::NONE,
+            },
+            move_bottom: Key {
+                code: KeyCode::Char('G'),
+                modifiers: KeyModifiers::NONE,
             },
         }
     }
@@ -79,6 +116,12 @@ pub struct Key {
     modifiers: KeyModifiers,
 }
 
+impl Key {
+    pub fn is_pressed(&self, key_event: KeyEvent) -> bool {
+        return key_event.code == self.code && key_event.modifiers.contains(self.modifiers);
+    }
+}
+
 impl<'de> serde::de::Deserialize<'de> for Key {
     fn deserialize<D>(deserializer: D) -> Result<Key, D::Error>
     where
@@ -94,51 +137,54 @@ impl<'de> serde::ser::Serialize for Key {
     where
         S: Serializer,
     {
+        let modifiers = self
+            .modifiers
+            .iter()
+            .map(|f| match f {
+                KeyModifiers::CONTROL => Ok("ctrl"),
+                KeyModifiers::SHIFT => Ok("shift"),
+                KeyModifiers::ALT => Ok("alt"),
+                KeyModifiers::SUPER => Ok("super"),
+                KeyModifiers::HYPER => Ok("hyper"),
+                KeyModifiers::META => Ok("meta"),
+                _ => Err(serde::ser::Error::custom(NOT_VALID)),
+            })
+            .collect::<Result<Vec<&str>, S::Error>>()?
+            .join("-");
         serializer.serialize_str(
-            &(self
-                .modifiers
-                .iter()
-                .map(|f| match f {
-                    KeyModifiers::CONTROL => Ok("ctrl"),
-                    KeyModifiers::SHIFT => Ok("shift"),
-                    KeyModifiers::ALT => Ok("alt"),
-                    KeyModifiers::SUPER => Ok("super"),
-                    KeyModifiers::HYPER => Ok("hyper"),
-                    KeyModifiers::META => Ok("meta"),
-                    _ => Err(serde::ser::Error::custom(NOT_VALID)),
-                })
-                .collect::<Result<Vec<&str>, S::Error>>()?
-                .join("-")
-                + "-"
-                + &match self.code {
-                    KeyCode::Backspace => "backspace".to_string(),
-                    KeyCode::Enter => "enter".to_string(),
-                    KeyCode::Left => "left".to_string(),
-                    KeyCode::Right => "right".to_string(),
-                    KeyCode::Up => "up".to_string(),
-                    KeyCode::Down => "down".to_string(),
-                    KeyCode::Home => "home".to_string(),
-                    KeyCode::End => "end".to_string(),
-                    KeyCode::PageUp => "pageup".to_string(),
-                    KeyCode::PageDown => "pagedown".to_string(),
-                    KeyCode::Tab => "tab".to_string(),
-                    KeyCode::BackTab => "backtab".to_string(),
-                    KeyCode::Delete => "delete".to_string(),
-                    KeyCode::Insert => "insert".to_string(),
-                    KeyCode::F(num) => format!("f{}", num),
-                    KeyCode::Char(' ') => "space".to_string(),
-                    KeyCode::Char(c) => c.to_string(),
-                    KeyCode::Null => "null".to_string(),
-                    KeyCode::Esc => "esc".to_string(),
-                    KeyCode::CapsLock => "capslock".to_string(),
-                    KeyCode::ScrollLock => "scrolllock".to_string(),
-                    KeyCode::NumLock => "numlock".to_string(),
-                    KeyCode::PrintScreen => "printscreen".to_string(),
-                    KeyCode::Pause => "pause".to_string(),
-                    KeyCode::Menu => "menu".to_string(),
-                    KeyCode::KeypadBegin => "keypadbegin".to_string(),
-                    _ => "Unknown".to_string(),
-                }),
+            &(if modifiers.is_empty() {
+                String::from("")
+            } else {
+                modifiers + "-"
+            } + &match self.code {
+                KeyCode::Backspace => "backspace".to_string(),
+                KeyCode::Enter => "enter".to_string(),
+                KeyCode::Left => "left".to_string(),
+                KeyCode::Right => "right".to_string(),
+                KeyCode::Up => "up".to_string(),
+                KeyCode::Down => "down".to_string(),
+                KeyCode::Home => "home".to_string(),
+                KeyCode::End => "end".to_string(),
+                KeyCode::PageUp => "pageup".to_string(),
+                KeyCode::PageDown => "pagedown".to_string(),
+                KeyCode::Tab => "tab".to_string(),
+                KeyCode::BackTab => "backtab".to_string(),
+                KeyCode::Delete => "delete".to_string(),
+                KeyCode::Insert => "insert".to_string(),
+                KeyCode::F(num) => format!("f{}", num),
+                KeyCode::Char(' ') => "space".to_string(),
+                KeyCode::Char(c) => c.to_string(),
+                KeyCode::Null => "null".to_string(),
+                KeyCode::Esc => "esc".to_string(),
+                KeyCode::CapsLock => "capslock".to_string(),
+                KeyCode::ScrollLock => "scrolllock".to_string(),
+                KeyCode::NumLock => "numlock".to_string(),
+                KeyCode::PrintScreen => "printscreen".to_string(),
+                KeyCode::Pause => "pause".to_string(),
+                KeyCode::Menu => "menu".to_string(),
+                KeyCode::KeypadBegin => "keypadbegin".to_string(),
+                _ => "Unknown".to_string(),
+            }),
         )
     }
 }
@@ -150,8 +196,6 @@ fn from(value: &str) -> Result<Key, AppError> {
     let code = match values
         .next_back()
         .ok_or_else(|| AppError::InvalidKey("Empty key".to_string()))?
-        .to_lowercase()
-        .as_str()
     {
         "backspace" => KeyCode::Backspace,
         "enter" => KeyCode::Enter,

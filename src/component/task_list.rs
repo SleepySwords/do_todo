@@ -244,7 +244,8 @@ impl DrawableComponent for TaskList {
             KeyCode::Char('c') => actions::complete_task(app, &mut selected_index),
             _ => {
                 utils::handle_key_movement(
-                    key_code,
+                    &app.theme,
+                    key_event,
                     &mut selected_index,
                     app.task_store.tasks.len(),
                 );

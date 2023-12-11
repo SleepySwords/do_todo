@@ -121,7 +121,8 @@ impl DrawableComponent for CompletedList {
         let key_code = key_event.code;
 
         let result = utils::handle_key_movement(
-            key_code,
+            &app.theme,
+            key_event,
             &mut self.selected_mut(),
             app.task_store.completed_tasks.len(),
         );

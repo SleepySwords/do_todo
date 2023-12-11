@@ -92,7 +92,7 @@ impl DrawableComponent for FuzzyBox {
     fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
         let code = key_event.code;
         match code {
-            KeyCode::Char('n') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+            _ if app.theme.move_down_fuzzy.is_pressed(key_event) => {
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
@@ -100,7 +100,7 @@ impl DrawableComponent for FuzzyBox {
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
-            KeyCode::Char('p') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+            _ if app.theme.move_up_fuzzy.is_pressed(key_event) => {
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,
