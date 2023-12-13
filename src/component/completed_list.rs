@@ -118,8 +118,6 @@ impl DrawableComponent for CompletedList {
     }
 
     fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
-        let key_code = key_event.code;
-
         let result = utils::handle_key_movement(
             &app.theme,
             key_event,
@@ -131,7 +129,7 @@ impl DrawableComponent for CompletedList {
             return result;
         }
 
-        if let KeyCode::Char('r') = key_code {
+        if app.theme.restore_key.is_pressed(key_event) {
             self.restore_task(app);
             return EventResult::Consumed;
         }

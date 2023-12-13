@@ -31,12 +31,26 @@ pub struct Theme {
     pub move_down_fuzzy: Key,
     pub move_top: Key,
     pub move_bottom: Key,
+    pub move_task_up: Key,
+    pub move_task_down: Key,
 
     pub complete_key: Key,
-    pub flip_progress_key: Key,
     pub edit_key: Key,
     pub delete_key: Key,
     pub add_key: Key,
+    pub flip_progress_key: Key,
+    pub change_priority_key: Key,
+    pub restore_key: Key,
+    pub flip_tag: Key,
+
+    pub tasks_menu_key: Key,
+    pub completed_tasks_menu_key: Key,
+    pub open_help_key: Key,
+    pub quit_key: Key,
+
+    pub sort_key: Key,
+    pub enable_autosort_key: Key,
+    pub tag_menu: Key,
 
     #[serde(with = "border_parser")]
     pub border_style: BorderType,
@@ -60,15 +74,31 @@ impl Default for Theme {
                 Key::new(KeyCode::Char('j'), KeyModifiers::NONE),
                 Key::new(KeyCode::Down, KeyModifiers::NONE),
             ],
+            move_task_up: Key::new(KeyCode::Char('K'), KeyModifiers::NONE),
+            move_task_down: Key::new(KeyCode::Char('J'), KeyModifiers::NONE),
             move_up_fuzzy: Key::new(KeyCode::Char('p'), KeyModifiers::CONTROL),
             move_down_fuzzy: Key::new(KeyCode::Char('n'), KeyModifiers::CONTROL),
             move_top: Key::new(KeyCode::Char('g'), KeyModifiers::NONE),
             move_bottom: Key::new(KeyCode::Char('G'), KeyModifiers::NONE),
+
             complete_key: Key::new(KeyCode::Char('c'), KeyModifiers::NONE),
             flip_progress_key: Key::new(KeyCode::Char(' '), KeyModifiers::NONE),
             edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
             delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
             add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
+            change_priority_key: Key::new(KeyCode::Char('h'), KeyModifiers::NONE),
+            flip_tag: Key::new(KeyCode::Char('f'), KeyModifiers::NONE),
+            restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
+
+            tasks_menu_key: Key::new(KeyCode::Char('1'), KeyModifiers::NONE),
+            completed_tasks_menu_key: Key::new(KeyCode::Char('2'), KeyModifiers::NONE),
+            tag_menu: Key::new(KeyCode::Char('t'), KeyModifiers::NONE),
+            open_help_key: Key::new(KeyCode::Char('x'), KeyModifiers::NONE),
+            quit_key: Key::new(KeyCode::Char('q'), KeyModifiers::NONE),
+
+            enable_autosort_key: Key::new(KeyCode::Char('S'), KeyModifiers::NONE),
+            sort_key: Key::new(KeyCode::Char('s'), KeyModifiers::NONE),
+
             border_style: BorderType::Plain,
         }
     }

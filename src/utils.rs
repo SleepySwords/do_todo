@@ -62,34 +62,30 @@ pub fn handle_key_movement(
     index: &mut usize,
     max_items: usize,
 ) -> EventResult {
-    match key_event.code {
-        _ if theme.move_top.is_pressed(key_event) => {
-            *index = 0;
-            EventResult::Consumed
+    return if theme.move_top.is_pressed(key_event) {
+        *index = 0;
+        EventResult::Consumed
+    } else if theme.move_bottom.is_pressed(key_event) {
+        *index = max_items - 1;
+        EventResult::Consumed
+    } else if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) {
+        if max_items == 0 {
+            return EventResult::Ignored;
         }
-        _ if theme.move_bottom.is_pressed(key_event) => {
-            *index = max_items - 1;
-            EventResult::Consumed
+        *index = (*index + 1).rem_euclid(max_items);
+        EventResult::Consumed
+    } else if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) {
+        if max_items == 0 {
+            return EventResult::Ignored;
         }
-        _ if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) => {
-            if max_items == 0 {
-                return EventResult::Ignored;
-            }
-            *index = (*index + 1).rem_euclid(max_items);
-            EventResult::Consumed
+        match index.checked_sub(1) {
+            Some(val) => *index = val,
+            None => *index = max_items - 1,
         }
-        _ if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) => {
-            if max_items == 0 {
-                return EventResult::Ignored;
-            }
-            match index.checked_sub(1) {
-                Some(val) => *index = val,
-                None => *index = max_items - 1,
-            }
-            EventResult::Consumed
-        }
-        _ => EventResult::Ignored,
-    }
+        EventResult::Consumed
+    } else {
+        EventResult::Ignored
+    };
 }
 
 pub fn handle_mouse_movement(

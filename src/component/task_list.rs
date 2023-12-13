@@ -149,111 +149,104 @@ impl DrawableComponent for TaskList {
     }
 
     fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+        let theme = &app.theme;
         let mut selected_index = self.selected_mut();
-        let key_code = key_event.code;
 
-        match key_code {
-            // Move this to the actions class
-            KeyCode::Char('h') => {
-                if app.task_store.tasks.is_empty() {
-                    return EventResult::Ignored;
-                }
-
-                let old_task = {
-                    let task = &mut app.task_store.tasks[*selected_index];
-
-                    task.priority = task.priority.next_priority();
-
-                    task.clone()
-                };
-
-                if app.task_store.auto_sort {
-                    app.task_store.sort();
-                }
-
-                *selected_index = app
-                    .task_store
-                    .tasks
-                    .iter()
-                    .position(|t| *t == old_task)
-                    .expect("getting task index after sorting")
-                    .to_owned();
+        // Move this to the actions class
+        if theme.change_priority_key.is_pressed(key_event) {
+            if app.task_store.tasks.is_empty() {
+                return EventResult::Ignored;
             }
-            KeyCode::Char('J') => {
-                let tasks_length = app.task_store.tasks.len();
 
-                if tasks_length == 0 {
-                    return EventResult::Ignored;
-                }
+            let old_task = {
+                let task = &mut app.task_store.tasks[*selected_index];
 
-                let new_index = (*selected_index + 1) % tasks_length;
+                task.priority = task.priority.next_priority();
 
-                let task = &app.task_store.tasks[*selected_index];
-                let task_below = &app.task_store.tasks[new_index];
+                task.clone()
+            };
 
-                if task.priority == task_below.priority || !app.task_store.auto_sort {
-                    let task = app.task_store.tasks.remove(*selected_index);
-
-                    app.task_store.tasks.insert(new_index, task);
-                    *selected_index = new_index;
-                }
+            if app.task_store.auto_sort {
+                app.task_store.sort();
             }
-            KeyCode::Char('K') => {
-                let tasks_length = app.task_store.tasks.len();
 
-                if tasks_length == 0 {
-                    return EventResult::Ignored;
-                }
+            *selected_index = app
+                .task_store
+                .tasks
+                .iter()
+                .position(|t| *t == old_task)
+                .expect("getting task index after sorting")
+                .to_owned();
+        } else if theme.move_task_down.is_pressed(key_event) {
+            let tasks_length = app.task_store.tasks.len();
 
-                let new_index =
-                    (*selected_index as isize - 1).rem_euclid(tasks_length as isize) as usize;
+            if tasks_length == 0 {
+                return EventResult::Ignored;
+            }
 
-                let task = &app.task_store.tasks[*selected_index];
-                let task_above = &app.task_store.tasks[new_index];
+            let new_index = (*selected_index + 1) % tasks_length;
 
-                if task.priority == task_above.priority || !app.task_store.auto_sort {
-                    let task = app.task_store.tasks.remove(*selected_index);
+            let task = &app.task_store.tasks[*selected_index];
+            let task_below = &app.task_store.tasks[new_index];
 
-                    app.task_store.tasks.insert(new_index, task);
-                    *selected_index = new_index;
-                }
+            if task.priority == task_below.priority || !app.task_store.auto_sort {
+                let task = app.task_store.tasks.remove(*selected_index);
+
+                app.task_store.tasks.insert(new_index, task);
+                *selected_index = new_index;
             }
-            _ if app.theme.delete_key.is_pressed(key_event) => {
-                actions::open_delete_task_menu(app, self.selected_index.clone())
+        } else if theme.move_task_up.is_pressed(key_event) {
+            let tasks_length = app.task_store.tasks.len();
+
+            if tasks_length == 0 {
+                return EventResult::Ignored;
             }
-            _ if app.theme.edit_key.is_pressed(key_event) => {
-                let index = *selected_index;
-                let edit_box = InputBoxBuilder::default()
-                    .title(String::from("Edit the selected task"))
-                    .fill(app.task_store.tasks[*selected_index].title.as_str())
-                    .callback(move |app, word| {
-                        app.task_store.tasks[index].title = word.trim().to_string();
-                        Ok(())
-                    })
-                    .save_mode(app)
-                    .build();
-                app.push_layer(edit_box)
+
+            let new_index =
+                (*selected_index as isize - 1).rem_euclid(tasks_length as isize) as usize;
+
+            let task = &app.task_store.tasks[*selected_index];
+            let task_above = &app.task_store.tasks[new_index];
+
+            if task.priority == task_above.priority || !app.task_store.auto_sort {
+                let task = app.task_store.tasks.remove(*selected_index);
+
+                app.task_store.tasks.insert(new_index, task);
+                *selected_index = new_index;
             }
-            KeyCode::Char('f') => actions::flip_tag_menu(app, *selected_index),
-            KeyCode::Char('t') => actions::edit_tag_menu(app, *selected_index),
-            _ if app.theme.flip_progress_key.is_pressed(key_event) => {
-                if app.task_store.tasks.is_empty() {
-                    return EventResult::Ignored;
-                }
-                app.task_store.tasks[*selected_index].progress =
-                    !app.task_store.tasks[*selected_index].progress;
+        } else if theme.delete_key.is_pressed(key_event) {
+            actions::open_delete_task_menu(app, self.selected_index.clone())
+        } else if theme.edit_key.is_pressed(key_event) {
+            let index = *selected_index;
+            let edit_box = InputBoxBuilder::default()
+                .title(String::from("Edit the selected task"))
+                .fill(app.task_store.tasks[*selected_index].title.as_str())
+                .callback(move |app, word| {
+                    app.task_store.tasks[index].title = word.trim().to_string();
+                    Ok(())
+                })
+                .save_mode(app)
+                .build();
+            app.push_layer(edit_box)
+        } else if theme.flip_tag.is_pressed(key_event) {
+            actions::flip_tag_menu(app, *selected_index)
+        } else if theme.tag_menu.is_pressed(key_event) {
+            actions::edit_tag_menu(app, *selected_index)
+        } else if theme.flip_progress_key.is_pressed(key_event) {
+            if app.task_store.tasks.is_empty() {
+                return EventResult::Ignored;
             }
-            _ if app.theme.complete_key.is_pressed(key_event) => {
-                actions::complete_task(app, &mut selected_index)
-            }
-            _ => {
-                utils::handle_key_movement(
-                    &app.theme,
-                    key_event,
-                    &mut selected_index,
-                    app.task_store.tasks.len(),
-                );
-            }
+            app.task_store.tasks[*selected_index].progress =
+                !app.task_store.tasks[*selected_index].progress;
+        } else if theme.complete_key.is_pressed(key_event) {
+            actions::complete_task(app, &mut selected_index)
+        } else {
+            utils::handle_key_movement(
+                &theme,
+                key_event,
+                &mut selected_index,
+                app.task_store.tasks.len(),
+            );
         }
         EventResult::Ignored
     }
