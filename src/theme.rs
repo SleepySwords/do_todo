@@ -36,6 +36,7 @@ pub struct Theme {
     pub flip_progress_key: Key,
     pub edit_key: Key,
     pub delete_key: Key,
+    pub add_key: Key,
 
     #[serde(with = "border_parser")]
     pub border_style: BorderType,
@@ -52,57 +53,22 @@ impl Default for Theme {
             low_priority_colour: Color::Rgb(0, 0, 0),
             use_fuzzy: true,
             up_keys: [
-                Key {
-                    code: KeyCode::Char('k'),
-                    modifiers: KeyModifiers::NONE,
-                },
-                Key {
-                    code: KeyCode::Up,
-                    modifiers: KeyModifiers::NONE,
-                },
+                Key::new(KeyCode::Char('k'), KeyModifiers::NONE),
+                Key::new(KeyCode::Up, KeyModifiers::NONE),
             ],
             down_keys: [
-                Key {
-                    code: KeyCode::Char('j'),
-                    modifiers: KeyModifiers::NONE,
-                },
-                Key {
-                    code: KeyCode::Down,
-                    modifiers: KeyModifiers::NONE,
-                },
+                Key::new(KeyCode::Char('j'), KeyModifiers::NONE),
+                Key::new(KeyCode::Down, KeyModifiers::NONE),
             ],
-            move_up_fuzzy: Key {
-                code: KeyCode::Char('p'),
-                modifiers: KeyModifiers::CONTROL,
-            },
-            move_down_fuzzy: Key {
-                code: KeyCode::Char('n'),
-                modifiers: KeyModifiers::CONTROL,
-            },
-            move_top: Key {
-                code: KeyCode::Char('g'),
-                modifiers: KeyModifiers::NONE,
-            },
-            move_bottom: Key {
-                code: KeyCode::Char('G'),
-                modifiers: KeyModifiers::NONE,
-            },
-            complete_key: Key {
-                code: KeyCode::Char('c'),
-                modifiers: KeyModifiers::NONE,
-            },
-            flip_progress_key: Key {
-                code: KeyCode::Char(' '),
-                modifiers: KeyModifiers::NONE,
-            },
-            edit_key: Key {
-                code: KeyCode::Char('e'),
-                modifiers: KeyModifiers::NONE,
-            },
-            delete_key: Key {
-                code: KeyCode::Char('d'),
-                modifiers: KeyModifiers::NONE,
-            },
+            move_up_fuzzy: Key::new(KeyCode::Char('p'), KeyModifiers::CONTROL),
+            move_down_fuzzy: Key::new(KeyCode::Char('n'), KeyModifiers::CONTROL),
+            move_top: Key::new(KeyCode::Char('g'), KeyModifiers::NONE),
+            move_bottom: Key::new(KeyCode::Char('G'), KeyModifiers::NONE),
+            complete_key: Key::new(KeyCode::Char('c'), KeyModifiers::NONE),
+            flip_progress_key: Key::new(KeyCode::Char(' '), KeyModifiers::NONE),
+            edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
+            delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
+            add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
             border_style: BorderType::Plain,
         }
     }

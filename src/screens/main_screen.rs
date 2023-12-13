@@ -60,7 +60,7 @@ impl DrawableComponent for MainScreenLayer {
 
         // Global keybindings
         match key_event.code {
-            KeyCode::Char('a') => {
+            _ if app.theme.add_key.is_pressed(key_event) => {
                 let add_input_dialog = InputBoxBuilder::default()
                     .title(String::from("Add a task"))
                     .callback(move |app, word| {
