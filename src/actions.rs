@@ -57,11 +57,20 @@ fn open_dialog_or_fuzzy(app: &mut App, title: &str, options: Vec<DialogAction>) 
 pub fn open_help_menu(app: &mut App) {
     // Actions that are universal, should use a table?
     let mut actions: Vec<DialogAction> = vec![
-        DialogAction::new(String::from("1    Change to current task window"), |app| {
-            app.mode = Mode::CurrentTasks;
-        }),
         DialogAction::new(
-            String::from("2    Change to completed task window"),
+            format!(
+                "{: <6}Change to current task window",
+                app.theme.tasks_menu_key.to_string()
+            ),
+            |app| {
+                app.mode = Mode::CurrentTasks;
+            },
+        ),
+        DialogAction::new(
+            format!(
+                "{: <6}Change to completed task window",
+                app.theme.completed_tasks_menu_key.to_string()
+            ),
             |app| {
                 app.mode = Mode::CompletedTasks;
             },
@@ -69,7 +78,7 @@ pub fn open_help_menu(app: &mut App) {
     ];
     for ac in app.mode.available_help_actions() {
         actions.push(DialogAction::new(
-            format!("{}    {}", ac.short_hand, ac.description),
+            format!("{: <6}{}", ac.short_hand, ac.description),
             move |app| app.execute_event(KeyEvent::new(ac.character, KeyModifiers::NONE)),
         ));
     }

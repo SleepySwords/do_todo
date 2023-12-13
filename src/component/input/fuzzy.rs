@@ -172,18 +172,6 @@ impl FuzzyBoxBuilder {
         }
     }
 
-    pub fn add_option<F: 'static>(self, name: String, function: F) -> Self
-    where
-        F: FnOnce(&mut App),
-    {
-        self.add_dialog_action(DialogAction::new(name, function))
-    }
-
-    pub fn add_dialog_action(mut self, dialog_action: DialogAction) -> Self {
-        self.options.push(dialog_action);
-        self
-    }
-
     pub fn options(mut self, options: Vec<DialogAction>) -> Self {
         self.options = options;
         self

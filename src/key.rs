@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use itertools::Itertools;
 use serde::de::{Deserializer, Error};
@@ -34,7 +36,7 @@ impl<'de> serde::de::Deserialize<'de> for Key {
         D: Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
-        from(&s).map_err(|_| D::Error::custom("Invalid key"))
+        Key::from(&s).map_err(|_| D::Error::custom("Invalid key"))
     }
 }
 
@@ -43,6 +45,14 @@ impl serde::ser::Serialize for Key {
     where
         S: Serializer,
     {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+const NOT_VALID: &str = "Not a valid key";
+
+impl Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let modifiers = self
             .modifiers
             .iter()
@@ -53,11 +63,11 @@ impl serde::ser::Serialize for Key {
                 KeyModifiers::SUPER => Ok("super"),
                 KeyModifiers::HYPER => Ok("hyper"),
                 KeyModifiers::META => Ok("meta"),
-                _ => Err(serde::ser::Error::custom(NOT_VALID)),
+                _ => Err(std::fmt::Error),
             })
-            .collect::<Result<Vec<&str>, S::Error>>()?
+            .collect::<Result<Vec<&str>, std::fmt::Error>>()?
             .join("-");
-        serializer.serialize_str(
+        f.write_str(
             &(if modifiers.is_empty() {
                 String::from("")
             } else {
@@ -95,59 +105,59 @@ impl serde::ser::Serialize for Key {
     }
 }
 
-const NOT_VALID: &str = "Not a valid key";
-
-fn from(value: &str) -> Result<Key, AppError> {
-    let mut values = value.split('-').collect_vec().into_iter();
-    let code = match values
-        .next_back()
-        .ok_or_else(|| AppError::InvalidKey("Empty key".to_string()))?
-    {
-        "backspace" => KeyCode::Backspace,
-        "enter" => KeyCode::Enter,
-        "left" => KeyCode::Left,
-        "right" => KeyCode::Right,
-        "up" => KeyCode::Up,
-        "down" => KeyCode::Down,
-        "home" => KeyCode::Home,
-        "end" => KeyCode::End,
-        "pageup" => KeyCode::PageUp,
-        "pagedown" => KeyCode::PageDown,
-        "tab" => KeyCode::Tab,
-        "backtab" => KeyCode::BackTab,
-        "delete" => KeyCode::Delete,
-        "insert" => KeyCode::Insert,
-        "null" => KeyCode::Null,
-        "esc" => KeyCode::Esc,
-        "capslock" => KeyCode::CapsLock,
-        "scrolllock" => KeyCode::ScrollLock,
-        "numlock" => KeyCode::NumLock,
-        "printscreen" => KeyCode::PrintScreen,
-        "pause" => KeyCode::Pause,
-        "menu" => KeyCode::Menu,
-        "keypadbegin" => KeyCode::KeypadBegin,
-        "space" => KeyCode::Char(' '),
-        a if a.starts_with('f') && a.len() > 1 => KeyCode::F(
-            a.strip_prefix('f')
-                .ok_or_else(|| AppError::InvalidKey(NOT_VALID.to_string()))?
-                .parse::<u8>()?,
-        ),
-        a => KeyCode::Char(
-            a.chars()
-                .next()
-                .ok_or_else(|| AppError::InvalidKey(NOT_VALID.to_string()))?,
-        ),
-    };
-    let modifiers = values
-        .map(|f| match f.to_lowercase().as_str() {
-            "shift" => Ok(KeyModifiers::SHIFT),
-            "control" | "ctrl" => Ok(KeyModifiers::CONTROL),
-            "alt" => Ok(KeyModifiers::ALT),
-            "super" => Ok(KeyModifiers::SUPER),
-            "hyper" => Ok(KeyModifiers::HYPER),
-            "meta" => Ok(KeyModifiers::META),
-            _ => Err(AppError::InvalidKey(NOT_VALID.to_string())),
-        })
-        .fold_ok(KeyModifiers::NONE, |f, acc| f.union(acc))?;
-    Ok(Key { code, modifiers })
+impl Key {
+    fn from(value: &str) -> Result<Key, AppError> {
+        let mut values = value.split('-').collect_vec().into_iter();
+        let code = match values
+            .next_back()
+            .ok_or_else(|| AppError::InvalidKey("Empty key".to_string()))?
+        {
+            "backspace" => KeyCode::Backspace,
+            "enter" => KeyCode::Enter,
+            "left" => KeyCode::Left,
+            "right" => KeyCode::Right,
+            "up" => KeyCode::Up,
+            "down" => KeyCode::Down,
+            "home" => KeyCode::Home,
+            "end" => KeyCode::End,
+            "pageup" => KeyCode::PageUp,
+            "pagedown" => KeyCode::PageDown,
+            "tab" => KeyCode::Tab,
+            "backtab" => KeyCode::BackTab,
+            "delete" => KeyCode::Delete,
+            "insert" => KeyCode::Insert,
+            "null" => KeyCode::Null,
+            "esc" => KeyCode::Esc,
+            "capslock" => KeyCode::CapsLock,
+            "scrolllock" => KeyCode::ScrollLock,
+            "numlock" => KeyCode::NumLock,
+            "printscreen" => KeyCode::PrintScreen,
+            "pause" => KeyCode::Pause,
+            "menu" => KeyCode::Menu,
+            "keypadbegin" => KeyCode::KeypadBegin,
+            "space" => KeyCode::Char(' '),
+            a if a.starts_with('f') && a.len() > 1 => KeyCode::F(
+                a.strip_prefix('f')
+                    .ok_or_else(|| AppError::InvalidKey(NOT_VALID.to_string()))?
+                    .parse::<u8>()?,
+            ),
+            a => KeyCode::Char(
+                a.chars()
+                    .next()
+                    .ok_or_else(|| AppError::InvalidKey(NOT_VALID.to_string()))?,
+            ),
+        };
+        let modifiers = values
+            .map(|f| match f.to_lowercase().as_str() {
+                "shift" => Ok(KeyModifiers::SHIFT),
+                "control" | "ctrl" => Ok(KeyModifiers::CONTROL),
+                "alt" => Ok(KeyModifiers::ALT),
+                "super" => Ok(KeyModifiers::SUPER),
+                "hyper" => Ok(KeyModifiers::HYPER),
+                "meta" => Ok(KeyModifiers::META),
+                _ => Err(AppError::InvalidKey(NOT_VALID.to_string())),
+            })
+            .fold_ok(KeyModifiers::NONE, |f, acc| f.union(acc))?;
+        Ok(Key { code, modifiers })
+    }
 }

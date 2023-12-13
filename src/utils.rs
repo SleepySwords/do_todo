@@ -166,7 +166,7 @@ pub(crate) mod ui {
         Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .border_type(app.theme.border_style)
+            .border_type(app.theme.border_type)
             .border_style(Style::default().fg(border_colour))
     }
 }

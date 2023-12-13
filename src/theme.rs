@@ -53,7 +53,7 @@ pub struct Theme {
     pub tag_menu: Key,
 
     #[serde(with = "border_parser")]
-    pub border_style: BorderType,
+    pub border_type: BorderType,
 }
 
 impl Default for Theme {
@@ -64,7 +64,7 @@ impl Default for Theme {
             selected_task_colour: Color::LightBlue,
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::LightYellow,
-            low_priority_colour: Color::Rgb(0, 0, 0),
+            low_priority_colour: Color::Green,
             use_fuzzy: true,
             up_keys: [
                 Key::new(KeyCode::Char('k'), KeyModifiers::NONE),
@@ -99,7 +99,7 @@ impl Default for Theme {
             enable_autosort_key: Key::new(KeyCode::Char('S'), KeyModifiers::NONE),
             sort_key: Key::new(KeyCode::Char('s'), KeyModifiers::NONE),
 
-            border_style: BorderType::Plain,
+            border_type: BorderType::Plain,
         }
     }
 }
@@ -114,7 +114,7 @@ impl Theme {
     pub fn styled_block<'a>(&self, title: &'a str, border_color: Color) -> Block<'a> {
         Block::default()
             .borders(Borders::ALL)
-            .border_type(self.border_style)
+            .border_type(self.border_type)
             .title(title)
             .border_style(Style::default().fg(border_color))
     }
