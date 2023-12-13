@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
+use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
@@ -166,7 +166,7 @@ pub(crate) mod ui {
         Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .border_type(app.theme.border_style.border_type)
+            .border_type(app.theme.border_style)
             .border_style(Style::default().fg(border_colour))
     }
 }

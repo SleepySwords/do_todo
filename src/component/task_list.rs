@@ -218,8 +218,10 @@ impl DrawableComponent for TaskList {
                     *selected_index = new_index;
                 }
             }
-            KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
-            KeyCode::Char('e') => {
+            _ if app.theme.delete_key.is_pressed(key_event) => {
+                actions::open_delete_task_menu(app, self.selected_index.clone())
+            }
+            _ if app.theme.edit_key.is_pressed(key_event) => {
                 let index = *selected_index;
                 let edit_box = InputBoxBuilder::default()
                     .title(String::from("Edit the selected task"))
@@ -234,14 +236,16 @@ impl DrawableComponent for TaskList {
             }
             KeyCode::Char('f') => actions::flip_tag_menu(app, *selected_index),
             KeyCode::Char('t') => actions::edit_tag_menu(app, *selected_index),
-            KeyCode::Char(' ') => {
+            _ if app.theme.flip_progress_key.is_pressed(key_event) => {
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;
                 }
                 app.task_store.tasks[*selected_index].progress =
                     !app.task_store.tasks[*selected_index].progress;
             }
-            KeyCode::Char('c') => actions::complete_task(app, &mut selected_index),
+            _ if app.theme.complete_key.is_pressed(key_event) => {
+                actions::complete_task(app, &mut selected_index)
+            }
             _ => {
                 utils::handle_key_movement(
                     &app.theme,

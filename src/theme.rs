@@ -1,22 +1,27 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use itertools::Itertools;
-use serde::de::{Deserializer, Error};
-use serde::{Deserialize, Serialize, Serializer};
+use crossterm::event::{KeyCode, KeyModifiers};
+
+use serde::{Deserialize, Serialize};
 use tui::{
     style::{Color, Modifier, Style},
     widgets::{Block, BorderType, Borders},
 };
 
-use crate::error::AppError;
+use crate::key::Key;
 
 #[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct Theme {
+    #[serde(with = "color_parser")]
     pub default_border_colour: Color,
+    #[serde(with = "color_parser")]
     pub selected_border_colour: Color,
+    #[serde(with = "color_parser")]
     pub selected_task_colour: Color,
+    #[serde(with = "color_parser")]
     pub high_priority_colour: Color,
+    #[serde(with = "color_parser")]
     pub normal_priority_colour: Color,
+    #[serde(with = "color_parser")]
     pub low_priority_colour: Color,
 
     pub use_fuzzy: bool,
@@ -27,8 +32,13 @@ pub struct Theme {
     pub move_top: Key,
     pub move_bottom: Key,
 
-    #[serde(skip_serializing, skip_deserializing)]
-    pub border_style: BorderStyle,
+    pub complete_key: Key,
+    pub flip_progress_key: Key,
+    pub edit_key: Key,
+    pub delete_key: Key,
+
+    #[serde(with = "border_parser")]
+    pub border_style: BorderType,
 }
 
 impl Default for Theme {
@@ -39,9 +49,8 @@ impl Default for Theme {
             selected_task_colour: Color::LightBlue,
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::LightYellow,
-            low_priority_colour: Color::Green,
+            low_priority_colour: Color::Rgb(0, 0, 0),
             use_fuzzy: true,
-            border_style: BorderStyle::default(),
             up_keys: [
                 Key {
                     code: KeyCode::Char('k'),
@@ -78,6 +87,23 @@ impl Default for Theme {
                 code: KeyCode::Char('G'),
                 modifiers: KeyModifiers::NONE,
             },
+            complete_key: Key {
+                code: KeyCode::Char('c'),
+                modifiers: KeyModifiers::NONE,
+            },
+            flip_progress_key: Key {
+                code: KeyCode::Char(' '),
+                modifiers: KeyModifiers::NONE,
+            },
+            edit_key: Key {
+                code: KeyCode::Char('e'),
+                modifiers: KeyModifiers::NONE,
+            },
+            delete_key: Key {
+                code: KeyCode::Char('d'),
+                modifiers: KeyModifiers::NONE,
+            },
+            border_style: BorderType::Plain,
         }
     }
 }
@@ -92,156 +118,56 @@ impl Theme {
     pub fn styled_block<'a>(&self, title: &'a str, border_color: Color) -> Block<'a> {
         Block::default()
             .borders(Borders::ALL)
-            .border_type(self.border_style.border_type)
+            .border_type(self.border_style)
             .title(title)
             .border_style(Style::default().fg(border_color))
     }
 }
 
-pub struct BorderStyle {
-    pub border_type: BorderType,
-}
+mod color_parser {
+    use serde::{Deserialize, Deserializer, Serializer};
+    use tui::style::Color;
 
-impl Default for BorderStyle {
-    fn default() -> Self {
-        BorderStyle {
-            border_type: BorderType::Plain,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Key {
-    code: KeyCode,
-    modifiers: KeyModifiers,
-}
-
-impl Key {
-    pub fn is_pressed(&self, key_event: KeyEvent) -> bool {
-        return key_event.code == self.code && key_event.modifiers.contains(self.modifiers);
-    }
-}
-
-impl<'de> serde::de::Deserialize<'de> for Key {
-    fn deserialize<D>(deserializer: D) -> Result<Key, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: String = Deserialize::deserialize(deserializer)?;
-        from(&s).map_err(|_| D::Error::custom("Invalid key"))
-    }
-}
-
-impl<'de> serde::ser::Serialize for Key {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(colour: &Color, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let modifiers = self
-            .modifiers
-            .iter()
-            .map(|f| match f {
-                KeyModifiers::CONTROL => Ok("ctrl"),
-                KeyModifiers::SHIFT => Ok("shift"),
-                KeyModifiers::ALT => Ok("alt"),
-                KeyModifiers::SUPER => Ok("super"),
-                KeyModifiers::HYPER => Ok("hyper"),
-                KeyModifiers::META => Ok("meta"),
-                _ => Err(serde::ser::Error::custom(NOT_VALID)),
-            })
-            .collect::<Result<Vec<&str>, S::Error>>()?
-            .join("-");
-        serializer.serialize_str(
-            &(if modifiers.is_empty() {
-                String::from("")
-            } else {
-                modifiers + "-"
-            } + &match self.code {
-                KeyCode::Backspace => "backspace".to_string(),
-                KeyCode::Enter => "enter".to_string(),
-                KeyCode::Left => "left".to_string(),
-                KeyCode::Right => "right".to_string(),
-                KeyCode::Up => "up".to_string(),
-                KeyCode::Down => "down".to_string(),
-                KeyCode::Home => "home".to_string(),
-                KeyCode::End => "end".to_string(),
-                KeyCode::PageUp => "pageup".to_string(),
-                KeyCode::PageDown => "pagedown".to_string(),
-                KeyCode::Tab => "tab".to_string(),
-                KeyCode::BackTab => "backtab".to_string(),
-                KeyCode::Delete => "delete".to_string(),
-                KeyCode::Insert => "insert".to_string(),
-                KeyCode::F(num) => format!("f{}", num),
-                KeyCode::Char(' ') => "space".to_string(),
-                KeyCode::Char(c) => c.to_string(),
-                KeyCode::Null => "null".to_string(),
-                KeyCode::Esc => "esc".to_string(),
-                KeyCode::CapsLock => "capslock".to_string(),
-                KeyCode::ScrollLock => "scrolllock".to_string(),
-                KeyCode::NumLock => "numlock".to_string(),
-                KeyCode::PrintScreen => "printscreen".to_string(),
-                KeyCode::Pause => "pause".to_string(),
-                KeyCode::Menu => "menu".to_string(),
-                KeyCode::KeypadBegin => "keypadbegin".to_string(),
-                _ => "Unknown".to_string(),
-            }),
-        )
+        serializer.serialize_str(&colour.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Color, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse::<Color>().map_err(serde::de::Error::custom)
     }
 }
 
-const NOT_VALID: &str = "Not a valid key";
+mod border_parser {
+    use serde::{Deserialize, Deserializer, Serializer};
+    use tui::widgets::BorderType;
 
-fn from(value: &str) -> Result<Key, AppError> {
-    let mut values = value.split("-").collect_vec().into_iter();
-    let code = match values
-        .next_back()
-        .ok_or_else(|| AppError::InvalidKey("Empty key".to_string()))?
+    pub fn serialize<S>(border: &BorderType, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
     {
-        "backspace" => KeyCode::Backspace,
-        "enter" => KeyCode::Enter,
-        "left" => KeyCode::Left,
-        "right" => KeyCode::Right,
-        "up" => KeyCode::Up,
-        "down" => KeyCode::Down,
-        "home" => KeyCode::Home,
-        "end" => KeyCode::End,
-        "pageup" => KeyCode::PageUp,
-        "pagedown" => KeyCode::PageDown,
-        "tab" => KeyCode::Tab,
-        "backtab" => KeyCode::BackTab,
-        "delete" => KeyCode::Delete,
-        "insert" => KeyCode::Insert,
-        "null" => KeyCode::Null,
-        "esc" => KeyCode::Esc,
-        "capslock" => KeyCode::CapsLock,
-        "scrolllock" => KeyCode::ScrollLock,
-        "numlock" => KeyCode::NumLock,
-        "printscreen" => KeyCode::PrintScreen,
-        "pause" => KeyCode::Pause,
-        "menu" => KeyCode::Menu,
-        "keypadbegin" => KeyCode::KeypadBegin,
-        "space" => KeyCode::Char(' '),
-        a if a.starts_with('f') && a.len() > 1 => KeyCode::F(
-            a.strip_prefix('f')
-                .ok_or_else(|| AppError::InvalidKey(NOT_VALID.to_string()))?
-                .parse::<u8>()?,
-        ),
-        a => KeyCode::Char(
-            a.chars()
-                .next()
-                .ok_or_else(|| AppError::InvalidKey(NOT_VALID.to_string()))?,
-        ),
-    };
-    let modifiers = values
-        .map(|f| match f.to_lowercase().as_str() {
-            "shift" => Ok(KeyModifiers::SHIFT),
-            "control" | "ctrl" => Ok(KeyModifiers::CONTROL),
-            "alt" => Ok(KeyModifiers::ALT),
-            "super" => Ok(KeyModifiers::SUPER),
-            "hyper" => Ok(KeyModifiers::HYPER),
-            "meta" => Ok(KeyModifiers::META),
-            _ => Err(AppError::InvalidKey(NOT_VALID.to_string())),
-        })
-        .fold_ok(KeyModifiers::NONE, |f, acc| f.union(acc))?;
-    Ok(Key { code, modifiers })
+        serializer.serialize_str(&border.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<BorderType, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.to_lowercase().as_str() {
+            "plain" => Ok(BorderType::Plain),
+            "rounded" => Ok(BorderType::Rounded),
+            "double" => Ok(BorderType::Double),
+            "thick" => Ok(BorderType::Thick),
+            "quadrantinside" => Ok(BorderType::QuadrantInside),
+            "quadrantoutside" => Ok(BorderType::QuadrantOutside),
+            _ => Err(serde::de::Error::custom("Test")),
+        }
+    }
 }
