@@ -120,35 +120,26 @@ pub fn complete_task(app: &mut App, selected_index: &mut usize) {
     }
 }
 
-pub fn flip_tag_menu(app: &mut App, selected_index: usize) {
-    if app.task_store.tasks.is_empty() {
-        return;
-    }
-
-    let mut tag_options: Vec<DialogAction> = Vec::new();
-
-    // Loops through the tags and adds them to the menu.
-    for (i, tag) in app.task_store.tags.iter() {
-        let moved: u32 = *i;
-        // TODO: Allow for DialogBox to support colours.
-        tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
-            app.task_store.tasks[selected_index].flip_tag(moved);
-        }));
-    }
-
-    tag_options.push(DialogAction::new(
-        String::from("Clear all tags"),
-        move |app| {
-            app.task_store.tasks[selected_index].tags.clear();
-        },
-    ));
-    tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
-
-    open_dialog_or_fuzzy(app, "Add or remove a tag", tag_options);
-}
-
 pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
     let mut tag_options: Vec<DialogAction> = Vec::new();
+
+    if !app.task_store.tasks.is_empty() {
+        // Loops through the tags and adds them to the menu.
+        for (i, tag) in app.task_store.tags.iter() {
+            let moved: u32 = *i;
+            // TODO: Allow for DialogBox to support colours.
+            tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
+                app.task_store.tasks[selected_index].flip_tag(moved);
+            }));
+        }
+
+        tag_options.push(DialogAction::new(
+                String::from("Clear all tags"),
+                move |app| {
+                    app.task_store.tasks[selected_index].tags.clear();
+                },
+        ));
+    }
 
     tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
         let tag_menu = InputBoxBuilder::default()
@@ -161,8 +152,29 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
             .build();
         app.push_layer(tag_menu)
     }));
+
+
+    if !app.task_store.tasks.is_empty() {
+        let mut tag_options: Vec<DialogAction> = Vec::new();
+
+        // Loops through the tags and adds them to the menu.
+        for (i, tag) in app.task_store.tags.iter() {
+            let moved: u32 = *i;
+            // TODO: Allow for DialogBox to support colours.
+            tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
+                app.task_store.tasks[selected_index].flip_tag(moved);
+            }));
+        }
+
+        tag_options.push(DialogAction::new(
+                String::from("Clear all tags"),
+                move |app| {
+                    app.task_store.tasks[selected_index].tags.clear();
+                },
+        ));
+    }
     tag_options.push(DialogAction::new(
-        String::from("Delete a tag"),
+        String::from("Delete a tag (permanently)"),
         move |app| {
             delete_tag_menu(app);
         },

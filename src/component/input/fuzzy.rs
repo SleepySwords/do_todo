@@ -46,7 +46,7 @@ impl DrawableComponent for FuzzyBox {
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_style(app.theme.highlight_dropdown_style())
-        .block(app.theme.styled_block("", Color::Green));
+        .block(app.theme.styled_block("", app.theme.selected_border_colour));
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.list_index));

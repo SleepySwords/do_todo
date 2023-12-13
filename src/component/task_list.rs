@@ -235,7 +235,6 @@ impl DrawableComponent for TaskList {
                     .build();
                 app.push_layer(edit_box)
             }
-            KeyBindings::FlipTag => actions::flip_tag_menu(app, *selected_index),
             KeyBindings::TagMenu => actions::edit_tag_menu(app, *selected_index),
             KeyBindings::FlipProgressKey => {
                 if app.task_store.tasks.is_empty() {
