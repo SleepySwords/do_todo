@@ -3,7 +3,7 @@ use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
 
-use crate::theme::Theme;
+use crate::theme::{KeyBindings, Theme};
 use crate::{
     app::{App, Mode},
     draw::EventResult,
@@ -62,30 +62,34 @@ pub fn handle_key_movement(
     index: &mut usize,
     max_items: usize,
 ) -> EventResult {
-    return if theme.move_top.is_pressed(key_event) {
-        *index = 0;
-        EventResult::Consumed
-    } else if theme.move_bottom.is_pressed(key_event) {
-        *index = max_items - 1;
-        EventResult::Consumed
-    } else if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) {
-        if max_items == 0 {
-            return EventResult::Ignored;
+    match KeyBindings::from_event(theme, key_event) {
+        KeyBindings::MoveTop => {
+            *index = 0;
+            EventResult::Consumed
         }
-        *index = (*index + 1).rem_euclid(max_items);
-        EventResult::Consumed
-    } else if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) {
-        if max_items == 0 {
-            return EventResult::Ignored;
+        KeyBindings::MoveBottom => {
+            *index = max_items - 1;
+            EventResult::Consumed
         }
-        match index.checked_sub(1) {
-            Some(val) => *index = val,
-            None => *index = max_items - 1,
+        KeyBindings::DownKeys => {
+            if max_items == 0 {
+                return EventResult::Ignored;
+            }
+            *index = (*index + 1).rem_euclid(max_items);
+            EventResult::Consumed
         }
-        EventResult::Consumed
-    } else {
-        EventResult::Ignored
-    };
+        KeyBindings::UpKeys => {
+            if max_items == 0 {
+                return EventResult::Ignored;
+            }
+            match index.checked_sub(1) {
+                Some(val) => *index = val,
+                None => *index = max_items - 1,
+            }
+            EventResult::Consumed
+        }
+        _ => EventResult::Ignored,
+    }
 }
 
 pub fn handle_mouse_movement(

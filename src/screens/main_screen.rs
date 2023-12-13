@@ -9,6 +9,7 @@ use crate::{
     },
     draw::{DrawableComponent, Drawer, EventResult},
     task::Task,
+    theme::KeyBindings,
     utils,
 };
 use crossterm::event::MouseEvent;
@@ -57,40 +58,47 @@ impl DrawableComponent for MainScreenLayer {
         }
 
         // Global keybindings
-        return if app.theme.add_key.is_pressed(key_event) {
-            let add_input_dialog = InputBoxBuilder::default()
-                .title(String::from("Add a task"))
-                .callback(move |app, word| {
-                    app.task_store
-                        .add_task(Task::from_string(word.trim().to_string()));
+        return match KeyBindings::from_event(&app.theme, key_event) {
+            KeyBindings::AddKey => {
+                let add_input_dialog = InputBoxBuilder::default()
+                    .title(String::from("Add a task"))
+                    .callback(move |app, word| {
+                        app.task_store
+                            .add_task(Task::from_string(word.trim().to_string()));
 
-                    Ok(())
-                })
-                .save_mode(app)
-                .build();
-            app.push_layer(add_input_dialog);
-            EventResult::Consumed
-        } else if app.theme.tasks_menu_key.is_pressed(key_event) {
-            app.mode = Mode::CurrentTasks;
-            EventResult::Consumed
-        } else if app.theme.completed_tasks_menu_key.is_pressed(key_event) {
-            app.mode = Mode::CompletedTasks;
-            EventResult::Consumed
-        } else if app.theme.open_help_key.is_pressed(key_event) {
-            actions::open_help_menu(app);
-            EventResult::Consumed
-        } else if app.theme.quit_key.is_pressed(key_event) {
-            app.shutdown();
-            EventResult::Consumed
-        } else if app.theme.sort_key.is_pressed(key_event) {
-            app.task_store.sort();
-            EventResult::Consumed
-        } else if app.theme.enable_autosort_key.is_pressed(key_event) {
-            app.task_store.auto_sort = !app.task_store.auto_sort;
-            app.task_store.sort();
-            EventResult::Consumed
-        } else {
-            EventResult::Ignored
+                        Ok(())
+                    })
+                    .save_mode(app)
+                    .build();
+                app.push_layer(add_input_dialog);
+                EventResult::Consumed
+            }
+            KeyBindings::TasksMenuKey => {
+                app.mode = Mode::CurrentTasks;
+                EventResult::Consumed
+            }
+            KeyBindings::CompletedTasksMenuKey => {
+                app.mode = Mode::CompletedTasks;
+                EventResult::Consumed
+            }
+            KeyBindings::OpenHelpKey => {
+                actions::open_help_menu(app);
+                EventResult::Consumed
+            }
+            KeyBindings::QuitKey => {
+                app.shutdown();
+                EventResult::Consumed
+            }
+            KeyBindings::SortKey => {
+                app.task_store.sort();
+                EventResult::Consumed
+            }
+            KeyBindings::EnableAutosortKey => {
+                app.task_store.auto_sort = !app.task_store.auto_sort;
+                app.task_store.sort();
+                EventResult::Consumed
+            }
+            _ => EventResult::Ignored,
         };
     }
 
