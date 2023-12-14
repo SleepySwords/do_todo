@@ -144,13 +144,6 @@ pub fn open_tag_menu(app: &mut App, selected_index: usize) {
                 },
             ));
         }
-
-        tag_options.push(DialogAction::new(
-            String::from("Clear all tags"),
-            move |app| {
-                app.task_store.tasks[selected_index].tags.clear();
-            },
-        ));
     }
 
     tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
@@ -164,6 +157,15 @@ pub fn open_tag_menu(app: &mut App, selected_index: usize) {
             .build();
         app.push_layer(tag_menu)
     }));
+
+    if !app.task_store.tasks.is_empty() {
+        tag_options.push(DialogAction::new(
+            String::from("Clear all tags"),
+            move |app| {
+                app.task_store.tasks[selected_index].tags.clear();
+            },
+        ));
+    }
 
     if !app.task_store.tasks.is_empty() {
         let mut tag_options: Vec<DialogAction> = Vec::new();

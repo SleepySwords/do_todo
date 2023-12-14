@@ -51,17 +51,17 @@ impl DrawableComponent for FuzzyBox<'_> {
         .block(app.theme.styled_block("", app.theme.selected_border_colour));
 
         // FIXME: The colour does not show on the cursor if there is colour in the line :(
-        if self.options[self.list_index]
-            .name
-            .spans
-            .iter()
-            .all(|f| f.style.fg.is_none())
+        if let Some(Some(opt)) = self
+            .active
+            .get(self.list_index)
+            .map(|&id| self.options.get(id))
         {
-            list = list.highlight_style(app.theme.highlight_dropdown_style())
-        } else {
-            list = list.highlight_style(Style::default().add_modifier(Modifier::BOLD))
+            if opt.name.spans.iter().all(|f| f.style.fg.is_none()) {
+                list = list.highlight_style(app.theme.highlight_dropdown_style())
+            } else {
+                list = list.highlight_style(Style::default().add_modifier(Modifier::BOLD))
+            }
         }
-
         let mut list_state = ListState::default();
         list_state.select(Some(self.list_index));
 
