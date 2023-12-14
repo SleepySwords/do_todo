@@ -1,4 +1,3 @@
-
 use tui::{
     layout::Rect,
     style::{Color, Style},

@@ -1,5 +1,5 @@
 use chrono::Local;
-use crossterm::event::{KeyEvent};
+use crossterm::event::KeyEvent;
 use tui::style::Color;
 
 use std::{cell::RefCell, rc::Rc};

@@ -3,8 +3,6 @@ use std::{
     rc::Rc,
 };
 
-
-
 use tui::{
     layout::Rect,
     style::{Color, Modifier, Style},
