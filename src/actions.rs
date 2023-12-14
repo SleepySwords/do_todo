@@ -167,25 +167,6 @@ pub fn open_tag_menu(app: &mut App, selected_index: usize) {
         ));
     }
 
-    if !app.task_store.tasks.is_empty() {
-        let mut tag_options: Vec<DialogAction> = Vec::new();
-
-        // Loops through the tags and adds them to the menu.
-        for (i, tag) in app.task_store.tags.iter() {
-            let moved: u32 = *i;
-            // TODO: Allow for DialogBox to support colours.
-            tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
-                app.task_store.tasks[selected_index].flip_tag(moved);
-            }));
-        }
-
-        tag_options.push(DialogAction::new(
-            String::from("Clear all tags"),
-            move |app| {
-                app.task_store.tasks[selected_index].tags.clear();
-            },
-        ));
-    }
     tag_options.push(DialogAction::new(
         String::from("Delete a tag (permanently)"),
         move |app| {
