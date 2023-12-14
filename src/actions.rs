@@ -246,7 +246,9 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                     colour,
                 },
             );
-            app.task_store.tasks[selected_index].flip_tag(tag_id);
+            if app.task_store.tasks.len() > selected_index {
+                app.task_store.tasks[selected_index].flip_tag(tag_id);
+            }
             Ok(())
         })
         .error_callback(move |app, err| {

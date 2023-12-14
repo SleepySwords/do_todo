@@ -59,7 +59,7 @@ impl DrawableComponent for DialogBox<'_> {
                 .map(ListItem::new)
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_symbol("> ")
+        .highlight_symbol(&app.theme.selected_cursor)
         .block(utils::ui::generate_default_block(
             app,
             self.title.as_str(),

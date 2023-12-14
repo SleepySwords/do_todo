@@ -47,9 +47,10 @@ impl DrawableComponent for FuzzyBox<'_> {
                 // Line every call anyway.
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_symbol("> ")
+        .highlight_symbol(&app.theme.selected_cursor)
         .block(app.theme.styled_block("", app.theme.selected_border_colour));
 
+        // FIXME: The colour does not show on the cursor if there is colour in the line :(
         if self.options[self.list_index]
             .name
             .spans

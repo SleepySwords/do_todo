@@ -53,6 +53,8 @@ pub struct Theme {
 
     #[serde(with = "border_parser")]
     pub border_type: BorderType,
+
+    pub selected_cursor: String,
 }
 
 impl Default for Theme {
@@ -98,6 +100,7 @@ impl Default for Theme {
             sort_key: Key::new(KeyCode::Char('s'), KeyModifiers::NONE),
 
             border_type: BorderType::Plain,
+            selected_cursor: String::from(" > "),
         }
     }
 }
