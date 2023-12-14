@@ -4,6 +4,7 @@ mod component;
 mod config;
 mod draw;
 mod error;
+mod key;
 mod logger;
 mod screens;
 mod task;

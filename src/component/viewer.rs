@@ -4,7 +4,7 @@ use tui::{
     layout::{Constraint, Rect},
     style::Style,
     text::{Line, Span},
-    widgets::{Block, Borders},
+    widgets::Block,
 };
 
 // A viewer of a task/something
@@ -133,10 +133,7 @@ impl DrawableComponent for Viewer {
     fn draw(&self, app: &App, drawer: &mut Drawer) {
         let theme = &app.theme;
         let draw_area = self.area;
-        let block = Block::default()
-            .title("Task information")
-            .borders(Borders::ALL)
-            .border_type(theme.border_style.border_type);
+        let block = theme.styled_block("Task information", theme.default_border_colour);
 
         match app.mode {
             Mode::CurrentTasks => {

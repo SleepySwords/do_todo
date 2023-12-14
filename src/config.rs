@@ -151,7 +151,7 @@ pub fn save_data(theme: &Theme, task_store: &TaskStore) {
     save_to_file(
         dirs::config_local_dir(),
         CONFIG_FILE,
-        || serde_json::to_string(theme),
+        || serde_yaml::to_string(theme),
         "config",
     );
 }

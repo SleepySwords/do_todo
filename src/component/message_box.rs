@@ -85,7 +85,7 @@ impl DrawableComponent for MessageBox {
         let list = list.block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_type(app.theme.border_style.border_type)
+                .border_type(app.theme.border_type)
                 .border_style(style)
                 .title(self.title.as_ref()),
         );

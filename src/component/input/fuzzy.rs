@@ -1,8 +1,7 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
+use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 use itertools::Itertools;
 use tui::{
     layout::{Constraint, Layout, Rect},
-    style::Color,
     text::Line,
     widgets::{Clear, List, ListItem, ListState},
 };
@@ -30,6 +29,7 @@ pub struct FuzzyBox {
 
 impl FuzzyBox {
     fn generate_rect(&self, rect: Rect) -> Rect {
+        // FIXME: consider using length of options.
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
 }
@@ -45,7 +45,7 @@ impl DrawableComponent for FuzzyBox {
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_style(app.theme.highlight_dropdown_style())
-        .block(app.theme.styled_block("", Color::Green));
+        .block(app.theme.styled_block("", app.theme.selected_border_colour));
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.list_index));
@@ -91,15 +91,24 @@ impl DrawableComponent for FuzzyBox {
     fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
         let code = key_event.code;
         match code {
-            KeyCode::Char('n') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+            _ if app.theme.move_down_fuzzy.is_pressed(key_event) => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
             KeyCode::Down => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
-            KeyCode::Char('p') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+            _ if app.theme.move_up_fuzzy.is_pressed(key_event) => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,
@@ -107,6 +116,9 @@ impl DrawableComponent for FuzzyBox {
                 EventResult::Consumed
             }
             KeyCode::Up => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,
@@ -169,18 +181,6 @@ impl FuzzyBoxBuilder {
             list_draw_area: Rect::default(),
             list_index: 0,
         }
-    }
-
-    pub fn add_option<F: 'static>(self, name: String, function: F) -> Self
-    where
-        F: FnOnce(&mut App),
-    {
-        self.add_dialog_action(DialogAction::new(name, function))
-    }
-
-    pub fn add_dialog_action(mut self, dialog_action: DialogAction) -> Self {
-        self.options.push(dialog_action);
-        self
     }
 
     pub fn options(mut self, options: Vec<DialogAction>) -> Self {

@@ -1,8 +1,9 @@
-use crossterm::event::{KeyCode, MouseEvent, MouseEventKind};
+use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
 
+use crate::theme::{KeyBindings, Theme};
 use crate::{
     app::{App, Mode},
     draw::EventResult,
@@ -40,33 +41,44 @@ fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3
             Constraint::Ratio(num, den),
             Constraint::Ratio((den - num) / 2, den),
         ],
-        Constraint::Length(length) => [
-            Constraint::Length((rect_bound - length) / 2),
-            Constraint::Length(length),
-            Constraint::Length((rect_bound - length) / 2),
-        ],
+        Constraint::Length(length) => {
+            let var = match rect_bound.checked_sub(length) {
+                Some(var) => var / 2,
+                _ => 0,
+            };
+            [
+                Constraint::Length(var),
+                Constraint::Length(length),
+                Constraint::Length(var),
+            ]
+        }
         _ => [constraint, constraint, constraint],
     }
 }
 
-pub fn handle_key_movement(key_code: KeyCode, index: &mut usize, max_items: usize) -> EventResult {
-    match key_code {
-        KeyCode::Char('g') => {
+pub fn handle_key_movement(
+    theme: &Theme,
+    key_event: KeyEvent,
+    index: &mut usize,
+    max_items: usize,
+) -> EventResult {
+    match KeyBindings::from_event(theme, key_event) {
+        KeyBindings::MoveTop => {
             *index = 0;
             EventResult::Consumed
         }
-        KeyCode::Char('G') => {
+        KeyBindings::MoveBottom => {
             *index = max_items - 1;
             EventResult::Consumed
         }
-        KeyCode::Down | KeyCode::Char('j') => {
+        KeyBindings::DownKeys => {
             if max_items == 0 {
                 return EventResult::Ignored;
             }
             *index = (*index + 1).rem_euclid(max_items);
             EventResult::Consumed
         }
-        KeyCode::Up | KeyCode::Char('k') => {
+        KeyBindings::UpKeys => {
             if max_items == 0 {
                 return EventResult::Ignored;
             }
@@ -88,6 +100,9 @@ pub fn handle_mouse_movement(
     index: &mut usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> EventResult {
+    if max_items == 0 {
+        return EventResult::Consumed;
+    }
     let offset = row - area.y;
     if let MouseEventKind::ScrollUp = kind {
         if *index != 0 {
@@ -154,7 +169,7 @@ pub(crate) mod ui {
         Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .border_type(app.theme.border_style.border_type)
+            .border_type(app.theme.border_type)
             .border_style(Style::default().fg(border_colour))
     }
 }

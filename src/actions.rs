@@ -1,5 +1,5 @@
 use chrono::Local;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::KeyEvent;
 use tui::style::Color;
 
 use std::{cell::RefCell, rc::Rc};
@@ -12,25 +12,33 @@ use crate::{
         message_box::MessageBox,
     },
     error::AppError,
+    key::Key,
     task::CompletedTask,
 };
 
 // Action class maybe?!!
 pub struct HelpAction<'a> {
-    character: KeyCode,
-    short_hand: &'a str,
+    character: Key,
+    short_hand: String,
     description: &'a str,
 }
 
 impl HelpAction<'_> {
-    pub fn new<'a>(
-        character: KeyCode,
-        short_hand: &'a str,
-        description: &'a str,
-    ) -> HelpAction<'a> {
+    pub fn new(character: Key, description: &str) -> HelpAction<'_> {
         HelpAction {
             character,
-            short_hand,
+            short_hand: character.to_string(),
+            description,
+        }
+    }
+    pub fn new_multiple(character: [Key; 2], description: &str) -> HelpAction<'_> {
+        HelpAction {
+            character: character[0],
+            short_hand: itertools::intersperse(
+                character.iter().map(|f| f.to_string()),
+                " ".to_string(),
+            )
+            .collect::<String>(),
             description,
         }
     }
@@ -57,20 +65,29 @@ fn open_dialog_or_fuzzy(app: &mut App, title: &str, options: Vec<DialogAction>) 
 pub fn open_help_menu(app: &mut App) {
     // Actions that are universal, should use a table?
     let mut actions: Vec<DialogAction> = vec![
-        DialogAction::new(String::from("1    Change to current task window"), |app| {
-            app.mode = Mode::CurrentTasks;
-        }),
         DialogAction::new(
-            String::from("2    Change to completed task window"),
+            format!(
+                "{: <15}Change to current task window",
+                app.theme.tasks_menu_key.to_string()
+            ),
+            |app| {
+                app.mode = Mode::CurrentTasks;
+            },
+        ),
+        DialogAction::new(
+            format!(
+                "{: <15}Change to completed task window",
+                app.theme.completed_tasks_menu_key.to_string()
+            ),
             |app| {
                 app.mode = Mode::CompletedTasks;
             },
         ),
     ];
-    for ac in app.mode.available_help_actions() {
+    for ac in app.mode.available_help_actions(&app.theme) {
         actions.push(DialogAction::new(
-            format!("{}    {}", ac.short_hand, ac.description),
-            move |app| app.execute_event(KeyEvent::new(ac.character, KeyModifiers::NONE)),
+            format!("{: <15}{}", ac.short_hand, ac.description),
+            move |app| app.execute_event(KeyEvent::new(ac.character.code, ac.character.modifiers)),
         ));
     }
 

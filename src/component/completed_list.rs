@@ -1,4 +1,3 @@
-use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Style},
@@ -16,6 +15,7 @@ use crate::{
     app::{App, Mode},
     draw::{DrawableComponent, EventResult},
     task::Task,
+    theme::Theme,
     utils,
 };
 
@@ -42,10 +42,9 @@ impl CompletedList {
         self.selected_index.borrow_mut()
     }
 
-    pub fn available_actions() -> Vec<HelpAction<'static>> {
+    pub fn available_actions(theme: &Theme) -> Vec<HelpAction<'static>> {
         vec![HelpAction::new(
-            KeyCode::Char('r'),
-            "r",
+            theme.restore_key,
             "Restores the selected task",
         )]
     }
@@ -118,10 +117,9 @@ impl DrawableComponent for CompletedList {
     }
 
     fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
-        let key_code = key_event.code;
-
         let result = utils::handle_key_movement(
-            key_code,
+            &app.theme,
+            key_event,
             &mut self.selected_mut(),
             app.task_store.completed_tasks.len(),
         );
@@ -130,7 +128,7 @@ impl DrawableComponent for CompletedList {
             return result;
         }
 
-        if let KeyCode::Char('r') = key_code {
+        if app.theme.restore_key.is_pressed(key_event) {
             self.restore_task(app);
             return EventResult::Consumed;
         }

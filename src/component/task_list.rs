@@ -3,7 +3,6 @@ use std::{
     rc::Rc,
 };
 
-use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -16,6 +15,7 @@ use crate::{
     actions::{self, HelpAction},
     app::{App, Mode},
     draw::{DrawableComponent, EventResult},
+    theme::{KeyBindings, Theme},
     utils::{self, handle_mouse_movement},
 };
 
@@ -42,37 +42,24 @@ impl TaskList {
         self.selected_index.borrow_mut()
     }
 
-    pub fn available_actions() -> Vec<HelpAction<'static>> {
+    pub fn available_actions(theme: &Theme) -> Vec<HelpAction<'static>> {
         vec![
-            HelpAction::new(KeyCode::Char('a'), "a", "Adds a task"),
-            HelpAction::new(KeyCode::Char('c'), "c", "Completes the selected task"),
-            HelpAction::new(KeyCode::Char('d'), "d", "Delete the selected task"),
-            HelpAction::new(KeyCode::Char('e'), "e", "Edits the selected task"),
-            HelpAction::new(KeyCode::Char('f'), "f", "Flip a tag to the selected task"),
+            HelpAction::new(theme.add_key, "Adds a task"),
+            HelpAction::new(theme.complete_key, "Completes the selected task"),
+            HelpAction::new(theme.delete_key, "Delete the selected task"),
+            HelpAction::new(theme.edit_key, "Edits the selected task"),
+            HelpAction::new(theme.flip_tag, "Flip a tag to the selected task"),
+            HelpAction::new(theme.tag_menu, "Add or remove the tags for this project"),
             HelpAction::new(
-                KeyCode::Char('t'),
-                "t",
-                "Add or remove the tags for this project",
-            ),
-            HelpAction::new(
-                KeyCode::Char('h'),
-                "h",
+                theme.change_priority_key,
                 "Gives selected task lower priority",
             ),
-            HelpAction::new(
-                KeyCode::Char('J'),
-                "J",
-                "Moves the task down on the task list",
-            ),
-            HelpAction::new(
-                KeyCode::Char('K'),
-                "K",
-                "Moves the task up on the task list",
-            ),
-            HelpAction::new(KeyCode::Char('j'), "j", "Moves down one task"),
-            HelpAction::new(KeyCode::Char('k'), "k", "Moves up one task"),
-            HelpAction::new(KeyCode::Char('s'), "s", "Sorts tasks (by priority)"),
-            HelpAction::new(KeyCode::Char('S'), "S", "Toggles automatic task sort"),
+            HelpAction::new(theme.move_task_down, "Moves the task down on the task list"),
+            HelpAction::new(theme.move_task_up, "Moves the task up on the task list"),
+            HelpAction::new_multiple(theme.down_keys, "Moves down one task"),
+            HelpAction::new_multiple(theme.down_keys, "Moves up one task"),
+            HelpAction::new(theme.sort_key, "Sorts tasks (by priority)"),
+            HelpAction::new(theme.enable_autosort_key, "Toggles automatic task sort"),
         ]
     }
 }
@@ -149,12 +136,12 @@ impl DrawableComponent for TaskList {
     }
 
     fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+        let theme = &app.theme;
         let mut selected_index = self.selected_mut();
-        let key_code = key_event.code;
 
-        match key_code {
-            // Move this to the actions class
-            KeyCode::Char('h') => {
+        // Move this to the actions class
+        match KeyBindings::from_event(theme, key_event) {
+            KeyBindings::ChangePriorityKey => {
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;
                 }
@@ -179,7 +166,7 @@ impl DrawableComponent for TaskList {
                     .expect("getting task index after sorting")
                     .to_owned();
             }
-            KeyCode::Char('J') => {
+            KeyBindings::MoveTaskDown => {
                 let tasks_length = app.task_store.tasks.len();
 
                 if tasks_length == 0 {
@@ -198,7 +185,7 @@ impl DrawableComponent for TaskList {
                     *selected_index = new_index;
                 }
             }
-            KeyCode::Char('K') => {
+            KeyBindings::MoveTaskUp => {
                 let tasks_length = app.task_store.tasks.len();
 
                 if tasks_length == 0 {
@@ -218,8 +205,10 @@ impl DrawableComponent for TaskList {
                     *selected_index = new_index;
                 }
             }
-            KeyCode::Char('d') => actions::open_delete_task_menu(app, self.selected_index.clone()),
-            KeyCode::Char('e') => {
+            KeyBindings::DeleteKey => {
+                actions::open_delete_task_menu(app, self.selected_index.clone())
+            }
+            KeyBindings::EditKey => {
                 let index = *selected_index;
                 let edit_box = InputBoxBuilder::default()
                     .title(String::from("Edit the selected task"))
@@ -232,25 +221,26 @@ impl DrawableComponent for TaskList {
                     .build();
                 app.push_layer(edit_box)
             }
-            KeyCode::Char('f') => actions::flip_tag_menu(app, *selected_index),
-            KeyCode::Char('t') => actions::edit_tag_menu(app, *selected_index),
-            KeyCode::Enter => {
+            KeyBindings::FlipTag => actions::flip_tag_menu(app, *selected_index),
+            KeyBindings::TagMenu => actions::edit_tag_menu(app, *selected_index),
+            KeyBindings::FlipProgressKey => {
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;
                 }
                 app.task_store.tasks[*selected_index].progress =
                     !app.task_store.tasks[*selected_index].progress;
             }
-            KeyCode::Char('c') => actions::complete_task(app, &mut selected_index),
+            KeyBindings::CompleteKey => actions::complete_task(app, &mut selected_index),
             _ => {
-                utils::handle_key_movement(
-                    key_code,
+                return utils::handle_key_movement(
+                    theme,
+                    key_event,
                     &mut selected_index,
                     app.task_store.tasks.len(),
                 );
             }
         }
-        EventResult::Ignored
+        EventResult::Consumed
     }
 
     fn mouse_event(

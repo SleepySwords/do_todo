@@ -60,7 +60,7 @@ impl DrawableComponent for InputBox {
         let boxes = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.theme.selected_border_colour))
-            .border_type(app.theme.border_style.border_type)
+            .border_type(app.theme.border_type)
             .title(self.title.as_ref());
         let box_area = boxes.inner(self.draw_area);
 

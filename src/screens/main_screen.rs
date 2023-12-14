@@ -4,16 +4,15 @@ use crate::{
     actions,
     app::{App, Mode},
     component::{
-        completed_list::CompletedList,
-        input::{fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
-        task_list::TaskList,
+        completed_list::CompletedList, input::input_box::InputBoxBuilder, task_list::TaskList,
         viewer::Viewer,
     },
     draw::{DrawableComponent, Drawer, EventResult},
     task::Task,
+    theme::KeyBindings,
     utils,
 };
-use crossterm::event::{KeyCode, MouseEvent};
+use crossterm::event::MouseEvent;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
 const MINIMUM_SCREEN: u16 = 100;
@@ -59,8 +58,8 @@ impl DrawableComponent for MainScreenLayer {
         }
 
         // Global keybindings
-        match key_event.code {
-            KeyCode::Char('a') => {
+        return match KeyBindings::from_event(&app.theme, key_event) {
+            KeyBindings::AddKey => {
                 let add_input_dialog = InputBoxBuilder::default()
                     .title(String::from("Add a task"))
                     .callback(move |app, word| {
@@ -74,48 +73,33 @@ impl DrawableComponent for MainScreenLayer {
                 app.push_layer(add_input_dialog);
                 EventResult::Consumed
             }
-            KeyCode::Char('1') => {
+            KeyBindings::TasksMenuKey => {
                 app.mode = Mode::CurrentTasks;
                 EventResult::Consumed
             }
-            KeyCode::Char('m') => {
-                let fuzzy = FuzzyBoxBuilder::default()
-                    .title("Test".to_string())
-                    .save_mode(app)
-                    .add_option("Test".to_string(), |app| app.println(String::from("First")))
-                    .add_option("Not test".to_string(), |app| {
-                        app.println(String::from("Second"))
-                    })
-                    .add_option("This is another option".to_string(), |app| {
-                        app.println(String::from("Third"))
-                    })
-                    .build();
-                app.push_layer(fuzzy);
-                EventResult::Consumed
-            }
-            KeyCode::Char('2') => {
+            KeyBindings::CompletedTasksMenuKey => {
                 app.mode = Mode::CompletedTasks;
                 EventResult::Consumed
             }
-            KeyCode::Char('x') => {
+            KeyBindings::OpenHelpKey => {
                 actions::open_help_menu(app);
                 EventResult::Consumed
             }
-            KeyCode::Char('q') => {
+            KeyBindings::QuitKey => {
                 app.shutdown();
                 EventResult::Consumed
             }
-            KeyCode::Char('s') => {
+            KeyBindings::SortKey => {
                 app.task_store.sort();
                 EventResult::Consumed
             }
-            KeyCode::Char('S') => {
+            KeyBindings::EnableAutosortKey => {
                 app.task_store.auto_sort = !app.task_store.auto_sort;
                 app.task_store.sort();
                 EventResult::Consumed
             }
             _ => EventResult::Ignored,
-        }
+        };
     }
 
     fn mouse_event(
