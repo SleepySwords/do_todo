@@ -48,8 +48,10 @@ impl TaskList {
             HelpAction::new(theme.complete_key, "Completes the selected task"),
             HelpAction::new(theme.delete_key, "Delete the selected task"),
             HelpAction::new(theme.edit_key, "Edits the selected task"),
-            HelpAction::new(theme.flip_tag, "Flip a tag to the selected task"),
-            HelpAction::new(theme.tag_menu, "Add or remove the tags for this project"),
+            HelpAction::new(
+                theme.tag_menu,
+                "Add or remove the tags from this task or project",
+            ),
             HelpAction::new(
                 theme.change_priority_key,
                 "Gives selected task lower priority",
@@ -221,8 +223,7 @@ impl DrawableComponent for TaskList {
                     .build();
                 app.push_layer(edit_box)
             }
-            KeyBindings::FlipTag => actions::flip_tag_menu(app, *selected_index),
-            KeyBindings::TagMenu => actions::edit_tag_menu(app, *selected_index),
+            KeyBindings::TagMenu => actions::open_tag_menu(app, *selected_index),
             KeyBindings::FlipProgressKey => {
                 if app.task_store.tasks.is_empty() {
                     return EventResult::Ignored;

@@ -12,6 +12,10 @@ use crate::{
 
 fn add_tag(app: &mut App, stack_layout: &mut StackLayout, name: &str, colour: &str) {
     input_char('t', app, stack_layout);
+    input_code(KeyCode::Up, app, stack_layout);
+    input_code(KeyCode::Up, app, stack_layout);
+    input_code(KeyCode::Up, app, stack_layout);
+    input_code(KeyCode::Up, app, stack_layout);
     input_code(KeyCode::Enter, app, stack_layout);
 
     name.chars()
@@ -138,7 +142,8 @@ fn test_tag_removal() {
     assert_eq!(app.task_store.tags.len(), 1);
 
     input_char('t', &mut app, &mut stack_layout);
-    input_code(KeyCode::Down, &mut app, &mut stack_layout);
+    input_code(KeyCode::Up, &mut app, &mut stack_layout);
+    input_code(KeyCode::Up, &mut app, &mut stack_layout);
     input_code(KeyCode::Enter, &mut app, &mut stack_layout);
     input_code(KeyCode::Enter, &mut app, &mut stack_layout);
     input_code(KeyCode::Enter, &mut app, &mut stack_layout);
@@ -163,12 +168,12 @@ fn test_flip_tag() {
         auto_sort: false,
     });
 
-    input_char('f', &mut app, &mut stack_layout);
+    input_char('t', &mut app, &mut stack_layout);
     input_code(KeyCode::Enter, &mut app, &mut stack_layout);
 
     assert_eq!(app.task_store.tasks[0].tags.len(), 1);
 
-    input_char('f', &mut app, &mut stack_layout);
+    input_char('t', &mut app, &mut stack_layout);
     input_code(KeyCode::Enter, &mut app, &mut stack_layout);
 
     assert_eq!(app.task_store.tasks[0].tags.len(), 0);

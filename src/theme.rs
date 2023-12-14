@@ -41,7 +41,6 @@ pub struct Theme {
     pub flip_progress_key: Key,
     pub change_priority_key: Key,
     pub restore_key: Key,
-    pub flip_tag: Key,
 
     pub tasks_menu_key: Key,
     pub completed_tasks_menu_key: Key,
@@ -54,6 +53,8 @@ pub struct Theme {
 
     #[serde(with = "border_parser")]
     pub border_type: BorderType,
+
+    pub selected_cursor: String,
 }
 
 impl Default for Theme {
@@ -87,7 +88,6 @@ impl Default for Theme {
             delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
             add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
             change_priority_key: Key::new(KeyCode::Char('h'), KeyModifiers::NONE),
-            flip_tag: Key::new(KeyCode::Char('f'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
             tasks_menu_key: Key::new(KeyCode::Char('1'), KeyModifiers::NONE),
@@ -100,6 +100,7 @@ impl Default for Theme {
             sort_key: Key::new(KeyCode::Char('s'), KeyModifiers::NONE),
 
             border_type: BorderType::Plain,
+            selected_cursor: String::from(" > "),
         }
     }
 }
@@ -108,7 +109,7 @@ impl Theme {
     pub fn highlight_dropdown_style(&self) -> Style {
         Style::default()
             .add_modifier(Modifier::BOLD)
-            .fg(tui::style::Color::LightMagenta)
+            .fg(self.selected_task_colour)
     }
 
     pub fn styled_block<'a>(&self, title: &'a str, border_color: Color) -> Block<'a> {
@@ -184,7 +185,6 @@ pub enum KeyBindings {
     DeleteKey,
     AddKey,
     ChangePriorityKey,
-    FlipTag,
     RestoreKey,
 
     TasksMenuKey,
@@ -243,9 +243,6 @@ impl KeyBindings {
         }
         if theme.change_priority_key.is_pressed(event) {
             return KeyBindings::ChangePriorityKey;
-        }
-        if theme.flip_tag.is_pressed(event) {
-            return KeyBindings::FlipTag;
         }
         if theme.restore_key.is_pressed(event) {
             return KeyBindings::RestoreKey;

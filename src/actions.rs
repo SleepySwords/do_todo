@@ -1,6 +1,6 @@
 use chrono::Local;
 use crossterm::event::KeyEvent;
-use tui::style::Color;
+use tui::style::{Color, Style};
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -44,7 +44,7 @@ impl HelpAction<'_> {
     }
 }
 
-fn open_dialog_or_fuzzy(app: &mut App, title: &str, options: Vec<DialogAction>) {
+fn open_dialog_or_fuzzy(app: &mut App, title: &str, options: Vec<DialogAction<'static>>) {
     if app.theme.use_fuzzy {
         let fuzzy = FuzzyBoxBuilder::default()
             .title(title.to_string())
@@ -128,35 +128,23 @@ pub fn complete_task(app: &mut App, selected_index: &mut usize) {
     }
 }
 
-pub fn flip_tag_menu(app: &mut App, selected_index: usize) {
-    if app.task_store.tasks.is_empty() {
-        return;
-    }
-
+pub fn open_tag_menu(app: &mut App, selected_index: usize) {
     let mut tag_options: Vec<DialogAction> = Vec::new();
 
-    // Loops through the tags and adds them to the menu.
-    for (i, tag) in app.task_store.tags.iter() {
-        let moved: u32 = *i;
-        // TODO: Allow for DialogBox to support colours.
-        tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
-            app.task_store.tasks[selected_index].flip_tag(moved);
-        }));
+    if !app.task_store.tasks.is_empty() {
+        // Loops through the tags and adds them to the menu.
+        for (i, tag) in app.task_store.tags.iter() {
+            let moved: u32 = *i;
+            // TODO: Allow for DialogBox to support colours.
+            tag_options.push(DialogAction::styled(
+                String::from(&tag.name),
+                Style::default().fg(tag.colour),
+                move |app| {
+                    app.task_store.tasks[selected_index].flip_tag(moved);
+                },
+            ));
+        }
     }
-
-    tag_options.push(DialogAction::new(
-        String::from("Clear all tags"),
-        move |app| {
-            app.task_store.tasks[selected_index].tags.clear();
-        },
-    ));
-    tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
-
-    open_dialog_or_fuzzy(app, "Add or remove a tag", tag_options);
-}
-
-pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
-    let mut tag_options: Vec<DialogAction> = Vec::new();
 
     tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
         let tag_menu = InputBoxBuilder::default()
@@ -169,8 +157,18 @@ pub fn edit_tag_menu(app: &mut App, selected_index: usize) {
             .build();
         app.push_layer(tag_menu)
     }));
+
+    if !app.task_store.tasks.is_empty() {
+        tag_options.push(DialogAction::new(
+            String::from("Clear all tags"),
+            move |app| {
+                app.task_store.tasks[selected_index].tags.clear();
+            },
+        ));
+    }
+
     tag_options.push(DialogAction::new(
-        String::from("Delete a tag"),
+        String::from("Delete a tag (permanently)"),
         move |app| {
             delete_tag_menu(app);
         },
@@ -239,7 +237,9 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                     colour,
                 },
             );
-            app.task_store.tasks[selected_index].flip_tag(tag_id);
+            if app.task_store.tasks.len() > selected_index {
+                app.task_store.tasks[selected_index].flip_tag(tag_id);
+            }
             Ok(())
         })
         .error_callback(move |app, err| {

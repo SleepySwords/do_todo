@@ -2,6 +2,7 @@ use crossterm::event::{KeyCode, MouseEventKind};
 
 use tui::{
     layout::{Constraint, Rect},
+    style::{Modifier, Style},
     text::Line,
     widgets::{Clear, List, ListItem, ListState},
 };
@@ -14,46 +15,67 @@ use crate::{
 
 type DialogCallback = Box<dyn FnOnce(&mut App)>;
 
-pub struct DialogAction {
-    pub name: String,
+pub struct DialogAction<'a> {
+    pub name: Line<'a>,
     pub function: Option<DialogCallback>,
 }
 
-impl DialogAction {
-    pub fn new<F: 'static>(name: String, function: F) -> DialogAction
+impl DialogAction<'_> {
+    pub fn new<F: 'static>(name: String, function: F) -> DialogAction<'static>
     where
         F: FnOnce(&mut App),
     {
         DialogAction {
-            name,
+            name: Line::raw(name),
+            function: Some(Box::new(function)),
+        }
+    }
+
+    pub fn styled<F: 'static>(name: String, style: Style, function: F) -> DialogAction<'static>
+    where
+        F: FnOnce(&mut App),
+    {
+        DialogAction {
+            name: Line::styled(name, style),
             function: Some(Box::new(function)),
         }
     }
 }
 
-pub struct DialogBox {
+pub struct DialogBox<'a> {
     draw_area: Rect,
     title: String,
     index: usize,
-    options: Vec<DialogAction>,
+    options: Vec<DialogAction<'a>>,
     prev_mode: Option<Mode>,
 }
 
-impl DrawableComponent for DialogBox {
+impl DrawableComponent for DialogBox<'_> {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let list = List::new(
+        let mut list = List::new(
             self.options
                 .iter()
-                .map(|action| action.name.as_str())
-                .map(|action| ListItem::new(Line::from(action)))
+                .map(|action| action.name.clone())
+                .map(ListItem::new)
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_style(app.theme.highlight_dropdown_style())
+        .highlight_symbol(&app.theme.selected_cursor)
         .block(utils::ui::generate_default_block(
             app,
             self.title.as_str(),
             Mode::Overlay,
         ));
+
+        if self.options[self.index]
+            .name
+            .spans
+            .iter()
+            .all(|f| f.style.fg.is_none())
+        {
+            list = list.highlight_style(app.theme.highlight_dropdown_style())
+        } else {
+            list = list.highlight_style(Style::default().add_modifier(Modifier::BOLD))
+        }
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.index));
@@ -129,16 +151,16 @@ impl DrawableComponent for DialogBox {
 }
 
 #[derive(Default)]
-pub struct DialogBoxBuilder {
+pub struct DialogBoxBuilder<'a> {
     draw_area: Rect,
     title: String,
     index: usize,
-    options: Vec<DialogAction>,
+    options: Vec<DialogAction<'a>>,
     prev_mode: Option<Mode>,
 }
 
-impl DialogBoxBuilder {
-    pub fn build(self) -> DialogBox {
+impl<'a> DialogBoxBuilder<'a> {
+    pub fn build(self) -> DialogBox<'a> {
         DialogBox {
             draw_area: self.draw_area,
             title: self.title,
@@ -148,12 +170,12 @@ impl DialogBoxBuilder {
         }
     }
 
-    pub fn add_option(mut self, dialog_action: DialogAction) -> Self {
+    pub fn add_option(mut self, dialog_action: DialogAction<'a>) -> Self {
         self.options.push(dialog_action);
         self
     }
 
-    pub fn options(mut self, options: Vec<DialogAction>) -> Self {
+    pub fn options(mut self, options: Vec<DialogAction<'a>>) -> Self {
         self.options = options;
         self
     }

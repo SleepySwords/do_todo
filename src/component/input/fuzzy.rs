@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 use itertools::Itertools;
 use tui::{
     layout::{Constraint, Layout, Rect},
-    text::Line,
+    style::{Modifier, Style},
     widgets::{Clear, List, ListItem, ListState},
 };
 
@@ -17,36 +17,51 @@ use super::{
     input_box::{InputBox, InputBoxBuilder},
 };
 
-pub struct FuzzyBox {
+pub struct FuzzyBox<'a> {
     draw_area: Rect,
     input: InputBox,
     active: Vec<usize>,
     list_draw_area: Rect,
     list_index: usize,
-    options: Vec<DialogAction>,
+    options: Vec<DialogAction<'a>>,
     prev_mode: Option<Mode>,
 }
 
-impl FuzzyBox {
+impl FuzzyBox<'_> {
     fn generate_rect(&self, rect: Rect) -> Rect {
         // FIXME: consider using length of options.
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
 }
 
-impl DrawableComponent for FuzzyBox {
+impl DrawableComponent for FuzzyBox<'_> {
     fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
         self.input.draw(app, drawer);
-        let list = List::new(
+        let mut list = List::new(
             self.active
                 .iter()
-                .map(|&id| self.options[id].name.as_str())
-                .map(|name| ListItem::new(Line::from(name)))
+                .map(|&id| ListItem::new(self.options[id].name.clone())) // NOTE: This should
+                // probably be fine, as
+                // there would have to be
+                // a construction of a
+                // Line every call anyway.
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_style(app.theme.highlight_dropdown_style())
+        .highlight_symbol(&app.theme.selected_cursor)
         .block(app.theme.styled_block("", app.theme.selected_border_colour));
 
+        // FIXME: The colour does not show on the cursor if there is colour in the line :(
+        if let Some(Some(opt)) = self
+            .active
+            .get(self.list_index)
+            .map(|&id| self.options.get(id))
+        {
+            if opt.name.spans.iter().all(|f| f.style.fg.is_none()) {
+                list = list.highlight_style(app.theme.highlight_dropdown_style())
+            } else {
+                list = list.highlight_style(Style::default().add_modifier(Modifier::BOLD))
+            }
+        }
         let mut list_state = ListState::default();
         list_state.select(Some(self.list_index));
 
@@ -147,7 +162,14 @@ impl DrawableComponent for FuzzyBox {
                 self.active.clear();
                 self.list_index = 0;
                 for (i, ele) in self.options.iter().enumerate() {
-                    if ele.name.to_ascii_lowercase().contains(&input) {
+                    // FIXME: Might be better to store as a seperate variable for this.
+                    let name = ele
+                        .name
+                        .spans
+                        .iter()
+                        .map(|sp| sp.content.clone())
+                        .collect::<String>();
+                    if name.to_ascii_lowercase().contains(&input) {
                         self.active.push(i)
                     }
                 }
@@ -158,15 +180,15 @@ impl DrawableComponent for FuzzyBox {
 }
 
 #[derive(Default)]
-pub struct FuzzyBoxBuilder {
+pub struct FuzzyBoxBuilder<'a> {
     draw_area: Rect,
     title: String,
-    options: Vec<DialogAction>,
+    options: Vec<DialogAction<'a>>,
     prev_mode: Option<Mode>,
 }
 
-impl FuzzyBoxBuilder {
-    pub fn build(self) -> FuzzyBox {
+impl<'a> FuzzyBoxBuilder<'a> {
+    pub fn build(self) -> FuzzyBox<'a> {
         let active = (0..self.options.len()).collect_vec();
         FuzzyBox {
             draw_area: self.draw_area,
@@ -183,7 +205,7 @@ impl FuzzyBoxBuilder {
         }
     }
 
-    pub fn options(mut self, options: Vec<DialogAction>) -> Self {
+    pub fn options(mut self, options: Vec<DialogAction<'a>>) -> Self {
         self.options = options;
         self
     }
