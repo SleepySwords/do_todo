@@ -1,8 +1,6 @@
 use chrono::Local;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use tui::style::{Color, Style};
 use crossterm::event::KeyEvent;
-use tui::style::Color;
+use tui::style::{Color, Style};
 
 use std::{cell::RefCell, rc::Rc};
 
