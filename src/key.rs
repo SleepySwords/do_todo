@@ -1,3 +1,4 @@
+// FIXME: Refactor
 use std::fmt::Display;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
