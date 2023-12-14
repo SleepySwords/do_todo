@@ -2,7 +2,6 @@ use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 use itertools::Itertools;
 use tui::{
     layout::{Constraint, Layout, Rect},
-    style::Color,
     text::Line,
     widgets::{Clear, List, ListItem, ListState},
 };
@@ -46,7 +45,7 @@ impl DrawableComponent for FuzzyBox {
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_style(app.theme.highlight_dropdown_style())
-        .block(app.theme.styled_block("", Color::Green));
+        .block(app.theme.styled_block("", app.theme.selected_border_colour));
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.list_index));
@@ -93,14 +92,23 @@ impl DrawableComponent for FuzzyBox {
         let code = key_event.code;
         match code {
             _ if app.theme.move_down_fuzzy.is_pressed(key_event) => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
             KeyCode::Down => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
             _ if app.theme.move_up_fuzzy.is_pressed(key_event) => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,
@@ -108,6 +116,9 @@ impl DrawableComponent for FuzzyBox {
                 EventResult::Consumed
             }
             KeyCode::Up => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,

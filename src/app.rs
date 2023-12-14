@@ -131,10 +131,10 @@ impl Default for Mode {
 }
 
 impl Mode {
-    pub fn available_help_actions(&self) -> Vec<HelpAction> {
+    pub fn available_help_actions(&self, theme: &Theme) -> Vec<HelpAction> {
         match self {
-            Mode::CurrentTasks => TaskList::available_actions(),
-            Mode::CompletedTasks => CompletedList::available_actions(),
+            Mode::CurrentTasks => TaskList::available_actions(theme),
+            Mode::CompletedTasks => CompletedList::available_actions(theme),
             Mode::Overlay => vec![],
         }
     }
