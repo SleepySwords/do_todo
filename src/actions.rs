@@ -1,6 +1,8 @@
 use chrono::Local;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tui::style::{Color, Style};
+use crossterm::event::KeyEvent;
+use tui::style::Color;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -12,25 +14,33 @@ use crate::{
         message_box::MessageBox,
     },
     error::AppError,
+    key::Key,
     task::CompletedTask,
 };
 
 // Action class maybe?!!
 pub struct HelpAction<'a> {
-    character: KeyCode,
-    short_hand: &'a str,
+    character: Key,
+    short_hand: String,
     description: &'a str,
 }
 
 impl HelpAction<'_> {
-    pub fn new<'a>(
-        character: KeyCode,
-        short_hand: &'a str,
-        description: &'a str,
-    ) -> HelpAction<'a> {
+    pub fn new(character: Key, description: &str) -> HelpAction<'_> {
         HelpAction {
             character,
-            short_hand,
+            short_hand: character.to_string(),
+            description,
+        }
+    }
+    pub fn new_multiple(character: [Key; 2], description: &str) -> HelpAction<'_> {
+        HelpAction {
+            character: character[0],
+            short_hand: itertools::intersperse(
+                character.iter().map(|f| f.to_string()),
+                " ".to_string(),
+            )
+            .collect::<String>(),
             description,
         }
     }
@@ -59,7 +69,7 @@ pub fn open_help_menu(app: &mut App) {
     let mut actions: Vec<DialogAction> = vec![
         DialogAction::new(
             format!(
-                "{: <6}Change to current task window",
+                "{: <15}Change to current task window",
                 app.theme.tasks_menu_key.to_string()
             ),
             |app| {
@@ -68,7 +78,7 @@ pub fn open_help_menu(app: &mut App) {
         ),
         DialogAction::new(
             format!(
-                "{: <6}Change to completed task window",
+                "{: <15}Change to completed task window",
                 app.theme.completed_tasks_menu_key.to_string()
             ),
             |app| {
@@ -76,10 +86,10 @@ pub fn open_help_menu(app: &mut App) {
             },
         ),
     ];
-    for ac in app.mode.available_help_actions() {
+    for ac in app.mode.available_help_actions(&app.theme) {
         actions.push(DialogAction::new(
-            format!("{: <6}{}", ac.short_hand, ac.description),
-            move |app| app.execute_event(KeyEvent::new(ac.character, KeyModifiers::NONE)),
+            format!("{: <15}{}", ac.short_hand, ac.description),
+            move |app| app.execute_event(KeyEvent::new(ac.character.code, ac.character.modifiers)),
         ));
     }
 

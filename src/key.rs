@@ -8,7 +8,7 @@ use serde::{Deserialize, Serializer};
 
 use crate::error::AppError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Key {
     pub code: KeyCode,
     pub modifiers: KeyModifiers,

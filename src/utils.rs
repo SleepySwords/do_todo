@@ -100,6 +100,9 @@ pub fn handle_mouse_movement(
     index: &mut usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> EventResult {
+    if max_items == 0 {
+        return EventResult::Consumed;
+    }
     let offset = row - area.y;
     if let MouseEventKind::ScrollUp = kind {
         if *index != 0 {

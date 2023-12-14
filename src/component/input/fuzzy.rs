@@ -107,14 +107,23 @@ impl DrawableComponent for FuzzyBox<'_> {
         let code = key_event.code;
         match code {
             _ if app.theme.move_down_fuzzy.is_pressed(key_event) => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
             KeyCode::Down => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 self.list_index = (self.list_index + 1).rem_euclid(self.active.len());
                 EventResult::Consumed
             }
             _ if app.theme.move_up_fuzzy.is_pressed(key_event) => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,
@@ -122,6 +131,9 @@ impl DrawableComponent for FuzzyBox<'_> {
                 EventResult::Consumed
             }
             KeyCode::Up => {
+                if self.active.is_empty() {
+                    return EventResult::Consumed;
+                }
                 match self.list_index.checked_sub(1) {
                     Some(val) => self.list_index = val,
                     None => self.list_index = self.active.len() - 1,

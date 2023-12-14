@@ -3,7 +3,6 @@ use std::{
     rc::Rc,
 };
 
-use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -16,7 +15,7 @@ use crate::{
     actions::{self, HelpAction},
     app::{App, Mode},
     draw::{DrawableComponent, EventResult},
-    theme::KeyBindings,
+    theme::{KeyBindings, Theme},
     utils::{self, handle_mouse_movement},
 };
 
@@ -43,37 +42,24 @@ impl TaskList {
         self.selected_index.borrow_mut()
     }
 
-    pub fn available_actions() -> Vec<HelpAction<'static>> {
+    pub fn available_actions(theme: &Theme) -> Vec<HelpAction<'static>> {
         vec![
-            HelpAction::new(KeyCode::Char('a'), "a", "Adds a task"),
-            HelpAction::new(KeyCode::Char('c'), "c", "Completes the selected task"),
-            HelpAction::new(KeyCode::Char('d'), "d", "Delete the selected task"),
-            HelpAction::new(KeyCode::Char('e'), "e", "Edits the selected task"),
-            HelpAction::new(KeyCode::Char('f'), "f", "Flip a tag to the selected task"),
+            HelpAction::new(theme.add_key, "Adds a task"),
+            HelpAction::new(theme.complete_key, "Completes the selected task"),
+            HelpAction::new(theme.delete_key, "Delete the selected task"),
+            HelpAction::new(theme.edit_key, "Edits the selected task"),
+            HelpAction::new(theme.flip_tag, "Flip a tag to the selected task"),
+            HelpAction::new(theme.tag_menu, "Add or remove the tags for this project"),
             HelpAction::new(
-                KeyCode::Char('t'),
-                "t",
-                "Add or remove the tags for this project",
-            ),
-            HelpAction::new(
-                KeyCode::Char('h'),
-                "h",
+                theme.change_priority_key,
                 "Gives selected task lower priority",
             ),
-            HelpAction::new(
-                KeyCode::Char('J'),
-                "J",
-                "Moves the task down on the task list",
-            ),
-            HelpAction::new(
-                KeyCode::Char('K'),
-                "K",
-                "Moves the task up on the task list",
-            ),
-            HelpAction::new(KeyCode::Char('j'), "j", "Moves down one task"),
-            HelpAction::new(KeyCode::Char('k'), "k", "Moves up one task"),
-            HelpAction::new(KeyCode::Char('s'), "s", "Sorts tasks (by priority)"),
-            HelpAction::new(KeyCode::Char('S'), "S", "Toggles automatic task sort"),
+            HelpAction::new(theme.move_task_down, "Moves the task down on the task list"),
+            HelpAction::new(theme.move_task_up, "Moves the task up on the task list"),
+            HelpAction::new_multiple(theme.down_keys, "Moves down one task"),
+            HelpAction::new_multiple(theme.down_keys, "Moves up one task"),
+            HelpAction::new(theme.sort_key, "Sorts tasks (by priority)"),
+            HelpAction::new(theme.enable_autosort_key, "Toggles automatic task sort"),
         ]
     }
 }
