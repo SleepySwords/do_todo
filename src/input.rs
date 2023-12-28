@@ -153,10 +153,6 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
 }
 
 fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
-    // if event_result == EventResult::Consumed {
-    //     return event_result;
-    // }
-
     // Global keybindings
     return match KeyBindings::from_event(&app.theme, key_event) {
         KeyBindings::AddKey => {
