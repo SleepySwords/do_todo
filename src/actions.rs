@@ -2,12 +2,10 @@ use chrono::Local;
 use crossterm::event::KeyEvent;
 use tui::style::{Color, Style};
 
-use std::{cell::RefCell, rc::Rc};
-
 use crate::{
     app::{App, Mode},
     component::{
-        overlay::dialog::DialogAction,
+        overlay::{dialog::DialogAction, Overlay},
         overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
         message_box::MessageBox,
     },
@@ -257,7 +255,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 0,
             )
             .save_mode(app);
-            app.push_layer(message_box);
+            app.push_layer(Overlay::MessageBox(message_box));
         })
         .save_mode(app)
         .build();

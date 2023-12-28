@@ -12,7 +12,7 @@ use crate::{
     component::completed_list::CompletedList,
     component::layout::stack_layout::StackLayout,
     component::status_line::StatusLine,
-    component::{task_list::{TaskList, TaskListContext}, completed_list::CompletedListContext, overlay::OverlayContext},
+    component::{task_list::{TaskList, TaskListContext}, completed_list::CompletedListContext, overlay::Overlay},
     draw::DrawableComponent,
     task::{CompletedTask, Tag, Task},
     theme::Theme,
@@ -34,7 +34,7 @@ pub struct App {
 
     pub task_list: TaskListContext,
     pub completed_list: CompletedListContext,
-    pub overlays: Vec<OverlayContext<'static>>,
+    pub overlays: Vec<Overlay<'static>>,
 
     should_shutdown: bool,
 }
@@ -53,7 +53,13 @@ impl App {
         match mode {
             Mode::CurrentTasks => Some(&mut self.task_list.selected_index),
             Mode::CompletedTasks => Some(&mut self.completed_list.selected_index),
-            _ => None
+            Mode::Overlay => {
+                match self.overlays.last_mut() {
+                    Some(Overlay::DialogBox(dialog)) => Some(&mut dialog.index),
+                    Some(Overlay::FuzzyBox(fuzzy)) => Some(&mut fuzzy.index),
+                    _ => None,
+                }
+            }
         }
     }
 
@@ -86,9 +92,8 @@ impl App {
         }));
     }
 
-    pub fn push_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
-        self.callbacks
-            .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
+    pub fn push_layer(&mut self, component: Overlay<'static>) {
+        self.overlays.push(component);
     }
 
     pub fn execute_event(&mut self, key_event: KeyEvent) {

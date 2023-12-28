@@ -14,6 +14,8 @@ use crate::{
     utils,
 };
 
+use super::Overlay;
+
 type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
 
@@ -52,59 +54,67 @@ impl InputBox {
     pub fn text(&self) -> String {
         self.text_area.lines().join("\n")
     }
-}
 
-impl DrawableComponent for InputBox {
-    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let widget = self.text_area.widget();
+    pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
+        let Some(Overlay::InputBox(input)) = app.overlays.get(0) else {
+            return;
+        };
+        let widget = input.text_area.widget();
         let boxes = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.theme.selected_border_colour))
             .border_type(app.theme.border_type)
-            .title(self.title.as_ref());
-        let box_area = boxes.inner(self.draw_area);
+            .title(input.title.as_ref());
+        let box_area = boxes.inner(input.draw_area);
 
-        drawer.draw_widget(Clear, self.draw_area);
-        drawer.draw_widget(boxes, self.draw_area);
+        drawer.draw_widget(Clear, input.draw_area);
+        drawer.draw_widget(boxes, input.draw_area);
         drawer.draw_widget(widget, box_area);
     }
 
-    fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> EventResult {
+    pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
+        let Some(Overlay::InputBox(input)) = app.overlays.last_mut() else {
+            return EventResult::Ignored;
+        };
         match key_event.code {
             KeyCode::Enter => {
-                if !self.text_area.lines().join("\n").is_empty() {
+                if !input.text_area.lines().join("\n").is_empty() {
                     // When popping the layer, probably should do the callback, rather than have an
                     // option.
-                    app.pop_layer();
-                    if let Some(mode) = self.prev_mode {
+                    let Some(Overlay::InputBox(mut input)) = app.overlays.pop() else {
+                        return EventResult::Consumed;
+                    };
+                    if let Some(mode) = input.prev_mode {
                         app.mode = mode;
                     }
 
-                    if let Some(callback) = self.callback.take() {
-                        let err = (callback)(app, self.text_area.lines().join("\n"));
+                    if let Some(callback) = input.callback.take() {
+                        let err = (callback)(app, input.text_area.lines().join("\n"));
                         if err.is_err() {
-                            (self.error_callback)(app, err.err().unwrap());
+                            (input.error_callback)(app, err.err().unwrap());
                         }
                     }
                 }
             }
             KeyCode::Tab => {
-                self.text_area.insert_newline();
+                input.text_area.insert_newline();
             }
             KeyCode::Esc => {
-                app.pop_layer();
-                if let Some(mode) = self.prev_mode {
+                let Some(Overlay::InputBox(input)) = app.overlays.pop() else {
+                    return EventResult::Consumed;
+                };
+                if let Some(mode) = input.prev_mode {
                     app.mode = mode;
                 }
             }
             _ => {
-                self.text_area.input(Input::from(key_event));
+                input.text_area.input(Input::from(key_event));
             }
         }
         EventResult::Consumed
     }
 
-    fn update_layout(&mut self, draw_area: Rect) {
+    pub fn update_layout(&mut self, draw_area: Rect) {
         if self.full_width {
             self.draw_area = draw_area
         } else {
@@ -116,7 +126,11 @@ impl DrawableComponent for InputBox {
         }
     }
 
-    fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
+        let Some(Overlay::InputBox(input)) = app.overlays.last_mut() else {
+            return EventResult::Ignored;
+        };
+
         match mouse_event.kind {
             MouseEventKind::Down(..) => {}
             _ => {
@@ -124,11 +138,13 @@ impl DrawableComponent for InputBox {
             }
         }
 
-        let draw_area = self.draw_area;
+        let draw_area = input.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            app.pop_layer();
-            if let Some(mode) = self.prev_mode {
+            let Some(Overlay::InputBox(input)) = app.overlays.pop() else {
+                return EventResult::Ignored;
+            };
+            if let Some(mode) = input.prev_mode {
                 app.mode = mode;
             }
             return EventResult::Consumed;
@@ -137,13 +153,15 @@ impl DrawableComponent for InputBox {
         // Either we use inner on draw_area to exclude border, or this to include it
         // and set the border to jump to 0
         if draw_area.x == mouse_event.column {
-            self.text_area
+            input
+                .text_area
                 .move_cursor(CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
         } else if draw_area.y == mouse_event.row {
-            self.text_area
+            input
+                .text_area
                 .move_cursor(CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
         } else {
-            self.text_area.move_cursor(CursorMove::Jump(
+            input.text_area.move_cursor(CursorMove::Jump(
                 mouse_event.row - draw_area.y - 1,
                 mouse_event.column - draw_area.x - 1,
             ));
@@ -177,8 +195,8 @@ impl Default for InputBoxBuilder {
 }
 
 impl InputBoxBuilder {
-    pub fn build(self) -> InputBox {
-        InputBox {
+    pub fn build(self) -> Overlay<'static> {
+        Overlay::InputBox(InputBox {
             title: self.title,
             text_area: self.text_area,
             callback: self.callback,
@@ -186,7 +204,7 @@ impl InputBoxBuilder {
             draw_area: self.draw_area,
             prev_mode: self.prev_mode,
             full_width: self.full_width,
-        }
+        })
     }
 
     pub fn title(mut self, title: String) -> Self {

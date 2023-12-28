@@ -4,6 +4,7 @@ mod component;
 mod config;
 mod draw;
 mod error;
+mod input;
 mod key;
 mod logger;
 mod screens;
@@ -11,8 +12,8 @@ mod task;
 mod tests;
 mod theme;
 mod utils;
-mod input;
 
+use component::overlay::Overlay;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
@@ -32,7 +33,6 @@ use std::{
 
 use crate::{
     app::App,
-    component::layout::stack_layout::StackLayout,
     draw::{DrawableComponent, Drawer, EventResult},
     logger::Logger,
     screens::main_screen::MainScreenLayer,
@@ -77,9 +77,7 @@ pub fn start_app(
     app: &mut App,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
 ) -> io::Result<()> {
-    let mut stack_layout = StackLayout {
-        children: vec![Box::new(MainScreenLayer::new())],
-    };
+    let mut main_screen = MainScreenLayer::new();
 
     let mut logger = Logger::default();
 
@@ -94,8 +92,15 @@ pub fn start_app(
                 .constraints([Constraint::Min(1), Constraint::Length(1)])
                 .split(draw_size);
 
-            stack_layout.update_layout(chunk[0]);
-            stack_layout.draw(app, &mut drawer);
+            main_screen.update_layout(chunk[0]);
+            main_screen.draw(app, &mut drawer);
+
+            for overlay in app.overlays.iter_mut() {
+                overlay.update_layout(chunk[0])
+            }
+            for overlay in app.overlays.iter() {
+                overlay.draw(app, &mut drawer)
+            }
 
             app.status_line.update_layout(chunk[1]);
             app.status_line.draw(app, &mut drawer);
@@ -108,27 +113,26 @@ pub fn start_app(
         // TODO: We are probably going to have to implement a Tick system eventually, using mspc
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
-                Event::Key(event) => {
-                    if event.code == KeyCode::Char('c')
-                        && event.modifiers.contains(KeyModifiers::CONTROL)
+                Event::Key(key_event) => {
+                    if key_event.code == KeyCode::Char('c')
+                        && key_event.modifiers.contains(KeyModifiers::CONTROL)
                     {
                         return Ok(());
                     }
-                    if EventResult::Ignored == stack_layout.key_event(app, event) {
-                        logger.key_event(app, event);
+                    if EventResult::Ignored == Overlay::key_event(app, key_event) {
+                        logger.key_event(app, key_event);
+                        input::key_event(app, key_event);
                     }
-                    input::key_event(app, event);
                 }
-                Event::Mouse(event) => {
-                    stack_layout.mouse_event(app, event);
+                Event::Mouse(mouse_event) => {
+                    if EventResult::Ignored == Overlay::mouse_event(app, mouse_event) {
+                        main_screen.mouse_event(app, mouse_event);
+                    }
                 }
                 Event::Resize(x, y) => {
                     app.println(format!("{} {}", x, y));
                 }
                 _ => {}
-            }
-            while let Some(callback) = app.callbacks.pop_front() {
-                callback(app, &mut stack_layout);
             }
             logger.update(app.logs.clone());
         }

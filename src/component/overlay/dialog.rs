@@ -9,9 +9,11 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{DrawableComponent, EventResult},
+    draw::EventResult,
     utils::{self, handle_mouse_movement},
 };
+
+use super::Overlay;
 
 type DialogCallback = Box<dyn FnOnce(&mut App)>;
 
@@ -45,15 +47,19 @@ impl DialogAction<'_> {
 pub struct DialogBox<'a> {
     draw_area: Rect,
     title: String,
-    index: usize,
+    pub index: usize,
     options: Vec<DialogAction<'a>>,
     prev_mode: Option<Mode>,
 }
 
-impl DrawableComponent for DialogBox<'_> {
-    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+impl DialogBox<'_> {
+    pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
+        let Some(Overlay::DialogBox(dialog)) = app.overlays.last() else {
+            return;
+        };
         let mut list = List::new(
-            self.options
+            dialog
+                .options
                 .iter()
                 .map(|action| action.name.clone())
                 .map(ListItem::new)
@@ -62,11 +68,11 @@ impl DrawableComponent for DialogBox<'_> {
         .highlight_symbol(&app.theme.selected_cursor)
         .block(utils::ui::generate_default_block(
             app,
-            self.title.as_str(),
+            dialog.title.as_str(),
             Mode::Overlay,
         ));
 
-        if self.options[self.index]
+        if dialog.options[dialog.index]
             .name
             .spans
             .iter()
@@ -78,36 +84,47 @@ impl DrawableComponent for DialogBox<'_> {
         }
 
         let mut list_state = ListState::default();
-        list_state.select(Some(self.index));
+        list_state.select(Some(dialog.index));
 
-        drawer.draw_widget(Clear, self.draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
+        drawer.draw_widget(Clear, dialog.draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, dialog.draw_area);
     }
 
-    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+    pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+        let Some(Overlay::DialogBox(dialog)) = app.overlays.last_mut() else {
+            return EventResult::Ignored;
+        };
         let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
                 return EventResult::Consumed;
             }
         }
-        utils::handle_key_movement(&app.theme, key_event, &mut self.index, self.options.len());
+        utils::handle_key_movement(
+            &app.theme,
+            key_event,
+            &mut dialog.index,
+            dialog.options.len(),
+        );
         match key_code {
             KeyCode::Enter => {
-                app.pop_layer();
-                if let Some(mode) = self.prev_mode {
+                let Some(Overlay::DialogBox(mut dialog)) = app.overlays.pop() else {
+                    return EventResult::Ignored;
+                };
+                if let Some(mode) = dialog.prev_mode {
                     app.mode = mode;
                 }
-                if let Some(opt) = self.options.get_mut(self.index) {
+                if let Some(opt) = dialog.options.get_mut(dialog.index) {
                     if let Some(callback) = opt.function.take() {
                         (callback)(app);
                     }
                 }
             }
             KeyCode::Esc => {
-                // TODO: May be better to have a custom escape function
-                app.pop_layer();
-                if let Some(mode) = self.prev_mode {
+                let Some(Overlay::DialogBox(dialog)) = app.overlays.pop() else {
+                    return EventResult::Ignored;
+                };
+                if let Some(mode) = dialog.prev_mode {
                     app.mode = mode;
                 }
             }
@@ -116,31 +133,28 @@ impl DrawableComponent for DialogBox<'_> {
         EventResult::Consumed
     }
 
-    fn mouse_event(
-        &mut self,
-        app: &mut App,
-        mouse_event: crossterm::event::MouseEvent,
-    ) -> EventResult {
-        if utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
-            return handle_mouse_movement(
-                app,
-                self.draw_area,
-                Mode::Overlay,
-                self.options.len(),
-                mouse_event,
-            );
+    pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> EventResult {
+        let Some(Overlay::DialogBox(dialog)) = app.overlays.last_mut() else {
+            return EventResult::Ignored;
+        };
+        if utils::inside_rect((mouse_event.row, mouse_event.column), dialog.draw_area) {
+            let draw_area = dialog.draw_area;
+            let size = dialog.options.len();
+            return handle_mouse_movement(app, draw_area, Mode::Overlay, size, mouse_event);
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
-            app.pop_layer();
-            if let Some(mode) = self.prev_mode {
+            let Some(Overlay::DialogBox(dialog)) = app.overlays.pop() else {
+                return EventResult::Ignored;
+            };
+            if let Some(mode) = dialog.prev_mode {
                 app.mode = mode;
             }
         }
         EventResult::Consumed
     }
 
-    fn update_layout(&mut self, area: Rect) {
+    pub fn update_layout(&mut self, area: Rect) {
         self.draw_area = utils::centre_rect(
             Constraint::Percentage(70),
             Constraint::Length(self.options.len() as u16 + 2),
@@ -159,14 +173,14 @@ pub struct DialogBoxBuilder<'a> {
 }
 
 impl<'a> DialogBoxBuilder<'a> {
-    pub fn build(self) -> DialogBox<'a> {
-        DialogBox {
+    pub fn build(self) -> Overlay<'a> {
+        Overlay::DialogBox(DialogBox {
             draw_area: self.draw_area,
             title: self.title,
             index: self.index,
             options: self.options,
             prev_mode: self.prev_mode,
-        }
+        })
     }
 
     pub fn add_option(mut self, dialog_action: DialogAction<'a>) -> Self {
