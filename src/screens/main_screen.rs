@@ -12,18 +12,18 @@ use tui::layout::{Constraint, Direction, Layout, Rect};
 
 const MINIMUM_SCREEN: u16 = 100;
 
-pub struct MainScreenLayer {
+pub struct MainScreen {
     task_list: TaskList,
     completed_list: CompletedList,
     layout: Rect,
     viewer: Viewer,
 }
 
-impl MainScreenLayer {
-    pub fn new() -> MainScreenLayer {
+impl MainScreen {
+    pub fn new() -> MainScreen {
         // The use of a RefCell means that we have to be more carefull in where we borrow this
         // variable. Ie: No storing borrowed references.
-        MainScreenLayer {
+        MainScreen {
             task_list: TaskList::new(),
             completed_list: CompletedList::new(),
             layout: Rect::default(),
@@ -32,7 +32,7 @@ impl MainScreenLayer {
     }
 }
 
-impl DrawableComponent for MainScreenLayer {
+impl DrawableComponent for MainScreen {
     fn draw(&self, app: &App, drawer: &mut Drawer) {
         drawer.draw_component(app, &self.task_list);
         drawer.draw_component(app, &self.completed_list);

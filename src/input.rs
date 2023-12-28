@@ -3,22 +3,30 @@ use crossterm::event::KeyEvent;
 use crate::{
     actions,
     app::{App, Mode},
-    component::{completed_list::CompletedList, overlay::input_box::InputBoxBuilder},
+    component::{
+        completed_list::CompletedList,
+        overlay::{input_box::InputBoxBuilder, Overlay},
+    },
     draw::EventResult,
+    task::Task,
     theme::KeyBindings,
-    utils, task::Task,
+    utils,
 };
 
-pub fn key_event(app: &mut App, key_event: KeyEvent) {
-    universal_input(app, key_event);
-    match app.mode {
+pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
+    let event = match app.mode {
+        Mode::Overlay => Overlay::key_event(app, key_event),
         Mode::CurrentTasks => task_list_input(app, key_event),
         Mode::CompletedTasks => completed_list_input(app, key_event),
-        Mode::Overlay => {}
+    };
+    if event == EventResult::Ignored {
+        universal_input(app, key_event)
+    } else {
+        EventResult::Consumed
     }
 }
 
-fn task_list_input(app: &mut App, key_event: KeyEvent) {
+fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
     let theme = &app.theme;
 
     let selected_index = &mut app.task_list.selected_index;
@@ -27,7 +35,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) {
     match KeyBindings::from_event(&theme, key_event) {
         KeyBindings::ChangePriorityKey => {
             if app.task_store.tasks.is_empty() {
-                return;
+                return EventResult::Ignored;
             }
 
             let old_task = {
@@ -54,7 +62,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) {
             let tasks_length = app.task_store.tasks.len();
 
             if tasks_length == 0 {
-                return;
+                return EventResult::Ignored;
             }
 
             let new_index = (*selected_index + 1) % tasks_length;
@@ -73,7 +81,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) {
             let tasks_length = app.task_store.tasks.len();
 
             if tasks_length == 0 {
-                return;
+                return EventResult::Ignored;
             }
 
             let new_index =
@@ -106,14 +114,14 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) {
         KeyBindings::TagMenu => actions::open_tag_menu(app),
         KeyBindings::FlipProgressKey => {
             if app.task_store.tasks.is_empty() {
-                return;
+                return EventResult::Ignored;
             }
             app.task_store.tasks[*selected_index].progress =
                 !app.task_store.tasks[*selected_index].progress;
         }
         KeyBindings::CompleteKey => actions::complete_task(app),
         _ => {
-            utils::handle_key_movement(
+            return utils::handle_key_movement(
                 &theme,
                 key_event,
                 selected_index,
@@ -121,9 +129,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) {
             );
         }
     }
+    EventResult::Consumed
 }
 
-fn completed_list_input(app: &mut App, key_event: KeyEvent) {
+fn completed_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
     let result = utils::handle_key_movement(
         &app.theme,
         key_event,
@@ -132,12 +141,14 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) {
     );
 
     if result == EventResult::Consumed {
-        return;
+        return EventResult::Consumed;
     }
 
     if app.theme.restore_key.is_pressed(key_event) {
         CompletedList::restore_task(app);
-        return;
+        EventResult::Consumed
+    } else {
+        EventResult::Ignored
     }
 }
 

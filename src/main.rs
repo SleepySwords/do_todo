@@ -35,7 +35,7 @@ use crate::{
     app::App,
     draw::{DrawableComponent, Drawer, EventResult},
     logger::Logger,
-    screens::main_screen::MainScreenLayer,
+    screens::main_screen::MainScreen,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -77,7 +77,7 @@ pub fn start_app(
     app: &mut App,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
 ) -> io::Result<()> {
-    let mut main_screen = MainScreenLayer::new();
+    let mut main_screen = MainScreen::new();
 
     let mut logger = Logger::default();
 
@@ -119,9 +119,8 @@ pub fn start_app(
                     {
                         return Ok(());
                     }
-                    if EventResult::Ignored == Overlay::key_event(app, key_event) {
+                    if EventResult::Ignored == input::key_event(app, key_event) {
                         logger.key_event(app, key_event);
-                        input::key_event(app, key_event);
                     }
                 }
                 Event::Mouse(mouse_event) => {

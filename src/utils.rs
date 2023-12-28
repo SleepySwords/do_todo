@@ -274,7 +274,7 @@ pub mod test {
     use crate::{
         app::{App, TaskStore},
         component::layout::stack_layout::StackLayout,
-        screens::main_screen::MainScreenLayer,
+        screens::main_screen::MainScreen,
     };
 
     pub fn input_char(character: char, app: &mut App, stack_layout: &mut StackLayout) {
@@ -293,7 +293,7 @@ pub mod test {
     pub fn setup(task_store: TaskStore) -> (App, StackLayout) {
         let app = App::new(crate::theme::Theme::default(), task_store);
         let stack_layout = StackLayout {
-            children: vec![Box::new(MainScreenLayer::new())],
+            children: vec![Box::new(MainScreen::new())],
         };
 
         (app, stack_layout)

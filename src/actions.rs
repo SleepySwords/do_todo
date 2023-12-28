@@ -5,11 +5,12 @@ use tui::style::{Color, Style};
 use crate::{
     app::{App, Mode},
     component::{
+        message_box::MessageBox,
         overlay::{dialog::DialogAction, Overlay},
         overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
-        message_box::MessageBox,
     },
     error::AppError,
+    input,
     key::Key,
     task::CompletedTask,
 };
@@ -85,7 +86,12 @@ pub fn open_help_menu(app: &mut App) {
     for ac in app.mode.available_help_actions(&app.theme) {
         actions.push(DialogAction::new(
             format!("{: <15}{}", ac.short_hand, ac.description),
-            move |app| app.execute_event(KeyEvent::new(ac.character.code, ac.character.modifiers)),
+            move |app| {
+                input::key_event(
+                    app,
+                    KeyEvent::new(ac.character.code, ac.character.modifiers),
+                );
+            },
         ));
     }
 
@@ -99,7 +105,7 @@ pub fn open_delete_task_menu(app: &mut App) {
     let delete_dialog = DialogBoxBuilder::default()
         .title("Delete selected task".to_string())
         .add_option(DialogAction::new(String::from("Delete"), move |app| {
-            let mut selected_index = &mut app.task_list.selected_index;
+            let selected_index = &mut app.task_list.selected_index;
             app.task_store.tasks.remove(*selected_index);
             if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
                 *selected_index -= 1;
