@@ -148,10 +148,6 @@ impl InputBox {
             return EventResult::Ignored;
         };
 
-    }
-
-    pub fn mouse_event_key(draw_area: Rect, mouse_event: MouseEvent) -> EventResult {
-
         match mouse_event.kind {
             MouseEventKind::Down(..) => {}
             _ => {
@@ -159,7 +155,7 @@ impl InputBox {
             }
         }
 
-        let draw_area = draw_area;
+        let draw_area = input.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             let Some(Overlay::Input(input)) = app.overlays.pop() else {
