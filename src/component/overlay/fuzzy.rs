@@ -35,7 +35,7 @@ impl FuzzyBox<'_> {
 
     pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
         let code = key_event.code;
-        let Some(Overlay::FuzzyBox(fuzzy)) = app.overlays.last_mut() else {
+        let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last_mut() else {
             return EventResult::Ignored;
         };
         match code {
@@ -74,7 +74,7 @@ impl FuzzyBox<'_> {
                 EventResult::Consumed
             }
             KeyCode::Enter => {
-                if let Some(Overlay::FuzzyBox(mut fuzzy)) = app.overlays.pop() {
+                if let Some(Overlay::Fuzzy(mut fuzzy)) = app.overlays.pop() {
                     if let Some(mode) = fuzzy.prev_mode {
                         app.mode = mode;
                     }
@@ -91,7 +91,7 @@ impl FuzzyBox<'_> {
                 EventResult::Consumed
             }
             KeyCode::Esc => {
-                if let Some(Overlay::FuzzyBox(fuzzy)) = app.overlays.pop() {
+                if let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.pop() {
                     if let Some(mode) = fuzzy.prev_mode {
                         app.mode = mode;
                     }
@@ -121,7 +121,7 @@ impl FuzzyBox<'_> {
     }
 
     pub fn draw(app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::FuzzyBox(fuzzy)) = app.overlays.last() else {
+        let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last() else {
             return;
         };
         let widget = fuzzy.text_area.widget();
@@ -181,7 +181,7 @@ impl FuzzyBox<'_> {
     }
 
     pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
-        let Some(Overlay::FuzzyBox(fuzzy)) = app.overlays.last_mut() else {
+        let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last_mut() else {
             return EventResult::Ignored;
         };
         if utils::inside_rect((mouse_event.row, mouse_event.column), fuzzy.text_draw_area) {
@@ -195,7 +195,7 @@ impl FuzzyBox<'_> {
             let draw_area = fuzzy.text_draw_area;
 
             if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-                if let Some(Overlay::FuzzyBox(fuzzy)) = app.overlays.pop() {
+                if let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.pop() {
                     if let Some(mode) = fuzzy.prev_mode {
                         app.mode = mode;
                     }
@@ -226,7 +226,7 @@ impl FuzzyBox<'_> {
             return handle_mouse_movement(app, ar, Mode::Overlay, size, mouse_event);
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                if let Some(Overlay::FuzzyBox(fuzzy)) = app.overlays.pop() {
+                if let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.pop() {
                     if let Some(mode) = fuzzy.prev_mode {
                         app.mode = mode;
                     }
@@ -248,7 +248,7 @@ pub struct FuzzyBoxBuilder<'a> {
 impl<'a> FuzzyBoxBuilder<'a> {
     pub fn build(self) -> Overlay<'a> {
         let active = (0..self.options.len()).collect_vec();
-        Overlay::FuzzyBox(FuzzyBox {
+        Overlay::Fuzzy(FuzzyBox {
             draw_area: self.draw_area,
             text_draw_area: Rect::default(),
             list_draw_area: Rect::default(),

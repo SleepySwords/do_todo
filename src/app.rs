@@ -1,18 +1,18 @@
 use chrono::{Local, NaiveTime};
-use crossterm::event::KeyEvent;
+
 use serde::{Deserialize, Serialize};
 
-use std::{
-    cmp,
-    collections::{BTreeMap, VecDeque},
-};
+use std::{cmp, collections::BTreeMap};
 
 use crate::{
     actions::HelpAction,
     component::completed_list::CompletedList,
     component::status_line::StatusLine,
-    component::{task_list::{TaskList, TaskListContext}, completed_list::CompletedListContext, overlay::Overlay},
-    draw::DrawableComponent,
+    component::{
+        completed_list::CompletedListContext,
+        overlay::Overlay,
+        task_list::{TaskList, TaskListContext},
+    },
     task::{CompletedTask, Tag, Task},
     theme::Theme,
 };
@@ -49,13 +49,11 @@ impl App {
         match mode {
             Mode::CurrentTasks => Some(&mut self.task_list.selected_index),
             Mode::CompletedTasks => Some(&mut self.completed_list.selected_index),
-            Mode::Overlay => {
-                match self.overlays.last_mut() {
-                    Some(Overlay::DialogBox(dialog)) => Some(&mut dialog.index),
-                    Some(Overlay::FuzzyBox(fuzzy)) => Some(&mut fuzzy.index),
-                    _ => None,
-                }
-            }
+            Mode::Overlay => match self.overlays.last_mut() {
+                Some(Overlay::Dialog(dialog)) => Some(&mut dialog.index),
+                Some(Overlay::Fuzzy(fuzzy)) => Some(&mut fuzzy.index),
+                _ => None,
+            },
         }
     }
 

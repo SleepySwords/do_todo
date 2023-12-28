@@ -54,7 +54,7 @@ pub struct DialogBox<'a> {
 
 impl DialogBox<'_> {
     pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::DialogBox(dialog)) = app.overlays.last() else {
+        let Some(Overlay::Dialog(dialog)) = app.overlays.last() else {
             return;
         };
         let mut list = List::new(
@@ -91,7 +91,7 @@ impl DialogBox<'_> {
     }
 
     pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
-        let Some(Overlay::DialogBox(dialog)) = app.overlays.last_mut() else {
+        let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
             return EventResult::Ignored;
         };
         let key_code = key_event.code;
@@ -108,7 +108,7 @@ impl DialogBox<'_> {
         );
         match key_code {
             KeyCode::Enter => {
-                let Some(Overlay::DialogBox(mut dialog)) = app.overlays.pop() else {
+                let Some(Overlay::Dialog(mut dialog)) = app.overlays.pop() else {
                     return EventResult::Ignored;
                 };
                 if let Some(mode) = dialog.prev_mode {
@@ -121,7 +121,7 @@ impl DialogBox<'_> {
                 }
             }
             KeyCode::Esc => {
-                let Some(Overlay::DialogBox(dialog)) = app.overlays.pop() else {
+                let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
                     return EventResult::Ignored;
                 };
                 if let Some(mode) = dialog.prev_mode {
@@ -134,7 +134,7 @@ impl DialogBox<'_> {
     }
 
     pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> EventResult {
-        let Some(Overlay::DialogBox(dialog)) = app.overlays.last_mut() else {
+        let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
             return EventResult::Ignored;
         };
         if utils::inside_rect((mouse_event.row, mouse_event.column), dialog.draw_area) {
@@ -144,7 +144,7 @@ impl DialogBox<'_> {
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
-            let Some(Overlay::DialogBox(dialog)) = app.overlays.pop() else {
+            let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
                 return EventResult::Ignored;
             };
             if let Some(mode) = dialog.prev_mode {
@@ -174,7 +174,7 @@ pub struct DialogBoxBuilder<'a> {
 
 impl<'a> DialogBoxBuilder<'a> {
     pub fn build(self) -> Overlay<'a> {
-        Overlay::DialogBox(DialogBox {
+        Overlay::Dialog(DialogBox {
             draw_area: self.draw_area,
             title: self.title,
             index: self.index,

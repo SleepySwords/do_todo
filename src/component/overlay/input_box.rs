@@ -9,7 +9,7 @@ use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
-    draw::{DrawableComponent, EventResult},
+    draw::EventResult,
     error::AppError,
     utils,
 };
@@ -56,7 +56,7 @@ impl InputBox {
     }
 
     pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::InputBox(input)) = app.overlays.get(0) else {
+        let Some(Overlay::Input(input)) = app.overlays.get(0) else {
             return;
         };
         let widget = input.text_area.widget();
@@ -73,7 +73,7 @@ impl InputBox {
     }
 
     pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
-        let Some(Overlay::InputBox(input)) = app.overlays.last_mut() else {
+        let Some(Overlay::Input(input)) = app.overlays.last_mut() else {
             return EventResult::Ignored;
         };
         match key_event.code {
@@ -81,7 +81,7 @@ impl InputBox {
                 if !input.text_area.lines().join("\n").is_empty() {
                     // When popping the layer, probably should do the callback, rather than have an
                     // option.
-                    let Some(Overlay::InputBox(mut input)) = app.overlays.pop() else {
+                    let Some(Overlay::Input(mut input)) = app.overlays.pop() else {
                         return EventResult::Consumed;
                     };
                     if let Some(mode) = input.prev_mode {
@@ -100,7 +100,7 @@ impl InputBox {
                 input.text_area.insert_newline();
             }
             KeyCode::Esc => {
-                let Some(Overlay::InputBox(input)) = app.overlays.pop() else {
+                let Some(Overlay::Input(input)) = app.overlays.pop() else {
                     return EventResult::Consumed;
                 };
                 if let Some(mode) = input.prev_mode {
@@ -127,7 +127,7 @@ impl InputBox {
     }
 
     pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
-        let Some(Overlay::InputBox(input)) = app.overlays.last_mut() else {
+        let Some(Overlay::Input(input)) = app.overlays.last_mut() else {
             return EventResult::Ignored;
         };
 
@@ -141,7 +141,7 @@ impl InputBox {
         let draw_area = input.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            let Some(Overlay::InputBox(input)) = app.overlays.pop() else {
+            let Some(Overlay::Input(input)) = app.overlays.pop() else {
                 return EventResult::Ignored;
             };
             if let Some(mode) = input.prev_mode {
@@ -196,7 +196,7 @@ impl Default for InputBoxBuilder {
 
 impl InputBoxBuilder {
     pub fn build(self) -> Overlay<'static> {
-        Overlay::InputBox(InputBox {
+        Overlay::Input(InputBox {
             title: self.title,
             text_area: self.text_area,
             callback: self.callback,
@@ -245,19 +245,9 @@ impl InputBoxBuilder {
         self
     }
 
-    pub fn prev_mode(mut self, mode: Option<Mode>) -> Self {
-        self.prev_mode = mode;
-        self
-    }
-
     pub fn save_mode(mut self, app: &mut App) -> Self {
         self.prev_mode = Some(app.mode);
         app.mode = Mode::Overlay;
-        self
-    }
-
-    pub fn full_width(mut self, full_width: bool) -> Self {
-        self.full_width = full_width;
         self
     }
 }

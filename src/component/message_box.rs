@@ -76,7 +76,7 @@ impl MessageBox {
 
 impl MessageBox {
     pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::MessageBox(message)) = app.overlays.last() else {
+        let Some(Overlay::Message(message)) = app.overlays.last() else {
             return;
         };
         let style = Style::default().fg(message.colour);
@@ -101,7 +101,7 @@ impl MessageBox {
     }
 
     pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> EventResult {
-        let Some(Overlay::MessageBox(mut message)) = app.overlays.pop() else {
+        let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
             return EventResult::Ignored;
         };
         if let Some(mode) = message.mode_to_restore {
@@ -114,12 +114,12 @@ impl MessageBox {
     }
 
     pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
-        let Some(Overlay::MessageBox(message)) = app.overlays.last_mut() else {
+        let Some(Overlay::Message(message)) = app.overlays.last_mut() else {
             return EventResult::Ignored;
         };
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), message.draw_area) {
-                let Some(Overlay::MessageBox(mut message)) = app.overlays.pop() else {
+                let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
                     return EventResult::Ignored;
                 };
                 if let Some(mode) = message.mode_to_restore {

@@ -1,9 +1,6 @@
 use crate::{
     app::App,
-    component::{
-        completed_list::CompletedList, task_list::TaskList,
-        viewer::Viewer,
-    },
+    component::{completed_list::CompletedList, task_list::TaskList, viewer::Viewer},
     draw::{DrawableComponent, Drawer, EventResult},
     utils,
 };

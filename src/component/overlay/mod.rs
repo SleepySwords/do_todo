@@ -1,4 +1,4 @@
-use crossterm::event::{KeyEvent, KeyEventKind, MouseEvent};
+use crossterm::event::{KeyEvent, MouseEvent};
 use tui::prelude::Rect;
 
 use crate::{
@@ -15,34 +15,30 @@ pub mod fuzzy;
 pub mod input_box;
 
 pub enum Overlay<'a> {
-    FuzzyBox(FuzzyBox<'a>),
-    InputBox(InputBox),
-    DialogBox(DialogBox<'a>),
-    MessageBox(MessageBox),
+    Fuzzy(FuzzyBox<'a>),
+    Input(InputBox),
+    Dialog(DialogBox<'a>),
+    Message(MessageBox),
 }
 
 impl Overlay<'_> {
     pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
-        if FuzzyBox::key_event(app, key_event) != EventResult::Ignored {
-            return EventResult::Consumed;
-        } else if InputBox::key_event(app, key_event) != EventResult::Ignored {
-            return EventResult::Consumed;
-        } else if DialogBox::key_event(app, key_event) != EventResult::Ignored {
-            return EventResult::Consumed;
-        } else if MessageBox::key_event(app, key_event) != EventResult::Ignored {
+        if FuzzyBox::key_event(app, key_event) == EventResult::Consumed
+            || InputBox::key_event(app, key_event) == EventResult::Consumed
+            || DialogBox::key_event(app, key_event) == EventResult::Consumed
+            || MessageBox::key_event(app, key_event) == EventResult::Consumed
+        {
             return EventResult::Consumed;
         }
         EventResult::Ignored
     }
 
     pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
-        if FuzzyBox::mouse_event(app, mouse_event) != EventResult::Ignored {
-            return EventResult::Consumed;
-        } else if InputBox::mouse_event(app, mouse_event) != EventResult::Ignored {
-            return EventResult::Consumed;
-        } else if DialogBox::mouse_event(app, mouse_event) != EventResult::Ignored {
-            return EventResult::Consumed;
-        } else if MessageBox::mouse_event(app, mouse_event) != EventResult::Ignored {
+        if FuzzyBox::mouse_event(app, mouse_event) == EventResult::Consumed
+            || InputBox::mouse_event(app, mouse_event) == EventResult::Consumed
+            || DialogBox::mouse_event(app, mouse_event) == EventResult::Consumed
+            || MessageBox::mouse_event(app, mouse_event) == EventResult::Consumed
+        {
             return EventResult::Consumed;
         }
         EventResult::Ignored
@@ -57,14 +53,14 @@ impl Overlay<'_> {
 
     pub fn update_layout(&mut self, draw_area: Rect) {
         match self {
-            Overlay::InputBox(input) => {
+            Overlay::Input(input) => {
                 input.update_layout(draw_area);
             }
-            Overlay::DialogBox(dialog) => dialog.update_layout(draw_area),
-            Overlay::FuzzyBox(fuzzy) => {
+            Overlay::Dialog(dialog) => dialog.update_layout(draw_area),
+            Overlay::Fuzzy(fuzzy) => {
                 fuzzy.update_layout(draw_area);
             }
-            Overlay::MessageBox(message) => message.update_layout(draw_area),
+            Overlay::Message(message) => message.update_layout(draw_area),
         }
         // FuzzyBox::update_layout(app, key_event)
     }

@@ -121,7 +121,7 @@ pub fn complete_task(app: &mut App) {
     if app.task_store.tasks.is_empty() {
         return;
     }
-    let mut selected_index = &mut app.task_list.selected_index;
+    let selected_index = &mut app.task_list.selected_index;
     let local = Local::now();
     let time_completed = local.naive_local();
     let task = app.task_store.tasks.remove(*selected_index);
@@ -261,7 +261,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 0,
             )
             .save_mode(app);
-            app.push_layer(Overlay::MessageBox(message_box));
+            app.push_layer(Overlay::Message(message_box));
         })
         .save_mode(app)
         .build();

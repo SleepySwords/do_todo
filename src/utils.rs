@@ -273,35 +273,24 @@ pub mod test {
 
     use crate::{
         app::{App, TaskStore},
-        component::layout::stack_layout::StackLayout,
-        screens::main_screen::MainScreen,
+        input,
     };
 
-    pub fn input_char(character: char, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(crossterm::event::KeyEvent::new(
-            KeyCode::Char(character),
-            KeyModifiers::NONE,
-        ));
-        execute_callbacks(app, stack_layout);
+    pub fn input_char(character: char, app: &mut App) {
+        input::key_event(
+            app,
+            crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE),
+        );
     }
 
-    pub fn input_code(key: KeyCode, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(crossterm::event::KeyEvent::new(key, KeyModifiers::NONE));
-        execute_callbacks(app, stack_layout);
+    pub fn input_code(key: KeyCode, app: &mut App) {
+        input::key_event(
+            app,
+            crossterm::event::KeyEvent::new(key, KeyModifiers::NONE),
+        );
     }
 
-    pub fn setup(task_store: TaskStore) -> (App, StackLayout) {
-        let app = App::new(crate::theme::Theme::default(), task_store);
-        let stack_layout = StackLayout {
-            children: vec![Box::new(MainScreen::new())],
-        };
-
-        (app, stack_layout)
-    }
-
-    pub fn execute_callbacks(app: &mut App, stack_layout: &mut StackLayout) {
-        while let Some(callback) = app.callbacks.pop_front() {
-            callback(app, stack_layout);
-        }
+    pub fn setup(task_store: TaskStore) -> App {
+        App::new(crate::theme::Theme::default(), task_store)
     }
 }

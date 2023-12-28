@@ -32,7 +32,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
     let selected_index = &mut app.task_list.selected_index;
 
     // Move this to the actions class
-    match KeyBindings::from_event(&theme, key_event) {
+    match KeyBindings::from_event(theme, key_event) {
         KeyBindings::ChangePriorityKey => {
             if app.task_store.tasks.is_empty() {
                 return EventResult::Ignored;
@@ -122,7 +122,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
         KeyBindings::CompleteKey => actions::complete_task(app),
         _ => {
             return utils::handle_key_movement(
-                &theme,
+                theme,
                 key_event,
                 selected_index,
                 app.task_store.tasks.len(),

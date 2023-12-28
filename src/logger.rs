@@ -1,10 +1,10 @@
 use chrono::NaiveTime;
-use crossterm::{event::KeyCode};
+use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
     style::{Color, Style},
     text::Span,
-    widgets::{Block, Borders, List, ListItem, ListState, Clear},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
 use crate::{draw::DrawableComponent, utils};

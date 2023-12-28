@@ -5,11 +5,6 @@ use tui::{
     widgets::{List, ListItem, ListState},
 };
 
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    rc::Rc,
-};
-
 use crate::{
     actions::HelpAction,
     app::{App, Mode},
@@ -119,13 +114,13 @@ impl DrawableComponent for CompletedList {
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
     ) -> EventResult {
-        return utils::handle_mouse_movement(
+        utils::handle_mouse_movement(
             app,
             self.area,
             COMPONENT_TYPE,
             app.task_store.completed_tasks.len(),
             mouse_event,
-        );
+        )
     }
 
     fn update_layout(&mut self, rect: Rect) {
