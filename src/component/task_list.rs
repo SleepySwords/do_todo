@@ -1,8 +1,3 @@
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    rc::Rc,
-};
-
 use tui::{
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -10,12 +5,11 @@ use tui::{
     widgets::{List, ListItem, ListState},
 };
 
-use super::input::input_box::InputBoxBuilder;
 use crate::{
-    actions::{self, HelpAction},
+    actions::HelpAction,
     app::{App, Mode},
     draw::{DrawableComponent, EventResult},
-    theme::{KeyBindings, Theme},
+    theme::Theme,
     utils::{self, handle_mouse_movement},
 };
 
@@ -23,23 +17,18 @@ const COMPONENT_TYPE: Mode = Mode::CurrentTasks;
 
 pub struct TaskList {
     pub area: Rect,
-    selected_index: Rc<RefCell<usize>>,
+}
+
+#[derive(Default)]
+pub struct TaskListContext {
+    pub selected_index: usize,
 }
 
 impl TaskList {
-    pub fn new(selected_index: Rc<RefCell<usize>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            selected_index,
             area: Rect::default(),
         }
-    }
-
-    fn selected(&self) -> Ref<usize> {
-        self.selected_index.borrow()
-    }
-
-    fn selected_mut(&self) -> RefMut<usize> {
-        self.selected_index.borrow_mut()
     }
 
     pub fn available_actions(theme: &Theme) -> Vec<HelpAction<'static>> {
@@ -77,7 +66,7 @@ impl DrawableComponent for TaskList {
             .map(|(i, task)| {
                 let mut spans = Vec::new();
 
-                let style = if COMPONENT_TYPE == app.mode && *self.selected() == i {
+                let style = if COMPONENT_TYPE == app.mode && app.task_list.selected_index == i {
                     Style::default().add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
@@ -85,11 +74,13 @@ impl DrawableComponent for TaskList {
 
                 let progress = Span::styled(
                     if task.progress { "[~] " } else { "[ ] " },
-                    style.fg(if COMPONENT_TYPE == app.mode && *self.selected() == i {
-                        theme.selected_task_colour
-                    } else {
-                        Color::White
-                    }),
+                    style.fg(
+                        if COMPONENT_TYPE == app.mode && app.task_list.selected_index == i {
+                            theme.selected_task_colour
+                        } else {
+                            Color::White
+                        },
+                    ),
                 );
                 spans.push(progress);
 
@@ -102,11 +93,13 @@ impl DrawableComponent for TaskList {
                 // TODO: Rewrite to store as an array in the task
                 let content = Span::styled(
                     task.title.split('\n').next().unwrap(),
-                    style.fg(if COMPONENT_TYPE == app.mode && *self.selected() == i {
-                        theme.selected_task_colour
-                    } else {
-                        Color::White
-                    }),
+                    style.fg(
+                        if COMPONENT_TYPE == app.mode && app.task_list.selected_index == i {
+                            theme.selected_task_colour
+                        } else {
+                            Color::White
+                        },
+                    ),
                 );
                 spans.push(content);
 
@@ -129,119 +122,12 @@ impl DrawableComponent for TaskList {
 
         let mut state = ListState::default();
         state.select(if COMPONENT_TYPE == app.mode {
-            Some(*self.selected())
+            Some(app.task_list.selected_index)
         } else {
             None
         });
 
         drawer.draw_stateful_widget(current, &mut state, self.area);
-    }
-
-    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
-        let theme = &app.theme;
-        let mut selected_index = self.selected_mut();
-
-        // Move this to the actions class
-        match KeyBindings::from_event(theme, key_event) {
-            KeyBindings::ChangePriorityKey => {
-                if app.task_store.tasks.is_empty() {
-                    return EventResult::Ignored;
-                }
-
-                let old_task = {
-                    let task = &mut app.task_store.tasks[*selected_index];
-
-                    task.priority = task.priority.next_priority();
-
-                    task.clone()
-                };
-
-                if app.task_store.auto_sort {
-                    app.task_store.sort();
-                }
-
-                *selected_index = app
-                    .task_store
-                    .tasks
-                    .iter()
-                    .position(|t| *t == old_task)
-                    .expect("getting task index after sorting")
-                    .to_owned();
-            }
-            KeyBindings::MoveTaskDown => {
-                let tasks_length = app.task_store.tasks.len();
-
-                if tasks_length == 0 {
-                    return EventResult::Ignored;
-                }
-
-                let new_index = (*selected_index + 1) % tasks_length;
-
-                let task = &app.task_store.tasks[*selected_index];
-                let task_below = &app.task_store.tasks[new_index];
-
-                if task.priority == task_below.priority || !app.task_store.auto_sort {
-                    let task = app.task_store.tasks.remove(*selected_index);
-
-                    app.task_store.tasks.insert(new_index, task);
-                    *selected_index = new_index;
-                }
-            }
-            KeyBindings::MoveTaskUp => {
-                let tasks_length = app.task_store.tasks.len();
-
-                if tasks_length == 0 {
-                    return EventResult::Ignored;
-                }
-
-                let new_index =
-                    (*selected_index as isize - 1).rem_euclid(tasks_length as isize) as usize;
-
-                let task = &app.task_store.tasks[*selected_index];
-                let task_above = &app.task_store.tasks[new_index];
-
-                if task.priority == task_above.priority || !app.task_store.auto_sort {
-                    let task = app.task_store.tasks.remove(*selected_index);
-
-                    app.task_store.tasks.insert(new_index, task);
-                    *selected_index = new_index;
-                }
-            }
-            KeyBindings::DeleteKey => {
-                actions::open_delete_task_menu(app, self.selected_index.clone())
-            }
-            KeyBindings::EditKey => {
-                let index = *selected_index;
-                let edit_box = InputBoxBuilder::default()
-                    .title(String::from("Edit the selected task"))
-                    .fill(app.task_store.tasks[*selected_index].title.as_str())
-                    .callback(move |app, word| {
-                        app.task_store.tasks[index].title = word.trim().to_string();
-                        Ok(())
-                    })
-                    .save_mode(app)
-                    .build();
-                app.push_layer(edit_box)
-            }
-            KeyBindings::TagMenu => actions::open_tag_menu(app, *selected_index),
-            KeyBindings::FlipProgressKey => {
-                if app.task_store.tasks.is_empty() {
-                    return EventResult::Ignored;
-                }
-                app.task_store.tasks[*selected_index].progress =
-                    !app.task_store.tasks[*selected_index].progress;
-            }
-            KeyBindings::CompleteKey => actions::complete_task(app, &mut selected_index),
-            _ => {
-                return utils::handle_key_movement(
-                    theme,
-                    key_event,
-                    &mut selected_index,
-                    app.task_store.tasks.len(),
-                );
-            }
-        }
-        EventResult::Consumed
     }
 
     fn mouse_event(
@@ -254,7 +140,6 @@ impl DrawableComponent for TaskList {
             self.area,
             Some(COMPONENT_TYPE),
             app.task_store.tasks.len(),
-            &mut self.selected_index.borrow_mut(),
             mouse_event,
         )
     }

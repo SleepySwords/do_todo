@@ -97,41 +97,44 @@ pub fn handle_mouse_movement(
     area: Rect,
     mode_type: Option<Mode>,
     max_items: usize,
-    index: &mut usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> EventResult {
-    if max_items == 0 {
-        return EventResult::Consumed;
-    }
-    let offset = row - area.y;
-    if let MouseEventKind::ScrollUp = kind {
-        if *index != 0 {
-            *index -= 1;
-        }
-    }
-
-    if let MouseEventKind::ScrollDown = kind {
-        if *index < max_items - 1 {
-            *index += 1;
-        }
-    }
-
-    if let MouseEventKind::Down(_) = kind {
-        if let Some(mode) = mode_type {
-            app.mode = mode;
-        }
-        if offset == 0 {
+    if let Some(index) = app.current_mode_index() {
+        if max_items == 0 {
             return EventResult::Consumed;
         }
-        if *index > area.height as usize - 2 {
-            let new_index = *index - (area.height as usize - 2) + offset as usize;
-            *index = new_index;
-        } else {
-            if offset as usize > max_items {
-                *index = max_items - 1;
+        let offset = row - area.y;
+        if let MouseEventKind::ScrollUp = kind {
+            if *index != 0 {
+                *index -= 1;
+            }
+        }
+
+        if let MouseEventKind::ScrollDown = kind {
+            if *index < max_items - 1 {
+                *index += 1;
+            }
+        }
+
+        if let MouseEventKind::Down(_) = kind {
+            if let Some(mode) = mode_type {
+                app.mode = mode;
+            }
+            if offset == 0 {
                 return EventResult::Consumed;
             }
-            *index = offset as usize - 1;
+            if let Some(index) = app.current_mode_index() {
+                if *index > area.height as usize - 2 {
+                    let new_index = *index - (area.height as usize - 2) + offset as usize;
+                    *index = new_index;
+                } else {
+                    if offset as usize > max_items {
+                        *index = max_items - 1;
+                        return EventResult::Consumed;
+                    }
+                    *index = offset as usize - 1;
+                }
+            }
         }
     }
     EventResult::Consumed

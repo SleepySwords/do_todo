@@ -94,14 +94,14 @@ pub fn open_help_menu(app: &mut App) {
     open_dialog_or_fuzzy(app, "Help menu", actions);
 }
 
-pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
+pub fn open_delete_task_menu(app: &mut App) {
     if app.task_store.tasks.is_empty() {
         return;
     }
     let delete_dialog = DialogBoxBuilder::default()
         .title("Delete selected task".to_string())
         .add_option(DialogAction::new(String::from("Delete"), move |app| {
-            let mut selected_index = selected_index.borrow_mut();
+            let mut selected_index = &mut app.task_list.selected_index;
             app.task_store.tasks.remove(*selected_index);
             if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
                 *selected_index -= 1;
@@ -113,10 +113,11 @@ pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) 
     app.push_layer(delete_dialog);
 }
 
-pub fn complete_task(app: &mut App, selected_index: &mut usize) {
+pub fn complete_task(app: &mut App) {
     if app.task_store.tasks.is_empty() {
         return;
     }
+    let mut selected_index = &mut app.task_list.selected_index;
     let local = Local::now();
     let time_completed = local.naive_local();
     let task = app.task_store.tasks.remove(*selected_index);
@@ -128,10 +129,12 @@ pub fn complete_task(app: &mut App, selected_index: &mut usize) {
     }
 }
 
-pub fn open_tag_menu(app: &mut App, selected_index: usize) {
+pub fn open_tag_menu(app: &mut App) {
     let mut tag_options: Vec<DialogAction> = Vec::new();
 
-    if !app.task_store.tasks.is_empty() {
+    let selected_index = app.task_list.selected_index;
+
+    if !app.task_store.tasks.is_empty() && app.mode == Mode::CurrentTasks {
         // Loops through the tags and adds them to the menu.
         for (i, tag) in app.task_store.tags.iter() {
             let moved: u32 = *i;
@@ -158,7 +161,7 @@ pub fn open_tag_menu(app: &mut App, selected_index: usize) {
         app.push_layer(tag_menu)
     }));
 
-    if !app.task_store.tasks.is_empty() {
+    if !app.task_store.tasks.is_empty() && app.mode == Mode::CurrentTasks {
         tag_options.push(DialogAction::new(
             String::from("Clear all tags"),
             move |app| {

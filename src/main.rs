@@ -11,6 +11,7 @@ mod task;
 mod tests;
 mod theme;
 mod utils;
+mod input;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
@@ -116,6 +117,7 @@ pub fn start_app(
                     if EventResult::Ignored == stack_layout.key_event(app, event) {
                         logger.key_event(app, event);
                     }
+                    input::key_event(app, event);
                 }
                 Event::Mouse(event) => {
                     stack_layout.mouse_event(app, event);

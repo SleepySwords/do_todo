@@ -24,7 +24,7 @@ fn test_rollover() {
         },
     );
     let index = Rc::new(RefCell::new(0));
-    let task_list = TaskList::new(index.clone());
+    let task_list = TaskList::new();
 
     let mut stack_layout = StackLayout {
         children: vec![Box::new(task_list)],
@@ -61,7 +61,7 @@ fn test_shifting_tasks() {
         },
     );
     let index = Rc::new(RefCell::new(0));
-    let task_list = TaskList::new(index.clone());
+    let task_list = TaskList::new();
 
     let mut stack_layout = StackLayout {
         children: vec![Box::new(task_list)],

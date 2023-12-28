@@ -127,7 +127,6 @@ impl DrawableComponent for DialogBox<'_> {
                 self.draw_area,
                 None,
                 self.options.len(),
-                &mut self.index,
                 mouse_event,
             );
         }

@@ -18,22 +18,20 @@ use crate::{
 #[derive(Default)]
 pub struct Viewer {
     area: Rect,
-    task_index: Rc<RefCell<usize>>,
     completed_task_index: Rc<RefCell<usize>>,
 }
 
 impl Viewer {
-    pub fn new(task_index: Rc<RefCell<usize>>, completed_task_index: Rc<RefCell<usize>>) -> Viewer {
+    pub fn new(completed_task_index: Rc<RefCell<usize>>) -> Viewer {
         Viewer {
             area: Rect::default(),
-            task_index,
             completed_task_index,
         }
     }
 
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.theme;
-        let index = *self.task_index.borrow();
+        let index = app.task_list.selected_index;
         let task: &Task = &app.task_store.tasks[index];
 
         let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];

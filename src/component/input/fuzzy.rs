@@ -89,7 +89,6 @@ impl DrawableComponent for FuzzyBox<'_> {
                 self.list_draw_area,
                 None,
                 self.active.len(),
-                &mut self.list_index,
                 mouse_event,
             );
         } else {

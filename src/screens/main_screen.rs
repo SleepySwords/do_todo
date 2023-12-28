@@ -28,13 +28,12 @@ impl MainScreenLayer {
     pub fn new() -> MainScreenLayer {
         // The use of a RefCell means that we have to be more carefull in where we borrow this
         // variable. Ie: No storing borrowed references.
-        let task_index = Rc::new(RefCell::new(0));
         let completed_task_index = Rc::new(RefCell::new(0));
         MainScreenLayer {
-            task_list: TaskList::new(task_index.clone()),
+            task_list: TaskList::new(),
             completed_list: CompletedList::new(completed_task_index.clone()),
             layout: Rect::default(),
-            viewer: Viewer::new(task_index, completed_task_index),
+            viewer: Viewer::new(completed_task_index),
         }
     }
 }
