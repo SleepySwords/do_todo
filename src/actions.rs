@@ -192,20 +192,24 @@ pub fn delete_tag_menu(app: &mut App) {
         let moved: u32 = *i;
         let moved_name = tag.name.clone();
         // TODO: Allow for DialogBox to support colours.
-        tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
-            let tag_dialog = DialogBoxBuilder::default()
-                .title(format!(
-                    "Do you want to permenatly delete the tag {}",
-                    moved_name
-                ))
-                .add_option(DialogAction::new(String::from("Delete"), move |app| {
-                    app.task_store.delete_tag(moved)
-                }))
-                .add_option(DialogAction::new(String::from("Cancel"), move |_| {}))
-                .save_mode(app)
-                .build();
-            app.push_layer(tag_dialog);
-        }));
+        tag_options.push(DialogAction::styled(
+            String::from(&tag.name),
+            Style::default().fg(tag.colour),
+            move |app| {
+                let tag_dialog = DialogBoxBuilder::default()
+                    .title(format!(
+                        "Do you want to permenatly delete the tag {}",
+                        moved_name
+                    ))
+                    .add_option(DialogAction::new(String::from("Delete"), move |app| {
+                        app.task_store.delete_tag(moved)
+                    }))
+                    .add_option(DialogAction::new(String::from("Cancel"), move |_| {}))
+                    .save_mode(app)
+                    .build();
+                app.push_layer(tag_dialog);
+            },
+        ));
     }
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 

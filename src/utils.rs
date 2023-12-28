@@ -140,6 +140,7 @@ pub fn handle_mouse_movement(
 
 pub(crate) mod ui {
     use tui::{
+        prelude::Constraint,
         style::Style,
         text::{Line, Span},
         widgets::{Block, Borders, Cell, Row, Table},
@@ -150,13 +151,16 @@ pub(crate) mod ui {
     use super::wrap;
 
     pub fn generate_table<'a>(items: Vec<(Span<'a>, Line<'a>)>, width: usize) -> Table<'a> {
-        Table::new(items.into_iter().map(|(title, content)| {
-            let text = wrap::wrap_text(content, width as u16);
+        Table::new(
+            items.into_iter().map(|(title, content)| {
+                let text = wrap::wrap_text(content, width as u16);
 
-            let height = text.height();
-            let cells = vec![Cell::from(title), Cell::from(text)];
-            Row::new(cells).height(height as u16).bottom_margin(1)
-        }))
+                let height = text.height();
+                let cells = vec![Cell::from(title), Cell::from(text)];
+                Row::new(cells).height(height as u16).bottom_margin(1)
+            }),
+            [Constraint::Percentage(20), Constraint::Length(width as u16)],
+        )
     }
 
     /// Generates the default block

@@ -51,7 +51,7 @@ impl Viewer {
         let table =
             utils::ui::generate_table(items, constraints[1].apply(self.area.width) as usize - 3)
                 .block(block)
-                .widths(&constraints);
+                .widths(constraints);
 
         drawer.draw_widget(table, self.area)
     }
@@ -99,7 +99,7 @@ impl Viewer {
         let table =
             utils::ui::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
                 .block(block)
-                .widths(&constraints);
+                .widths(constraints);
 
         drawer.draw_widget(table, draw_area)
     }

@@ -3,7 +3,7 @@ use itertools::Itertools;
 use tui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState},
+    widgets::{Clear, List, ListItem, ListState},
 };
 use tui_textarea::{CursorMove, Input, TextArea};
 
@@ -13,7 +13,7 @@ use crate::{
     utils::{self, handle_mouse_movement},
 };
 
-use super::{dialog::DialogAction, Overlay};
+use super::{dialog::DialogAction, input_box::InputBox, Overlay};
 
 pub struct FuzzyBox<'a> {
     draw_area: Rect,
@@ -124,17 +124,14 @@ impl FuzzyBox<'_> {
         let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last() else {
             return;
         };
-        let widget = fuzzy.text_area.widget();
-        let boxes = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(app.theme.selected_border_colour))
-            .border_type(app.theme.border_type)
-            .title(fuzzy.title.as_ref());
-        let box_area = boxes.inner(fuzzy.text_draw_area);
 
-        drawer.draw_widget(Clear, fuzzy.text_draw_area);
-        drawer.draw_widget(boxes, fuzzy.text_draw_area);
-        drawer.draw_widget(widget, box_area);
+        InputBox::draw_input_box(
+            &app.theme,
+            fuzzy.text_draw_area,
+            &fuzzy.text_area,
+            fuzzy.title.as_ref(),
+            drawer,
+        );
 
         let mut list = List::new(
             fuzzy

@@ -9,8 +9,9 @@ use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
-    draw::EventResult,
+    draw::{Drawer, EventResult},
     error::AppError,
+    theme::Theme,
     utils,
 };
 
@@ -55,20 +56,36 @@ impl InputBox {
         self.text_area.lines().join("\n")
     }
 
-    pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
+    pub fn draw(app: &App, drawer: &mut Drawer) {
         let Some(Overlay::Input(input)) = app.overlays.get(0) else {
             return;
         };
-        let widget = input.text_area.widget();
+        Self::draw_input_box(
+            &app.theme,
+            input.draw_area,
+            &input.text_area,
+            &input.title,
+            drawer,
+        );
+    }
+
+    pub fn draw_input_box(
+        theme: &Theme,
+        draw_area: Rect,
+        text_area: &TextArea,
+        title: &str,
+        drawer: &mut Drawer,
+    ) {
+        let widget = text_area.widget();
         let boxes = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(app.theme.selected_border_colour))
-            .border_type(app.theme.border_type)
-            .title(input.title.as_ref());
-        let box_area = boxes.inner(input.draw_area);
+            .border_style(Style::default().fg(theme.selected_border_colour))
+            .border_type(theme.border_type)
+            .title(title.as_ref());
+        let box_area = boxes.inner(draw_area);
 
-        drawer.draw_widget(Clear, input.draw_area);
-        drawer.draw_widget(boxes, input.draw_area);
+        drawer.draw_widget(Clear, draw_area);
+        drawer.draw_widget(boxes, draw_area);
         drawer.draw_widget(widget, box_area);
     }
 
@@ -131,6 +148,10 @@ impl InputBox {
             return EventResult::Ignored;
         };
 
+    }
+
+    pub fn mouse_event_key(draw_area: Rect, mouse_event: MouseEvent) -> EventResult {
+
         match mouse_event.kind {
             MouseEventKind::Down(..) => {}
             _ => {
@@ -138,7 +159,7 @@ impl InputBox {
             }
         }
 
-        let draw_area = input.draw_area;
+        let draw_area = draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             let Some(Overlay::Input(input)) = app.overlays.pop() else {
