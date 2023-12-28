@@ -4,6 +4,7 @@ Do your todos!
 A todo list to organise your needs :)
 
 <img width="1414" src="https://github.com/SleepySwords/do_todo/assets/33922797/b572a1af-3d70-46d5-ac24-17887532fbae">
+<img width="1403" alt="Screenshot 2023-12-14 at 11 03 48 pm" src="https://github.com/SleepySwords/do_todo/assets/33922797/26429f86-15ee-492a-9c37-af187687c47f">
 
 This project in its current state is extremely unstable. Features may break existing data or configs. Use at your own risk and make sure to backup your data!
 

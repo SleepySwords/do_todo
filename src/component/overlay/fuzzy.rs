@@ -87,7 +87,7 @@ impl DrawableComponent for FuzzyBox<'_> {
             return handle_mouse_movement(
                 app,
                 self.list_draw_area,
-                None,
+                Mode::Overlay,
                 self.active.len(),
                 mouse_event,
             );

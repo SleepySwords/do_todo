@@ -7,8 +7,8 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     app::{App, Mode},
     component::{
-        input::dialog::DialogAction,
-        input::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
+        overlay::dialog::DialogAction,
+        overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
         message_box::MessageBox,
     },
     error::AppError,

@@ -1,5 +1,5 @@
 pub mod completed_list;
-pub mod input;
+pub mod overlay;
 pub mod layout;
 pub mod message_box;
 pub mod status_line;

@@ -1,20 +1,24 @@
+use crossterm::event::KeyEvent;
+
 use crate::{
     actions,
     app::{App, Mode},
-    component::{input::input_box::InputBoxBuilder, completed_list::CompletedList},
+    component::{completed_list::CompletedList, overlay::input_box::InputBoxBuilder},
+    draw::EventResult,
     theme::KeyBindings,
-    utils, draw::EventResult,
+    utils, task::Task,
 };
 
-pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) {
+pub fn key_event(app: &mut App, key_event: KeyEvent) {
+    universal_input(app, key_event);
     match app.mode {
-        Mode::CurrentTasks => input_task_list(app, key_event),
-        Mode::CompletedTasks => input_completed_list(app, key_event),
+        Mode::CurrentTasks => task_list_input(app, key_event),
+        Mode::CompletedTasks => completed_list_input(app, key_event),
         Mode::Overlay => {}
     }
 }
 
-fn input_task_list(app: &mut App, key_event: crossterm::event::KeyEvent) {
+fn task_list_input(app: &mut App, key_event: KeyEvent) {
     let theme = &app.theme;
 
     let selected_index = &mut app.task_list.selected_index;
@@ -119,7 +123,7 @@ fn input_task_list(app: &mut App, key_event: crossterm::event::KeyEvent) {
     }
 }
 
-fn input_completed_list(app: &mut App, key_event: crossterm::event::KeyEvent) {
+fn completed_list_input(app: &mut App, key_event: KeyEvent) {
     let result = utils::handle_key_movement(
         &app.theme,
         key_event,
@@ -135,4 +139,54 @@ fn input_completed_list(app: &mut App, key_event: crossterm::event::KeyEvent) {
         CompletedList::restore_task(app);
         return;
     }
+}
+
+fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
+    // if event_result == EventResult::Consumed {
+    //     return event_result;
+    // }
+
+    // Global keybindings
+    return match KeyBindings::from_event(&app.theme, key_event) {
+        KeyBindings::AddKey => {
+            let add_input_dialog = InputBoxBuilder::default()
+                .title(String::from("Add a task"))
+                .callback(move |app, word| {
+                    app.task_store
+                        .add_task(Task::from_string(word.trim().to_string()));
+
+                    Ok(())
+                })
+                .save_mode(app)
+                .build();
+            app.push_layer(add_input_dialog);
+            EventResult::Consumed
+        }
+        KeyBindings::TasksMenuKey => {
+            app.mode = Mode::CurrentTasks;
+            EventResult::Consumed
+        }
+        KeyBindings::CompletedTasksMenuKey => {
+            app.mode = Mode::CompletedTasks;
+            EventResult::Consumed
+        }
+        KeyBindings::OpenHelpKey => {
+            actions::open_help_menu(app);
+            EventResult::Consumed
+        }
+        KeyBindings::QuitKey => {
+            app.shutdown();
+            EventResult::Consumed
+        }
+        KeyBindings::SortKey => {
+            app.task_store.sort();
+            EventResult::Consumed
+        }
+        KeyBindings::EnableAutosortKey => {
+            app.task_store.auto_sort = !app.task_store.auto_sort;
+            app.task_store.sort();
+            EventResult::Consumed
+        }
+        _ => EventResult::Ignored,
+    };
 }

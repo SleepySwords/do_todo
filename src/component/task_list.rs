@@ -138,7 +138,7 @@ impl DrawableComponent for TaskList {
         handle_mouse_movement(
             app,
             self.area,
-            Some(COMPONENT_TYPE),
+            COMPONENT_TYPE,
             app.task_store.tasks.len(),
             mouse_event,
         )

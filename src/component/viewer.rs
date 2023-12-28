@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use tui::{
     layout::{Constraint, Rect},
     style::Style,
@@ -18,14 +16,12 @@ use crate::{
 #[derive(Default)]
 pub struct Viewer {
     area: Rect,
-    completed_task_index: Rc<RefCell<usize>>,
 }
 
 impl Viewer {
-    pub fn new(completed_task_index: Rc<RefCell<usize>>) -> Viewer {
+    pub fn new() -> Viewer {
         Viewer {
             area: Rect::default(),
-            completed_task_index,
         }
     }
 
@@ -67,7 +63,7 @@ impl Viewer {
         draw_area: Rect,
         drawer: &mut Drawer,
     ) {
-        let completed_task = &app.task_store.completed_tasks[*self.completed_task_index.borrow()];
+        let completed_task = &app.task_store.completed_tasks[app.completed_list.selected_index];
         let completed_time = completed_task
             .time_completed
             .format("%d/%m/%y %-I:%M:%S %p")

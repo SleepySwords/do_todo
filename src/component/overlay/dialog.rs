@@ -125,7 +125,7 @@ impl DrawableComponent for DialogBox<'_> {
             return handle_mouse_movement(
                 app,
                 self.draw_area,
-                None,
+                Mode::Overlay,
                 self.options.len(),
                 mouse_event,
             );

@@ -95,11 +95,11 @@ pub fn handle_key_movement(
 pub fn handle_mouse_movement(
     app: &mut App,
     area: Rect,
-    mode_type: Option<Mode>,
+    mode: Mode,
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> EventResult {
-    if let Some(index) = app.current_mode_index() {
+    if let Some(index) = app.selected_index(mode) {
         if max_items == 0 {
             return EventResult::Consumed;
         }
@@ -117,13 +117,11 @@ pub fn handle_mouse_movement(
         }
 
         if let MouseEventKind::Down(_) = kind {
-            if let Some(mode) = mode_type {
-                app.mode = mode;
-            }
+            app.mode = mode;
             if offset == 0 {
                 return EventResult::Consumed;
             }
-            if let Some(index) = app.current_mode_index() {
+            if let Some(index) = app.selected_index(mode) {
                 if *index > area.height as usize - 2 {
                     let new_index = *index - (area.height as usize - 2) + offset as usize;
                     *index = new_index;

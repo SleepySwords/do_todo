@@ -31,7 +31,7 @@ pub struct CompletedListContext {
 }
 
 impl CompletedList {
-    pub fn new(selected_index: Rc<RefCell<usize>>) -> Self {
+    pub fn new() -> Self {
         Self {
             area: Rect::default(),
         }
@@ -122,7 +122,7 @@ impl DrawableComponent for CompletedList {
         return utils::handle_mouse_movement(
             app,
             self.area,
-            Some(COMPONENT_TYPE),
+            COMPONENT_TYPE,
             app.task_store.completed_tasks.len(),
             mouse_event,
         );

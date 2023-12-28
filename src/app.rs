@@ -12,7 +12,7 @@ use crate::{
     component::completed_list::CompletedList,
     component::layout::stack_layout::StackLayout,
     component::status_line::StatusLine,
-    component::{task_list::{TaskList, TaskListContext}, completed_list::CompletedListContext},
+    component::{task_list::{TaskList, TaskListContext}, completed_list::CompletedListContext, overlay::OverlayContext},
     draw::DrawableComponent,
     task::{CompletedTask, Tag, Task},
     theme::Theme,
@@ -31,8 +31,10 @@ pub struct App {
     pub mode: Mode,
 
     pub logs: Vec<(String, NaiveTime)>,
+
     pub task_list: TaskListContext,
     pub completed_list: CompletedListContext,
+    pub overlays: Vec<OverlayContext<'static>>,
 
     should_shutdown: bool,
 }
@@ -47,9 +49,10 @@ impl App {
         }
     }
 
-    pub fn current_mode_index(&mut self) -> Option<&mut usize> {
-        match self.mode {
+    pub fn selected_index(&mut self, mode: Mode) -> Option<&mut usize> {
+        match mode {
             Mode::CurrentTasks => Some(&mut self.task_list.selected_index),
+            Mode::CompletedTasks => Some(&mut self.completed_list.selected_index),
             _ => None
         }
     }
