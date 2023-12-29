@@ -5,11 +5,6 @@ use tui::{
     widgets::{List, ListItem, ListState},
 };
 
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    rc::Rc,
-};
-
 use crate::{
     actions::HelpAction,
     app::{App, Mode},
@@ -23,23 +18,18 @@ const COMPONENT_TYPE: Mode = Mode::CompletedTasks;
 
 pub struct CompletedList {
     pub area: Rect,
-    selected_index: Rc<RefCell<usize>>,
+}
+
+#[derive(Default)]
+pub struct CompletedListContext {
+    pub selected_index: usize,
 }
 
 impl CompletedList {
-    pub fn new(selected_index: Rc<RefCell<usize>>) -> Self {
+    pub fn new() -> Self {
         Self {
             area: Rect::default(),
-            selected_index,
         }
-    }
-
-    fn selected(&self) -> Ref<usize> {
-        self.selected_index.borrow()
-    }
-
-    fn selected_mut(&self) -> RefMut<usize> {
-        self.selected_index.borrow_mut()
     }
 
     pub fn available_actions(theme: &Theme) -> Vec<HelpAction<'static>> {
@@ -49,20 +39,23 @@ impl CompletedList {
         )]
     }
 
-    pub fn restore_task(&mut self, app: &mut App) {
+    pub fn restore_task(app: &mut App) {
         if app.task_store.completed_tasks.is_empty() {
             return;
         }
 
-        let current_selected_task = app.task_store.completed_tasks.remove(*self.selected());
+        let current_selected_task = app
+            .task_store
+            .completed_tasks
+            .remove(app.completed_list.selected_index);
 
         app.task_store
             .add_task(Task::from_completed_task(current_selected_task));
 
-        if *self.selected() == app.task_store.completed_tasks.len()
+        if app.completed_list.selected_index == app.task_store.completed_tasks.len()
             && !app.task_store.completed_tasks.is_empty()
         {
-            *self.selected_mut() -= 1;
+            app.completed_list.selected_index -= 1;
         }
     }
 }
@@ -71,7 +64,7 @@ impl DrawableComponent for CompletedList {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let theme = &app.theme;
 
-        let selected_index = *self.selected();
+        let selected_index = app.completed_list.selected_index;
 
         let completed_tasks: Vec<ListItem> = app
             .task_store
@@ -116,39 +109,18 @@ impl DrawableComponent for CompletedList {
         drawer.draw_stateful_widget(completed_list, &mut completed_state, self.area);
     }
 
-    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
-        let result = utils::handle_key_movement(
-            &app.theme,
-            key_event,
-            &mut self.selected_mut(),
-            app.task_store.completed_tasks.len(),
-        );
-
-        if result == EventResult::Consumed {
-            return result;
-        }
-
-        if app.theme.restore_key.is_pressed(key_event) {
-            self.restore_task(app);
-            return EventResult::Consumed;
-        }
-
-        EventResult::Ignored
-    }
-
     fn mouse_event(
         &mut self,
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
     ) -> EventResult {
-        return utils::handle_mouse_movement(
+        utils::handle_mouse_movement(
             app,
             self.area,
-            Some(COMPONENT_TYPE),
+            COMPONENT_TYPE,
             app.task_store.completed_tasks.len(),
-            &mut self.selected_index.borrow_mut(),
             mouse_event,
-        );
+        )
     }
 
     fn update_layout(&mut self, rect: Rect) {

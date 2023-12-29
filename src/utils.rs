@@ -95,43 +95,44 @@ pub fn handle_key_movement(
 pub fn handle_mouse_movement(
     app: &mut App,
     area: Rect,
-    mode_type: Option<Mode>,
+    mode: Mode,
     max_items: usize,
-    index: &mut usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> EventResult {
-    if max_items == 0 {
-        return EventResult::Consumed;
-    }
-    let offset = row - area.y;
-    if let MouseEventKind::ScrollUp = kind {
-        if *index != 0 {
-            *index -= 1;
-        }
-    }
-
-    if let MouseEventKind::ScrollDown = kind {
-        if *index < max_items - 1 {
-            *index += 1;
-        }
-    }
-
-    if let MouseEventKind::Down(_) = kind {
-        if let Some(mode) = mode_type {
-            app.mode = mode;
-        }
-        if offset == 0 {
+    if let Some(index) = app.selected_index(mode) {
+        if max_items == 0 {
             return EventResult::Consumed;
         }
-        if *index > area.height as usize - 2 {
-            let new_index = *index - (area.height as usize - 2) + offset as usize;
-            *index = new_index;
-        } else {
-            if offset as usize > max_items {
-                *index = max_items - 1;
+        let offset = row - area.y;
+        if let MouseEventKind::ScrollUp = kind {
+            if *index != 0 {
+                *index -= 1;
+            }
+        }
+
+        if let MouseEventKind::ScrollDown = kind {
+            if *index < max_items - 1 {
+                *index += 1;
+            }
+        }
+
+        if let MouseEventKind::Down(_) = kind {
+            app.mode = mode;
+            if offset == 0 {
                 return EventResult::Consumed;
             }
-            *index = offset as usize - 1;
+            if let Some(index) = app.selected_index(mode) {
+                if *index > area.height as usize - 2 {
+                    let new_index = *index - (area.height as usize - 2) + offset as usize;
+                    *index = new_index;
+                } else {
+                    if offset as usize > max_items {
+                        *index = max_items - 1;
+                        return EventResult::Consumed;
+                    }
+                    *index = offset as usize - 1;
+                }
+            }
         }
     }
     EventResult::Consumed
@@ -139,6 +140,7 @@ pub fn handle_mouse_movement(
 
 pub(crate) mod ui {
     use tui::{
+        prelude::Constraint,
         style::Style,
         text::{Line, Span},
         widgets::{Block, Borders, Cell, Row, Table},
@@ -149,13 +151,16 @@ pub(crate) mod ui {
     use super::wrap;
 
     pub fn generate_table<'a>(items: Vec<(Span<'a>, Line<'a>)>, width: usize) -> Table<'a> {
-        Table::new(items.into_iter().map(|(title, content)| {
-            let text = wrap::wrap_text(content, width as u16);
+        Table::new(
+            items.into_iter().map(|(title, content)| {
+                let text = wrap::wrap_text(content, width as u16);
 
-            let height = text.height();
-            let cells = vec![Cell::from(title), Cell::from(text)];
-            Row::new(cells).height(height as u16).bottom_margin(1)
-        }))
+                let height = text.height();
+                let cells = vec![Cell::from(title), Cell::from(text)];
+                Row::new(cells).height(height as u16).bottom_margin(1)
+            }),
+            [Constraint::Percentage(20), Constraint::Length(width as u16)],
+        )
     }
 
     /// Generates the default block
@@ -272,35 +277,24 @@ pub mod test {
 
     use crate::{
         app::{App, TaskStore},
-        component::layout::stack_layout::StackLayout,
-        screens::main_screen::MainScreenLayer,
+        input,
     };
 
-    pub fn input_char(character: char, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(crossterm::event::KeyEvent::new(
-            KeyCode::Char(character),
-            KeyModifiers::NONE,
-        ));
-        execute_callbacks(app, stack_layout);
+    pub fn input_char(character: char, app: &mut App) {
+        input::key_event(
+            app,
+            crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE),
+        );
     }
 
-    pub fn input_code(key: KeyCode, app: &mut App, stack_layout: &mut StackLayout) {
-        app.execute_event(crossterm::event::KeyEvent::new(key, KeyModifiers::NONE));
-        execute_callbacks(app, stack_layout);
+    pub fn input_code(key: KeyCode, app: &mut App) {
+        input::key_event(
+            app,
+            crossterm::event::KeyEvent::new(key, KeyModifiers::NONE),
+        );
     }
 
-    pub fn setup(task_store: TaskStore) -> (App, StackLayout) {
-        let app = App::new(crate::theme::Theme::default(), task_store);
-        let stack_layout = StackLayout {
-            children: vec![Box::new(MainScreenLayer::new())],
-        };
-
-        (app, stack_layout)
-    }
-
-    pub fn execute_callbacks(app: &mut App, stack_layout: &mut StackLayout) {
-        while let Some(callback) = app.callbacks.pop_front() {
-            callback(app, stack_layout);
-        }
+    pub fn setup(task_store: TaskStore) -> App {
+        App::new(crate::theme::Theme::default(), task_store)
     }
 }

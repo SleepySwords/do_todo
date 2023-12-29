@@ -1,7 +1,4 @@
 #[cfg(test)]
-use std::{cell::RefCell, rc::Rc};
-
-#[cfg(test)]
 use itertools::Itertools;
 
 #[cfg(test)]
@@ -26,12 +23,6 @@ fn assert_task_eq(app: &App, task_names: Vec<&str>) {
             .collect_vec(),
         task_names
     );
-}
-
-#[cfg(test)]
-fn assert_task_cursor_eq(current: &Rc<RefCell<usize>>, selected_index: usize) {
-    let current_index = *current.borrow();
-    assert_eq!(current_index, selected_index);
 }
 
 // #[cfg(test)]

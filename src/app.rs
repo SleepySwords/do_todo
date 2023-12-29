@@ -1,24 +1,21 @@
 use chrono::{Local, NaiveTime};
-use crossterm::event::KeyEvent;
+
 use serde::{Deserialize, Serialize};
 
-use std::{
-    cmp,
-    collections::{BTreeMap, VecDeque},
-};
+use std::{cmp, collections::BTreeMap};
 
 use crate::{
     actions::HelpAction,
     component::completed_list::CompletedList,
-    component::layout::stack_layout::StackLayout,
     component::status_line::StatusLine,
-    component::task_list::TaskList,
-    draw::DrawableComponent,
+    component::{
+        completed_list::CompletedListContext,
+        overlay::Overlay,
+        task_list::{TaskList, TaskListContext},
+    },
     task::{CompletedTask, Tag, Task},
     theme::Theme,
 };
-
-type Callback = dyn FnOnce(&mut App, &mut StackLayout);
 
 #[derive(Default)]
 pub struct App {
@@ -27,10 +24,13 @@ pub struct App {
 
     pub status_line: StatusLine,
 
-    pub callbacks: VecDeque<Box<Callback>>,
     pub mode: Mode,
 
     pub logs: Vec<(String, NaiveTime)>,
+
+    pub task_list: TaskListContext,
+    pub completed_list: CompletedListContext,
+    pub overlays: Vec<Overlay<'static>>,
 
     should_shutdown: bool,
 }
@@ -45,6 +45,18 @@ impl App {
         }
     }
 
+    pub fn selected_index(&mut self, mode: Mode) -> Option<&mut usize> {
+        match mode {
+            Mode::CurrentTasks => Some(&mut self.task_list.selected_index),
+            Mode::CompletedTasks => Some(&mut self.completed_list.selected_index),
+            Mode::Overlay => match self.overlays.last_mut() {
+                Some(Overlay::Dialog(dialog)) => Some(&mut dialog.index),
+                Some(Overlay::Fuzzy(fuzzy)) => Some(&mut fuzzy.index),
+                _ => None,
+            },
+        }
+    }
+
     pub fn shutdown(&mut self) {
         self.should_shutdown = true
     }
@@ -53,36 +65,13 @@ impl App {
         self.should_shutdown
     }
 
-    pub fn pop_layer(&mut self) {
-        self.callbacks.push_back(Box::new(|_, x| {
-            x.pop_layer();
-        }));
-    }
-
     // Perhaps should use a static variable.
     pub fn println(&mut self, line: String) {
         self.logs.push((line, Local::now().time()));
     }
 
-    pub fn pop_layer_callback<T>(&mut self, callback: T)
-    where
-        T: FnOnce(&mut App, &mut StackLayout, Option<Box<dyn DrawableComponent>>) + 'static,
-    {
-        self.callbacks.push_back(Box::new(|app, x| {
-            let comp = x.pop_layer();
-            callback(app, x, comp)
-        }));
-    }
-
-    pub fn push_layer<T: DrawableComponent + 'static>(&mut self, component: T) {
-        self.callbacks
-            .push_back(Box::new(|_, x| x.append_layer(Box::new(component))));
-    }
-
-    pub fn execute_event(&mut self, key_event: KeyEvent) {
-        self.callbacks.push_back(Box::new(move |app, x| {
-            x.key_event(app, key_event);
-        }));
+    pub fn push_layer(&mut self, component: Overlay<'static>) {
+        self.overlays.push(component);
     }
 }
 

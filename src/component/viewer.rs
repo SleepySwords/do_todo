@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use tui::{
     layout::{Constraint, Rect},
     style::Style,
@@ -18,22 +16,18 @@ use crate::{
 #[derive(Default)]
 pub struct Viewer {
     area: Rect,
-    task_index: Rc<RefCell<usize>>,
-    completed_task_index: Rc<RefCell<usize>>,
 }
 
 impl Viewer {
-    pub fn new(task_index: Rc<RefCell<usize>>, completed_task_index: Rc<RefCell<usize>>) -> Viewer {
+    pub fn new() -> Viewer {
         Viewer {
             area: Rect::default(),
-            task_index,
-            completed_task_index,
         }
     }
 
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.theme;
-        let index = *self.task_index.borrow();
+        let index = app.task_list.selected_index;
         let task: &Task = &app.task_store.tasks[index];
 
         let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
@@ -57,7 +51,7 @@ impl Viewer {
         let table =
             utils::ui::generate_table(items, constraints[1].apply(self.area.width) as usize - 3)
                 .block(block)
-                .widths(&constraints);
+                .widths(constraints);
 
         drawer.draw_widget(table, self.area)
     }
@@ -69,7 +63,7 @@ impl Viewer {
         draw_area: Rect,
         drawer: &mut Drawer,
     ) {
-        let completed_task = &app.task_store.completed_tasks[*self.completed_task_index.borrow()];
+        let completed_task = &app.task_store.completed_tasks[app.completed_list.selected_index];
         let completed_time = completed_task
             .time_completed
             .format("%d/%m/%y %-I:%M:%S %p")
@@ -105,7 +99,7 @@ impl Viewer {
         let table =
             utils::ui::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
                 .block(block)
-                .widths(&constraints);
+                .widths(constraints);
 
         drawer.draw_widget(table, draw_area)
     }

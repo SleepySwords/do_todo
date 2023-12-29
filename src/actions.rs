@@ -2,16 +2,15 @@ use chrono::Local;
 use crossterm::event::KeyEvent;
 use tui::style::{Color, Style};
 
-use std::{cell::RefCell, rc::Rc};
-
 use crate::{
     app::{App, Mode},
     component::{
-        input::dialog::DialogAction,
-        input::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
         message_box::MessageBox,
+        overlay::{dialog::DialogAction, Overlay},
+        overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
     },
     error::AppError,
+    input,
     key::Key,
     task::CompletedTask,
 };
@@ -87,21 +86,26 @@ pub fn open_help_menu(app: &mut App) {
     for ac in app.mode.available_help_actions(&app.theme) {
         actions.push(DialogAction::new(
             format!("{: <15}{}", ac.short_hand, ac.description),
-            move |app| app.execute_event(KeyEvent::new(ac.character.code, ac.character.modifiers)),
+            move |app| {
+                input::key_event(
+                    app,
+                    KeyEvent::new(ac.character.code, ac.character.modifiers),
+                );
+            },
         ));
     }
 
     open_dialog_or_fuzzy(app, "Help menu", actions);
 }
 
-pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) {
+pub fn open_delete_task_menu(app: &mut App) {
     if app.task_store.tasks.is_empty() {
         return;
     }
     let delete_dialog = DialogBoxBuilder::default()
         .title("Delete selected task".to_string())
         .add_option(DialogAction::new(String::from("Delete"), move |app| {
-            let mut selected_index = selected_index.borrow_mut();
+            let selected_index = &mut app.task_list.selected_index;
             app.task_store.tasks.remove(*selected_index);
             if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
                 *selected_index -= 1;
@@ -113,10 +117,11 @@ pub fn open_delete_task_menu(app: &mut App, selected_index: Rc<RefCell<usize>>) 
     app.push_layer(delete_dialog);
 }
 
-pub fn complete_task(app: &mut App, selected_index: &mut usize) {
+pub fn complete_task(app: &mut App) {
     if app.task_store.tasks.is_empty() {
         return;
     }
+    let selected_index = &mut app.task_list.selected_index;
     let local = Local::now();
     let time_completed = local.naive_local();
     let task = app.task_store.tasks.remove(*selected_index);
@@ -128,10 +133,12 @@ pub fn complete_task(app: &mut App, selected_index: &mut usize) {
     }
 }
 
-pub fn open_tag_menu(app: &mut App, selected_index: usize) {
+pub fn open_tag_menu(app: &mut App) {
     let mut tag_options: Vec<DialogAction> = Vec::new();
 
-    if !app.task_store.tasks.is_empty() {
+    let selected_index = app.task_list.selected_index;
+
+    if !app.task_store.tasks.is_empty() && app.mode == Mode::CurrentTasks {
         // Loops through the tags and adds them to the menu.
         for (i, tag) in app.task_store.tags.iter() {
             let moved: u32 = *i;
@@ -158,7 +165,7 @@ pub fn open_tag_menu(app: &mut App, selected_index: usize) {
         app.push_layer(tag_menu)
     }));
 
-    if !app.task_store.tasks.is_empty() {
+    if !app.task_store.tasks.is_empty() && app.mode == Mode::CurrentTasks {
         tag_options.push(DialogAction::new(
             String::from("Clear all tags"),
             move |app| {
@@ -185,20 +192,24 @@ pub fn delete_tag_menu(app: &mut App) {
         let moved: u32 = *i;
         let moved_name = tag.name.clone();
         // TODO: Allow for DialogBox to support colours.
-        tag_options.push(DialogAction::new(String::from(&tag.name), move |app| {
-            let tag_dialog = DialogBoxBuilder::default()
-                .title(format!(
-                    "Do you want to permenatly delete the tag {}",
-                    moved_name
-                ))
-                .add_option(DialogAction::new(String::from("Delete"), move |app| {
-                    app.task_store.delete_tag(moved)
-                }))
-                .add_option(DialogAction::new(String::from("Cancel"), move |_| {}))
-                .save_mode(app)
-                .build();
-            app.push_layer(tag_dialog);
-        }));
+        tag_options.push(DialogAction::styled(
+            String::from(&tag.name),
+            Style::default().fg(tag.colour),
+            move |app| {
+                let tag_dialog = DialogBoxBuilder::default()
+                    .title(format!(
+                        "Do you want to permenatly delete the tag {}",
+                        moved_name
+                    ))
+                    .add_option(DialogAction::new(String::from("Delete"), move |app| {
+                        app.task_store.delete_tag(moved)
+                    }))
+                    .add_option(DialogAction::new(String::from("Cancel"), move |_| {}))
+                    .save_mode(app)
+                    .build();
+                app.push_layer(tag_dialog);
+            },
+        ));
     }
     tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
 
@@ -254,7 +265,7 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 0,
             )
             .save_mode(app);
-            app.push_layer(message_box);
+            app.push_layer(Overlay::Message(message_box));
         })
         .save_mode(app)
         .build();

@@ -8,9 +8,11 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{DrawableComponent, EventResult},
+    draw::EventResult,
     utils::{self, centre_rect},
 };
+
+use super::overlay::Overlay;
 
 type MessageCallback = dyn FnOnce(&mut App);
 
@@ -72,10 +74,13 @@ impl MessageBox {
     }
 }
 
-impl DrawableComponent for MessageBox {
-    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let style = Style::default().fg(self.colour);
-        let text = self
+impl MessageBox {
+    pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
+        let Some(Overlay::Message(message)) = app.overlays.last() else {
+            return;
+        };
+        let style = Style::default().fg(message.colour);
+        let text = message
             .message
             .iter()
             .map(|msg| ListItem::new(Span::styled(msg, style)))
@@ -87,33 +92,40 @@ impl DrawableComponent for MessageBox {
                 .borders(Borders::ALL)
                 .border_type(app.theme.border_type)
                 .border_style(style)
-                .title(self.title.as_ref()),
+                .title(message.title.as_ref()),
         );
         let mut list_state = ListState::default();
-        list_state.select(Some(self.selected_index));
-        drawer.draw_widget(Clear, self.draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
+        list_state.select(Some(message.selected_index));
+        drawer.draw_widget(Clear, message.draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, message.draw_area);
     }
 
-    fn key_event(&mut self, app: &mut App, _: crossterm::event::KeyEvent) -> EventResult {
-        app.pop_layer();
-        if let Some(mode) = self.mode_to_restore {
+    pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> EventResult {
+        let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
+            return EventResult::Ignored;
+        };
+        if let Some(mode) = message.mode_to_restore {
             app.mode = mode;
         }
-        if let Some(callback) = self.callback.take() {
+        if let Some(callback) = message.callback.take() {
             (callback)(app);
         }
         crate::draw::EventResult::Consumed
     }
 
-    fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> EventResult {
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
+        let Some(Overlay::Message(message)) = app.overlays.last_mut() else {
+            return EventResult::Ignored;
+        };
         if let MouseEventKind::Down(..) = mouse_event.kind {
-            if !utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
-                app.pop_layer();
-                if let Some(mode) = self.mode_to_restore {
+            if !utils::inside_rect((mouse_event.row, mouse_event.column), message.draw_area) {
+                let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
+                    return EventResult::Ignored;
+                };
+                if let Some(mode) = message.mode_to_restore {
                     app.mode = mode;
                 }
-                if let Some(callback) = self.callback.take() {
+                if let Some(callback) = message.callback.take() {
                     (callback)(app);
                 }
             }
@@ -121,7 +133,7 @@ impl DrawableComponent for MessageBox {
         EventResult::Consumed
     }
 
-    fn update_layout(&mut self, draw_area: Rect) {
+    pub fn update_layout(&mut self, draw_area: Rect) {
         let height = ((self.message.len() + 2) as u16)
             .min(Constraint::Percentage(70).apply(draw_area.height));
         self.draw_area = centre_rect(
