@@ -10,7 +10,7 @@ mod logger;
 mod screens;
 mod task;
 mod tests;
-mod theme;
+mod data_io;
 mod utils;
 
 use component::overlay::Overlay;
@@ -39,7 +39,7 @@ use crate::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (theme, tasks) = config::get_data();
+    let (theme, tasks) = data_io::get_data();
 
     enable_raw_mode()?;
 
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    config::save_data(&app.theme, &app.task_store);
+    data_io::save_data(&app.config, &app.task_store);
 
     if let Err(err) = result {
         eprintln!("{:?}", err);

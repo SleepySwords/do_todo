@@ -9,7 +9,7 @@ use crate::{
     },
     draw::EventResult,
     task::Task,
-    theme::KeyBindings,
+    config::KeyBindings,
     utils,
 };
 
@@ -27,7 +27,7 @@ pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
 }
 
 fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
-    let theme = &app.theme;
+    let theme = &app.config;
 
     let selected_index = &mut app.task_list.selected_index;
 
@@ -134,7 +134,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
 
 fn completed_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
     let result = utils::handle_key_movement(
-        &app.theme,
+        &app.config,
         key_event,
         &mut app.completed_list.selected_index,
         app.task_store.completed_tasks.len(),
@@ -144,7 +144,7 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
         return EventResult::Consumed;
     }
 
-    if app.theme.restore_key.is_pressed(key_event) {
+    if app.config.restore_key.is_pressed(key_event) {
         CompletedList::restore_task(app);
         EventResult::Consumed
     } else {
@@ -154,7 +154,7 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
 
 fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
     // Global keybindings
-    return match KeyBindings::from_event(&app.theme, key_event) {
+    return match KeyBindings::from_event(&app.config, key_event) {
         KeyBindings::AddKey => {
             let add_input_dialog = InputBoxBuilder::default()
                 .title(String::from("Add a task"))

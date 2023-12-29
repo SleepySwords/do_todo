@@ -39,7 +39,7 @@ impl FuzzyBox<'_> {
             return EventResult::Ignored;
         };
         match code {
-            _ if app.theme.move_down_fuzzy.is_pressed(key_event) => {
+            _ if app.config.move_down_fuzzy.is_pressed(key_event) => {
                 if fuzzy.active.is_empty() {
                     return EventResult::Consumed;
                 }
@@ -53,7 +53,7 @@ impl FuzzyBox<'_> {
                 fuzzy.index = (fuzzy.index + 1).rem_euclid(fuzzy.active.len());
                 EventResult::Consumed
             }
-            _ if app.theme.move_up_fuzzy.is_pressed(key_event) => {
+            _ if app.config.move_up_fuzzy.is_pressed(key_event) => {
                 if fuzzy.active.is_empty() {
                     return EventResult::Consumed;
                 }
@@ -126,7 +126,7 @@ impl FuzzyBox<'_> {
         };
 
         InputBox::draw_input_box(
-            &app.theme,
+            &app.config,
             fuzzy.text_draw_area,
             &fuzzy.text_area,
             fuzzy.title.as_ref(),
@@ -144,8 +144,8 @@ impl FuzzyBox<'_> {
                 // Line every call anyway.
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_symbol(&app.theme.selected_cursor)
-        .block(app.theme.styled_block("", app.theme.selected_border_colour));
+        .highlight_symbol(&app.config.selected_cursor)
+        .block(app.config.styled_block("", app.config.selected_border_colour));
 
         // FIXME: The colour does not show on the cursor if there is colour in the line :(
         if let Some(Some(opt)) = fuzzy
@@ -154,7 +154,7 @@ impl FuzzyBox<'_> {
             .map(|&id| fuzzy.options.get(id))
         {
             if opt.name.spans.iter().all(|f| f.style.fg.is_none()) {
-                list = list.highlight_style(app.theme.highlight_dropdown_style())
+                list = list.highlight_style(app.config.highlight_dropdown_style())
             } else {
                 list = list.highlight_style(Style::default().add_modifier(Modifier::BOLD))
             }

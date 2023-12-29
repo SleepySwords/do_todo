@@ -4,7 +4,7 @@ use tui::style::Color;
 
 use std::fmt::Display;
 
-use crate::{app::App, theme::Theme};
+use crate::{app::App, config::Config};
 
 #[derive(Deserialize, Serialize)]
 pub struct Tag {
@@ -16,15 +16,17 @@ pub struct Tag {
 pub struct Category {
     pub title: String,
     pub opened: bool,
-    pub tasks: Vec<Task>,
+    pub tasks: Vec<usize>,
 }
 
-#[derive(Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Default, Deserialize, Serialize)]
+#[serde(default)]
 pub struct Task {
     pub progress: bool,
     pub title: String,
     pub priority: Priority,
     pub tags: Vec<u32>,
+    pub sub_tasks: Vec<Task>,
 }
 
 impl Task {
@@ -34,6 +36,7 @@ impl Task {
             title: content,
             priority: Priority::None,
             tags: Vec::new(),
+            sub_tasks: Vec::new()
         }
     }
 
@@ -81,15 +84,16 @@ impl CompletedTask {
                 title: content,
                 priority: Priority::None,
                 tags: Vec::new(),
+                sub_tasks: Vec::new(),
             },
             time_completed,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize, Default)]
 pub enum Priority {
-    None,
+    #[default] None,
     Low,
     Normal,
     High,
@@ -127,7 +131,7 @@ impl Display for Priority {
 }
 
 impl Priority {
-    pub fn colour(&self, theme: &Theme) -> Color {
+    pub fn colour(&self, theme: &Config) -> Color {
         match self {
             Priority::None => Color::White,
             Priority::High => theme.high_priority_colour,

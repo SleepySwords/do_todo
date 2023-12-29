@@ -3,7 +3,7 @@ use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
 
-use crate::theme::{KeyBindings, Theme};
+use crate::config::{KeyBindings, Config};
 use crate::{
     app::{App, Mode},
     draw::EventResult,
@@ -57,7 +57,7 @@ fn centre_constraints(constraint: Constraint, rect_bound: u16) -> [Constraint; 3
 }
 
 pub fn handle_key_movement(
-    theme: &Theme,
+    theme: &Config,
     key_event: KeyEvent,
     index: &mut usize,
     max_items: usize,
@@ -166,15 +166,15 @@ pub(crate) mod ui {
     /// Generates the default block
     pub fn generate_default_block<'a>(app: &App, title: &'a str, mode: Mode) -> Block<'a> {
         let border_colour = if app.mode == mode {
-            app.theme.selected_border_colour
+            app.config.selected_border_colour
         } else {
-            app.theme.default_border_colour
+            app.config.default_border_colour
         };
 
         Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .border_type(app.theme.border_type)
+            .border_type(app.config.border_type)
             .border_style(Style::default().fg(border_colour))
     }
 }

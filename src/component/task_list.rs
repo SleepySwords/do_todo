@@ -9,7 +9,7 @@ use crate::{
     actions::HelpAction,
     app::{App, Mode},
     draw::{DrawableComponent, EventResult},
-    theme::Theme,
+    config::Config,
     utils::{self, handle_mouse_movement},
 };
 
@@ -31,33 +31,33 @@ impl TaskList {
         }
     }
 
-    pub fn available_actions(theme: &Theme) -> Vec<HelpAction<'static>> {
+    pub fn available_actions(config: &Config) -> Vec<HelpAction<'static>> {
         vec![
-            HelpAction::new(theme.add_key, "Adds a task"),
-            HelpAction::new(theme.complete_key, "Completes the selected task"),
-            HelpAction::new(theme.delete_key, "Delete the selected task"),
-            HelpAction::new(theme.edit_key, "Edits the selected task"),
+            HelpAction::new(config.add_key, "Adds a task"),
+            HelpAction::new(config.complete_key, "Completes the selected task"),
+            HelpAction::new(config.delete_key, "Delete the selected task"),
+            HelpAction::new(config.edit_key, "Edits the selected task"),
             HelpAction::new(
-                theme.tag_menu,
+                config.tag_menu,
                 "Add or remove the tags from this task or project",
             ),
             HelpAction::new(
-                theme.change_priority_key,
+                config.change_priority_key,
                 "Gives selected task lower priority",
             ),
-            HelpAction::new(theme.move_task_down, "Moves the task down on the task list"),
-            HelpAction::new(theme.move_task_up, "Moves the task up on the task list"),
-            HelpAction::new_multiple(theme.down_keys, "Moves down one task"),
-            HelpAction::new_multiple(theme.down_keys, "Moves up one task"),
-            HelpAction::new(theme.sort_key, "Sorts tasks (by priority)"),
-            HelpAction::new(theme.enable_autosort_key, "Toggles automatic task sort"),
+            HelpAction::new(config.move_task_down, "Moves the task down on the task list"),
+            HelpAction::new(config.move_task_up, "Moves the task up on the task list"),
+            HelpAction::new_multiple(config.down_keys, "Moves down one task"),
+            HelpAction::new_multiple(config.down_keys, "Moves up one task"),
+            HelpAction::new(config.sort_key, "Sorts tasks (by priority)"),
+            HelpAction::new(config.enable_autosort_key, "Toggles automatic task sort"),
         ]
     }
 }
 
 impl DrawableComponent for TaskList {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let theme = &app.theme;
+        let theme = &app.config;
         let tasks: Vec<ListItem> = app
             .task_store
             .tasks

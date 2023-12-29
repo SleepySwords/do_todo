@@ -37,7 +37,7 @@ impl DrawableComponent for Logger {
             let list = list.block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_type(app.theme.border_type)
+                    .border_type(app.config.border_type)
                     .border_style(style),
             );
             let mut list_state = ListState::default();

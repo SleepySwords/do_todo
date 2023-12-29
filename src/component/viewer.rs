@@ -26,7 +26,7 @@ impl Viewer {
     }
 
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
-        let theme = &app.theme;
+        let theme = &app.config;
         let index = app.task_list.selected_index;
         let task: &Task = &app.task_store.tasks[index];
 
@@ -90,7 +90,7 @@ impl Viewer {
                 Span::raw("Priority"),
                 Line::from(Span::styled(
                     completed_task.task.priority.display_string(),
-                    Style::default().fg(completed_task.task.priority.colour(&app.theme)),
+                    Style::default().fg(completed_task.task.priority.colour(&app.config)),
                 )),
             ),
             (Span::raw("Tags"), tag_names(app, &completed_task.task)),
@@ -125,7 +125,7 @@ fn tag_names<'a>(app: &'a App, task: &'a Task) -> Line<'a> {
 
 impl DrawableComponent for Viewer {
     fn draw(&self, app: &App, drawer: &mut Drawer) {
-        let theme = &app.theme;
+        let theme = &app.config;
         let draw_area = self.area;
         let block = theme.styled_block("Task information", theme.default_border_colour);
 

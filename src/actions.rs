@@ -44,7 +44,7 @@ impl HelpAction<'_> {
 }
 
 fn open_dialog_or_fuzzy(app: &mut App, title: &str, options: Vec<DialogAction<'static>>) {
-    if app.theme.use_fuzzy {
+    if app.config.use_fuzzy {
         let fuzzy = FuzzyBoxBuilder::default()
             .title(title.to_string())
             .options(options)
@@ -67,7 +67,7 @@ pub fn open_help_menu(app: &mut App) {
         DialogAction::new(
             format!(
                 "{: <15}Change to current task window",
-                app.theme.tasks_menu_key.to_string()
+                app.config.tasks_menu_key.to_string()
             ),
             |app| {
                 app.mode = Mode::CurrentTasks;
@@ -76,14 +76,14 @@ pub fn open_help_menu(app: &mut App) {
         DialogAction::new(
             format!(
                 "{: <15}Change to completed task window",
-                app.theme.completed_tasks_menu_key.to_string()
+                app.config.completed_tasks_menu_key.to_string()
             ),
             |app| {
                 app.mode = Mode::CompletedTasks;
             },
         ),
     ];
-    for ac in app.mode.available_help_actions(&app.theme) {
+    for ac in app.mode.available_help_actions(&app.config) {
         actions.push(DialogAction::new(
             format!("{: <15}{}", ac.short_hand, ac.description),
             move |app| {

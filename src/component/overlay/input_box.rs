@@ -11,7 +11,7 @@ use crate::{
     app::{App, Mode},
     draw::{Drawer, EventResult},
     error::AppError,
-    theme::Theme,
+    config::Config,
     utils,
 };
 
@@ -61,7 +61,7 @@ impl InputBox {
             return;
         };
         Self::draw_input_box(
-            &app.theme,
+            &app.config,
             input.draw_area,
             &input.text_area,
             &input.title,
@@ -70,7 +70,7 @@ impl InputBox {
     }
 
     pub fn draw_input_box(
-        theme: &Theme,
+        config: &Config,
         draw_area: Rect,
         text_area: &TextArea,
         title: &str,
@@ -79,8 +79,8 @@ impl InputBox {
         let widget = text_area.widget();
         let boxes = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.selected_border_colour))
-            .border_type(theme.border_type)
+            .border_style(Style::default().fg(config.selected_border_colour))
+            .border_type(config.border_type)
             .title(title.as_ref());
         let box_area = boxes.inner(draw_area);
 

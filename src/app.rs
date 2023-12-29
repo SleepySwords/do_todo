@@ -14,12 +14,12 @@ use crate::{
         task_list::{TaskList, TaskListContext},
     },
     task::{CompletedTask, Tag, Task},
-    theme::Theme,
+    config::Config,
 };
 
 #[derive(Default)]
 pub struct App {
-    pub theme: Theme,
+    pub config: Config,
     pub task_store: TaskStore,
 
     pub status_line: StatusLine,
@@ -36,9 +36,9 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(theme: Theme, task_data: TaskStore) -> App {
+    pub fn new(theme: Config, task_data: TaskStore) -> App {
         App {
-            theme,
+            config: theme,
             task_store: task_data,
             status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
             ..Default::default()
@@ -120,7 +120,7 @@ impl Default for Mode {
 }
 
 impl Mode {
-    pub fn available_help_actions(&self, theme: &Theme) -> Vec<HelpAction> {
+    pub fn available_help_actions(&self, theme: &Config) -> Vec<HelpAction> {
         match self {
             Mode::CurrentTasks => TaskList::available_actions(theme),
             Mode::CompletedTasks => CompletedList::available_actions(theme),

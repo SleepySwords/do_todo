@@ -1,157 +1,276 @@
-use std::{
-    fs,
-    io::Write,
-    io::{stdin, stdout},
-    path::PathBuf,
-    process::exit,
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+use serde::{Deserialize, Serialize};
+use tui::{
+    style::{Color, Modifier, Style},
+    widgets::{Block, BorderType, Borders},
 };
 
-// TODOs:
-// - Create a custom error type and return it from functions to handle it
-// outside of them
+use crate::key::Key;
 
-use crate::{app::TaskStore, error::AppError, theme::Theme};
+#[derive(Deserialize, Serialize)]
+#[serde(default)]
+pub struct Config {
+    #[serde(with = "color_parser")]
+    pub default_border_colour: Color,
+    #[serde(with = "color_parser")]
+    pub selected_border_colour: Color,
+    #[serde(with = "color_parser")]
+    pub selected_task_colour: Color,
+    #[serde(with = "color_parser")]
+    pub high_priority_colour: Color,
+    #[serde(with = "color_parser")]
+    pub normal_priority_colour: Color,
+    #[serde(with = "color_parser")]
+    pub low_priority_colour: Color,
 
-const DIR: &str = "dotodo";
+    pub use_fuzzy: bool,
+    pub up_keys: [Key; 2],
+    pub down_keys: [Key; 2],
+    pub move_up_fuzzy: Key,
+    pub move_down_fuzzy: Key,
+    pub move_top: Key,
+    pub move_bottom: Key,
+    pub move_task_up: Key,
+    pub move_task_down: Key,
 
-const CONFIG_FILE: &str = "config.yml";
-const DATA_FILE: &str = "data.json";
+    pub complete_key: Key,
+    pub edit_key: Key,
+    pub delete_key: Key,
+    pub add_key: Key,
+    pub flip_progress_key: Key,
+    pub change_priority_key: Key,
+    pub restore_key: Key,
 
-fn should_overwrite(message: String) -> std::io::Result<bool> {
-    println!("{}", message);
-    print!(r"Continue (y/n)? ");
-    stdout().flush()?;
+    pub tasks_menu_key: Key,
+    pub completed_tasks_menu_key: Key,
+    pub open_help_key: Key,
+    pub quit_key: Key,
 
-    let mut answer = String::new();
-    stdin().read_line(&mut answer)?; // TODO: Handle Result
+    pub sort_key: Key,
+    pub enable_autosort_key: Key,
+    pub tag_menu: Key,
 
-    let answer = answer.trim();
-    let answer_check_len = answer.len().clamp(0, 2);
-    let should_load = *answer == "yes"[..answer_check_len];
+    #[serde(with = "border_parser")]
+    pub border_type: BorderType,
 
-    Ok(should_load)
+    pub selected_cursor: String,
 }
 
-fn fail_load_string(common_name: &str, file_name: &str, err: AppError) -> String {
-    format!("Failed to load {common_name} '{file_name}', {err}. If you continue, this will be overwritten.")
-}
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            default_border_colour: Color::White,
+            selected_border_colour: Color::Green,
+            selected_task_colour: Color::LightBlue,
+            high_priority_colour: Color::Red,
+            normal_priority_colour: Color::LightYellow,
+            low_priority_colour: Color::Green,
+            use_fuzzy: true,
+            up_keys: [
+                Key::new(KeyCode::Char('k'), KeyModifiers::NONE),
+                Key::new(KeyCode::Up, KeyModifiers::NONE),
+            ],
+            down_keys: [
+                Key::new(KeyCode::Char('j'), KeyModifiers::NONE),
+                Key::new(KeyCode::Down, KeyModifiers::NONE),
+            ],
+            move_task_up: Key::new(KeyCode::Char('K'), KeyModifiers::NONE),
+            move_task_down: Key::new(KeyCode::Char('J'), KeyModifiers::NONE),
+            move_up_fuzzy: Key::new(KeyCode::Char('p'), KeyModifiers::CONTROL),
+            move_down_fuzzy: Key::new(KeyCode::Char('n'), KeyModifiers::CONTROL),
+            move_top: Key::new(KeyCode::Char('g'), KeyModifiers::NONE),
+            move_bottom: Key::new(KeyCode::Char('G'), KeyModifiers::NONE),
 
-fn fail_write_string(common_name: &str, file_name: &str, err: AppError) -> String {
-    format!("Failed to write {common_name} '{file_name}', {err}. If you continue, this will not be saved.")
-}
+            complete_key: Key::new(KeyCode::Char('c'), KeyModifiers::NONE),
+            flip_progress_key: Key::new(KeyCode::Char(' '), KeyModifiers::NONE),
+            edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
+            delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
+            add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
+            change_priority_key: Key::new(KeyCode::Char('h'), KeyModifiers::NONE),
+            restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
-// NOTE: Hacky, but could've saved me 6-8 duplicate changes already
-fn load_from_file<T, F, E>(
-    local_dir: Option<PathBuf>,
-    file_name: &'static str,
-    de_f: F,
-    kind: &'static str,
-) -> T
-where
-    T: Default,
-    F: Fn(&str) -> Result<T, E>,
-    E: Into<AppError>,
-{
-    if let Some(dir) = local_dir {
-        let path = dir.join(DIR).join(file_name);
+            tasks_menu_key: Key::new(KeyCode::Char('1'), KeyModifiers::NONE),
+            completed_tasks_menu_key: Key::new(KeyCode::Char('2'), KeyModifiers::NONE),
+            tag_menu: Key::new(KeyCode::Char('t'), KeyModifiers::NONE),
+            open_help_key: Key::new(KeyCode::Char('x'), KeyModifiers::NONE),
+            quit_key: Key::new(KeyCode::Char('q'), KeyModifiers::NONE),
 
-        if path.exists() {
-            let deserialised = fs::read_to_string(&path)
-                .map(|contents| de_f(&contents).map_err(|err| err.into()))
-                .map_err(|err| err.into());
+            enable_autosort_key: Key::new(KeyCode::Char('S'), KeyModifiers::NONE),
+            sort_key: Key::new(KeyCode::Char('s'), KeyModifiers::NONE),
 
-            match deserialised {
-                Ok(Ok(de)) => {
-                    return de;
-                }
-                Err(err) | Ok(Err(err)) => {
-                    match should_overwrite(fail_load_string(kind, file_name, err)) {
-                        Ok(true) => return Default::default(),
-                        Ok(false) | Err(_) => exit(0),
-                    }
-                }
-            }
-        } else {
-            eprintln!("{kind} file doesn't seem to exist - creating");
-        }
-    } else {
-        eprintln!("Failed to determine {kind} directory on your system. Please report this issue at https://github.com/SleepySwords/do_todo/issues/new");
-    }
-
-    Default::default()
-}
-
-pub fn get_data() -> (Theme, TaskStore) {
-    let config_local_dir = dirs::config_local_dir();
-    let data_local_dir = dirs::data_local_dir();
-
-    let theme = load_from_file(
-        config_local_dir,
-        CONFIG_FILE,
-        serde_yaml::from_str::<Theme>,
-        "config",
-    );
-
-    let task_store = load_from_file(
-        data_local_dir,
-        DATA_FILE,
-        // NOTE: This doesn't work:
-        // serde_json::from_str::<TaskStore>,
-        |x| serde_json::from_str::<TaskStore>(x),
-        "task data",
-    );
-
-    (theme, task_store)
-}
-
-fn save_to_file<T, F, E>(local_dir: Option<PathBuf>, file_name: &str, ser_f: F, kind: &str)
-where
-    T: AsRef<[u8]>,
-    F: Fn() -> Result<T, E>,
-    E: Into<AppError>,
-{
-    match local_dir {
-        None => eprintln!("Failed to determine {kind} directory on your system. Please report this issue at https://github.com/SleepySwords/do_todo/issues/new"),
-        Some(dir) => {
-            let path = dir.join(DIR);
-
-            loop {
-                // NOTE: It's _technically_ possible for OS-specific utils that this fn calls
-                // to fail if the path already exists.
-                fs::create_dir_all(path.clone()).is_err().then(|| {
-                    eprintln!("Failed to create config directory")
-                });
-
-                let serialized = ser_f();
-
-                let result = serialized.map(|ser| {
-                    fs::write(path.join(file_name), ser).map_err(|err| err.into())
-                }).map_err(|err| err.into());
-
-                if let Err(e) | Ok(Err(e)) = result {
-                    match should_overwrite(fail_write_string(kind, file_name, e)) {
-                        Ok(false) | Err(_) => continue,
-                        _ => {},
-                    }
-                }
-                break;
-            }
+            border_type: BorderType::Plain,
+            selected_cursor: String::from(" > "),
         }
     }
 }
 
-pub fn save_data(theme: &Theme, task_store: &TaskStore) {
-    save_to_file(
-        dirs::data_local_dir(),
-        DATA_FILE,
-        || serde_json::to_string(task_store),
-        "data",
-    );
+impl Config {
+    pub fn highlight_dropdown_style(&self) -> Style {
+        Style::default()
+            .add_modifier(Modifier::BOLD)
+            .fg(self.selected_task_colour)
+    }
 
-    save_to_file(
-        dirs::config_local_dir(),
-        CONFIG_FILE,
-        || serde_yaml::to_string(theme),
-        "config",
-    );
+    pub fn styled_block<'a>(&self, title: &'a str, border_color: Color) -> Block<'a> {
+        Block::default()
+            .borders(Borders::ALL)
+            .border_type(self.border_type)
+            .title(title)
+            .border_style(Style::default().fg(border_color))
+    }
+}
+
+mod color_parser {
+    use serde::{Deserialize, Deserializer, Serializer};
+    use tui::style::Color;
+
+    pub fn serialize<S>(colour: &Color, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&colour.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Color, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse::<Color>().map_err(serde::de::Error::custom)
+    }
+}
+
+mod border_parser {
+    use serde::{Deserialize, Deserializer, Serializer};
+    use tui::widgets::BorderType;
+
+    pub fn serialize<S>(border: &BorderType, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&border.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<BorderType, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.to_lowercase().as_str() {
+            "plain" => Ok(BorderType::Plain),
+            "rounded" => Ok(BorderType::Rounded),
+            "double" => Ok(BorderType::Double),
+            "thick" => Ok(BorderType::Thick),
+            "quadrantinside" => Ok(BorderType::QuadrantInside),
+            "quadrantoutside" => Ok(BorderType::QuadrantOutside),
+            _ => Err(serde::de::Error::custom("Test")),
+        }
+    }
+}
+
+pub enum KeyBindings {
+    UpKeys,
+    DownKeys,
+    MoveTaskUp,
+    MoveTaskDown,
+    MoveUpFuzzy,
+    MoveDownFuzzy,
+    MoveTop,
+    MoveBottom,
+
+    CompleteKey,
+    FlipProgressKey,
+    EditKey,
+    DeleteKey,
+    AddKey,
+    ChangePriorityKey,
+    RestoreKey,
+
+    TasksMenuKey,
+    CompletedTasksMenuKey,
+    TagMenu,
+    OpenHelpKey,
+    QuitKey,
+
+    EnableAutosortKey,
+    SortKey,
+
+    None,
+}
+
+impl KeyBindings {
+    pub fn from_event(theme: &Config, event: KeyEvent) -> KeyBindings {
+        if theme.up_keys.iter().any(|f| f.is_pressed(event)) {
+            return KeyBindings::UpKeys;
+        }
+        if theme.down_keys.iter().any(|f| f.is_pressed(event)) {
+            return KeyBindings::DownKeys;
+        }
+        if theme.move_task_up.is_pressed(event) {
+            return KeyBindings::MoveTaskUp;
+        }
+        if theme.move_task_down.is_pressed(event) {
+            return KeyBindings::MoveTaskDown;
+        }
+        if theme.move_up_fuzzy.is_pressed(event) {
+            return KeyBindings::MoveUpFuzzy;
+        }
+        if theme.move_down_fuzzy.is_pressed(event) {
+            return KeyBindings::MoveDownFuzzy;
+        }
+        if theme.move_top.is_pressed(event) {
+            return KeyBindings::MoveTop;
+        }
+        if theme.move_bottom.is_pressed(event) {
+            return KeyBindings::MoveBottom;
+        }
+
+        if theme.complete_key.is_pressed(event) {
+            return KeyBindings::CompleteKey;
+        }
+        if theme.flip_progress_key.is_pressed(event) {
+            return KeyBindings::FlipProgressKey;
+        }
+        if theme.edit_key.is_pressed(event) {
+            return KeyBindings::EditKey;
+        }
+        if theme.delete_key.is_pressed(event) {
+            return KeyBindings::DeleteKey;
+        }
+        if theme.add_key.is_pressed(event) {
+            return KeyBindings::AddKey;
+        }
+        if theme.change_priority_key.is_pressed(event) {
+            return KeyBindings::ChangePriorityKey;
+        }
+        if theme.restore_key.is_pressed(event) {
+            return KeyBindings::RestoreKey;
+        }
+
+        if theme.tasks_menu_key.is_pressed(event) {
+            return KeyBindings::TasksMenuKey;
+        }
+        if theme.completed_tasks_menu_key.is_pressed(event) {
+            return KeyBindings::CompletedTasksMenuKey;
+        }
+        if theme.tag_menu.is_pressed(event) {
+            return KeyBindings::TagMenu;
+        }
+        if theme.open_help_key.is_pressed(event) {
+            return KeyBindings::OpenHelpKey;
+        }
+        if theme.quit_key.is_pressed(event) {
+            return KeyBindings::QuitKey;
+        }
+
+        if theme.enable_autosort_key.is_pressed(event) {
+            return KeyBindings::EnableAutosortKey;
+        }
+        if theme.sort_key.is_pressed(event) {
+            return KeyBindings::SortKey;
+        }
+
+        KeyBindings::None
+    }
 }
