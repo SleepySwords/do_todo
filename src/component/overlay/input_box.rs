@@ -57,7 +57,7 @@ impl InputBox {
     }
 
     pub fn draw(app: &App, drawer: &mut Drawer) {
-        let Some(Overlay::Input(input)) = app.overlays.get(0) else {
+        let Some(Overlay::Input(input)) = app.overlays.last() else {
             return;
         };
         Self::draw_input_box(
