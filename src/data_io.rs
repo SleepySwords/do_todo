@@ -10,7 +10,7 @@ use std::{
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
-use crate::{app::TaskStore, error::AppError, config::Config};
+use crate::{task::TaskStore, config::Config, error::AppError};
 
 const DIR: &str = "dotodo";
 

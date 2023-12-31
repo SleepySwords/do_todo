@@ -2,6 +2,7 @@ mod actions;
 mod app;
 mod component;
 mod config;
+mod data_io;
 mod draw;
 mod error;
 mod input;
@@ -10,7 +11,6 @@ mod logger;
 mod screens;
 mod task;
 mod tests;
-mod data_io;
 mod utils;
 
 use component::overlay::Overlay;

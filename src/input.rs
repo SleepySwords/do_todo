@@ -9,7 +9,7 @@ use crate::{
     },
     config::KeyBindings,
     draw::EventResult,
-    task::Task,
+    task::{Task, TaskStore},
     utils,
 };
 
@@ -86,12 +86,12 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
 
                 mut_parent_tasks.insert(new_index, task);
 
-                *selected_index = offset
-                    + mut_parent_tasks
-                        .iter()
-                        .take(new_index)
-                        .map(|task| task.find_task_draw_size())
-                        .sum::<usize>() + if is_global { 0 } else { 1 };
+                *selected_index = TaskStore::local_index_to_global(
+                    new_index,
+                    mut_parent_tasks,
+                    offset,
+                    is_global,
+                );
             }
         }
         KeyBindings::MoveTaskUp => {
@@ -101,7 +101,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
                 return EventResult::Ignored;
             };
 
-            if parent_tasks.len() == 0 {
+            if parent_tasks.is_empty() {
                 return EventResult::Ignored;
             }
 
@@ -127,12 +127,8 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
 
                 mut_parent_tasks.insert(new_index, task);
 
-                *selected_index = offset
-                    + mut_parent_tasks
-                        .iter()
-                        .take(new_index)
-                        .map(|tsk| tsk.find_task_draw_size())
-                        .sum::<usize>() + if is_global { 0 } else { 1 };
+                *selected_index =
+                    TaskStore::local_index_to_global(new_index, mut_parent_tasks, offset, is_global)
             }
         }
         KeyBindings::DeleteKey => actions::open_delete_task_menu(app),
@@ -182,7 +178,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
                 return EventResult::Ignored;
             };
 
-            if parent_tasks.len() == 0 {
+            if parent_tasks.is_empty() {
                 return EventResult::Ignored;
             }
 
@@ -196,14 +192,8 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
             }
 
             let prev_index = local_index - 1;
-            let prev_global_offset = offset
-                + parent_tasks
-                    .iter()
-                    .take(prev_index)
-                    .map(|tsk| tsk.find_task_draw_size())
-                    // Focus the correct element, if it's global however
-                    // no need to do this.
-                    .sum::<usize>() + if is_global { 0 } else { 1 };
+            let prev_global_offset =
+                TaskStore::local_index_to_global(prev_index, parent_tasks, offset, is_global);
 
             let Some(task) = app.task_store.delete_task(*selected_index) else {
                 return EventResult::Ignored;
@@ -248,12 +238,12 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
             {
                 let new_index = parent_local_index + 1;
                 prev_task_list.insert(new_index, task);
-                *selected_index = parent_global_index
-                    + prev_task_list
-                        .iter()
-                        .take(new_index)
-                        .map(|tsk| tsk.find_task_draw_size())
-                        .sum::<usize>() + if is_global { 0 } else { 1 }
+                *selected_index = TaskStore::local_index_to_global(
+                    new_index,
+                    prev_task_list,
+                    parent_global_index,
+                    is_global,
+                )
             }
         }
         _ => {
@@ -261,7 +251,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
                 theme,
                 key_event,
                 selected_index,
-                app.task_store.find_task_size(),
+                app.task_store.find_task_draw_size(),
             );
         }
     }

@@ -145,7 +145,10 @@ impl FuzzyBox<'_> {
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_symbol(&app.config.selected_cursor)
-        .block(app.config.styled_block("", app.config.selected_border_colour));
+        .block(
+            app.config
+                .styled_block("", app.config.selected_border_colour),
+        );
 
         // FIXME: The colour does not show on the cursor if there is colour in the line :(
         if let Some(Some(opt)) = fuzzy

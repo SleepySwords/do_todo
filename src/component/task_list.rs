@@ -59,7 +59,7 @@ impl TaskList {
         ]
     }
 
-    fn is_task_selected(app: &App, current_index: &mut usize) -> bool {
+    fn is_task_selected(app: &App, current_index: &usize) -> bool {
         COMPONENT_TYPE == app.mode && app.task_list.selected_index == *current_index
     }
 
@@ -79,36 +79,32 @@ impl TaskList {
             Style::default()
         };
 
-        if task.sub_tasks.len() == 0 {
-            let progress = Span::styled(
-                if task.progress { "[~] " } else { "[ ] " },
-                style.fg(if Self::is_task_selected(app, task_index) {
-                    config.selected_task_colour
-                } else {
-                    Color::White
-                }),
+        let progress = Span::styled(
+            if task.progress { "[~] " } else { "[ ] " },
+            style.fg(if Self::is_task_selected(app, task_index) {
+                config.selected_task_colour
+            } else {
+                Color::White
+            }),
+        );
+        spans.push(progress);
+
+        let padding = "    │ ".repeat(nested_level);
+        spans.push(Span::styled(padding, Style::default().fg(Color::DarkGray)));
+
+        if task.sub_tasks.is_empty() {
+            let priority = Span::styled(
+                task.priority.short_hand(),
+                style.fg(task.priority.colour(config)),
             );
-            spans.push(progress);
+            spans.push(priority);
         } else {
             let sub_tasks = Span::styled(
                 if task.opened { " v  " } else { " >  " },
-                style.fg(if Self::is_task_selected(app, task_index) {
-                    config.selected_task_colour
-                } else {
-                    Color::White
-                }),
+                style.fg(task.priority.colour(config)),
             );
             spans.push(sub_tasks);
         }
-
-        let padding = "    │".repeat(nested_level);
-        spans.push(Span::styled(padding, Style::default().fg(Color::DarkGray)));
-
-        let priority = Span::styled(
-            task.priority.short_hand(),
-            style.fg(task.priority.colour(config)),
-        );
-        spans.push(priority);
 
         // TODO: Rewrite to store as an array in the task
         let content = Span::styled(
@@ -133,14 +129,13 @@ impl TaskList {
             let mut drawn_tasks = task
                 .sub_tasks
                 .iter()
-                .map(|sub_task| {
+                .flat_map(|sub_task| {
                     let drawn_task = Self::draw_task(app, sub_task, nested_level + 1, task_index);
                     drawn_task
                 })
-                .flatten()
                 .collect_vec();
             (drawn_tasks).insert(0, Line::from(spans));
-            return drawn_tasks;
+            drawn_tasks
         } else {
             vec![Line::from(spans)]
         }
@@ -154,9 +149,8 @@ impl DrawableComponent for TaskList {
             .task_store
             .tasks
             .iter()
-            .map(|task| Self::draw_task(app, task, 0, &mut current_index))
-            .flatten()
-            .map(|line| ListItem::from(line))
+            .flat_map(|task| Self::draw_task(app, task, 0, &mut current_index))
+            .map(ListItem::from)
             .collect();
 
         let current = List::new(tasks).block(utils::ui::generate_default_block(
@@ -184,7 +178,7 @@ impl DrawableComponent for TaskList {
             app,
             self.area,
             COMPONENT_TYPE,
-            app.task_store.find_task_size(),
+            app.task_store.find_task_draw_size(),
             mouse_event,
         )
     }

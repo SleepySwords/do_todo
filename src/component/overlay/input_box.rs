@@ -9,9 +9,9 @@ use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
+    config::Config,
     draw::{Drawer, EventResult},
     error::AppError,
-    config::Config,
     utils,
 };
 

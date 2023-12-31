@@ -52,13 +52,13 @@ pub struct Config {
     pub tag_menu: Key,
 
     pub flip_subtask_key: Key,
-    move_subtask_level_up: Key,
+    pub move_subtask_level_up: Key,
+    pub move_subtask_level_down: Key,
 
     #[serde(with = "border_parser")]
     pub border_type: BorderType,
 
     pub selected_cursor: String,
-    move_subtask_level_down: Key,
 }
 
 impl Default for Config {

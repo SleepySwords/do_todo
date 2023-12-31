@@ -8,9 +8,9 @@ use tui::{
 use crate::{
     actions::HelpAction,
     app::{App, Mode},
+    config::Config,
     draw::{DrawableComponent, EventResult},
     task::Task,
-    config::Config,
     utils,
 };
 

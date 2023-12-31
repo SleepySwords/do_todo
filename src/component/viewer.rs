@@ -28,7 +28,9 @@ impl Viewer {
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.config;
         let index = app.task_list.selected_index;
-        let Some(task) = app.task_store.task(index) else { return; };
+        let Some(task) = app.task_store.task(index) else {
+            return;
+        };
 
         let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
 
