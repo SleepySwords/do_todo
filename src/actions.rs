@@ -106,7 +106,8 @@ pub fn open_delete_task_menu(app: &mut App) {
         .title("Delete selected task".to_string())
         .add_option(DialogAction::new(String::from("Delete"), move |app| {
             let selected_index = &mut app.task_list.selected_index;
-            app.task_store.tasks.remove(*selected_index);
+            app.task_store.delete_task(*selected_index);
+            // FIXME: Better way to do this
             if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
                 *selected_index -= 1;
             }
@@ -124,7 +125,9 @@ pub fn complete_task(app: &mut App) {
     let selected_index = &mut app.task_list.selected_index;
     let local = Local::now();
     let time_completed = local.naive_local();
-    let task = app.task_store.tasks.remove(*selected_index);
+    let Some(task) = app.task_store.delete_task(*selected_index) else {
+        return;
+    };
     app.task_store
         .completed_tasks
         .push(CompletedTask::from_task(task, time_completed));
@@ -147,7 +150,10 @@ pub fn open_tag_menu(app: &mut App) {
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
                 move |app| {
-                    app.task_store.tasks[selected_index].flip_tag(moved);
+                    let Some(task) = app.task_store.task_mut(selected_index) else {
+                        return;
+                    };
+                    task.flip_tag(moved);
                 },
             ));
         }
@@ -169,7 +175,10 @@ pub fn open_tag_menu(app: &mut App) {
         tag_options.push(DialogAction::new(
             String::from("Clear all tags"),
             move |app| {
-                app.task_store.tasks[selected_index].tags.clear();
+                let Some(task) = app.task_store.task_mut(selected_index) else {
+                    return;
+                };
+                task.tags.clear();
             },
         ));
     }
@@ -249,7 +258,9 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 },
             );
             if app.task_store.tasks.len() > selected_index {
-                app.task_store.tasks[selected_index].flip_tag(tag_id);
+                if let Some(task) = app.task_store.task_mut(selected_index) {
+                    task.flip_tag(tag_id);
+                }
             }
             Ok(())
         })

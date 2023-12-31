@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use tui::style::Color;
 
-use std::fmt::Display;
+use std::{fmt::Display, vec, cmp};
 
 use crate::{app::App, config::Config};
 
@@ -12,13 +12,6 @@ pub struct Tag {
     pub colour: Color,
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct Category {
-    pub title: String,
-    pub opened: bool,
-    pub tasks: Vec<usize>,
-}
-
 #[derive(Clone, PartialEq, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Task {
@@ -26,6 +19,9 @@ pub struct Task {
     pub title: String,
     pub priority: Priority,
     pub tags: Vec<u32>,
+
+    // Ignored if sub_tasks is empty
+    pub opened: bool,
     pub sub_tasks: Vec<Task>,
 }
 
@@ -36,7 +32,8 @@ impl Task {
             title: content,
             priority: Priority::None,
             tags: Vec::new(),
-            sub_tasks: Vec::new()
+            opened: true,
+            sub_tasks: vec![],
         }
     }
 
@@ -47,7 +44,9 @@ impl Task {
     pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + '_ {
         self.tags
             .iter()
-            .map(|tag_index| return app.task_store.tags.get(tag_index).unwrap())
+            // FIXME: Remove tags from submenus, this is a hack for now, as new tags can share old
+            // indicies
+            .filter_map(|tag_index| return app.task_store.tags.get(tag_index))
     }
 
     pub fn flip_tag(&mut self, tag: u32) {
@@ -60,6 +59,57 @@ impl Task {
 
     pub fn from_completed_task(completed_task: CompletedTask) -> Self {
         completed_task.task
+    }
+
+    pub fn sort_subtasks(&mut self) {
+        self.sub_tasks.sort_by_key(|t| cmp::Reverse(t.priority));
+        for task in &mut self.sub_tasks {
+            task.sort_subtasks()
+        }
+    }
+
+    pub fn _find_selected_mut<'a>(&'a mut self, selected: &mut usize) -> Option<&'a mut Task> {
+        if *selected == 0 {
+            return Some(self);
+        }
+
+        *selected -= 1;
+
+        if !self.opened {
+            return None;
+        }
+
+        self.sub_tasks
+            .iter_mut()
+            .find_map(|t| t._find_selected_mut(selected))
+    }
+
+    pub fn _find_selected<'a>(&'a self, selected: &mut usize) -> Option<&'a Task> {
+        if *selected == 0 {
+            return Some(self);
+        }
+
+        *selected -= 1;
+
+        if !self.opened {
+            return None;
+        }
+
+        self.sub_tasks
+            .iter()
+            .find_map(|t| t._find_selected(selected))
+    }
+
+    // Includes this current task
+    pub fn find_task_draw_size(&self) -> usize {
+        (if self.opened {
+            self.sub_tasks
+                .iter()
+                .map(|t| t.find_task_draw_size())
+                .sum::<usize>()
+        } else {
+            0
+        }) + 1
     }
 }
 
@@ -84,7 +134,8 @@ impl CompletedTask {
                 title: content,
                 priority: Priority::None,
                 tags: Vec::new(),
-                sub_tasks: Vec::new(),
+                opened: true,
+                sub_tasks: vec![],
             },
             time_completed,
         }
@@ -93,7 +144,8 @@ impl CompletedTask {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize, Default)]
 pub enum Priority {
-    #[default] None,
+    #[default]
+    None,
     Low,
     Normal,
     High,

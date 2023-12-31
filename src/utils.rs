@@ -3,7 +3,7 @@ use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
 
-use crate::config::{KeyBindings, Config};
+use crate::config::{Config, KeyBindings};
 use crate::{
     app::{App, Mode},
     draw::EventResult,
@@ -99,39 +99,41 @@ pub fn handle_mouse_movement(
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> EventResult {
-    if let Some(index) = app.selected_index(mode) {
-        if max_items == 0 {
+    let Some(index) = app.selected_index(mode) else {
+        return EventResult::Consumed;
+    };
+
+    if max_items == 0 {
+        return EventResult::Consumed;
+    }
+    let offset = row - area.y;
+    if let MouseEventKind::ScrollUp = kind {
+        if *index != 0 {
+            *index -= 1;
+        }
+    }
+
+    if let MouseEventKind::ScrollDown = kind {
+        if *index < max_items - 1 {
+            *index += 1;
+        }
+    }
+
+    if let MouseEventKind::Down(_) = kind {
+        app.mode = mode;
+        if offset == 0 {
             return EventResult::Consumed;
         }
-        let offset = row - area.y;
-        if let MouseEventKind::ScrollUp = kind {
-            if *index != 0 {
-                *index -= 1;
-            }
-        }
-
-        if let MouseEventKind::ScrollDown = kind {
-            if *index < max_items - 1 {
-                *index += 1;
-            }
-        }
-
-        if let MouseEventKind::Down(_) = kind {
-            app.mode = mode;
-            if offset == 0 {
-                return EventResult::Consumed;
-            }
-            if let Some(index) = app.selected_index(mode) {
-                if *index > area.height as usize - 2 {
-                    let new_index = *index - (area.height as usize - 2) + offset as usize;
-                    *index = new_index;
-                } else {
-                    if offset as usize > max_items {
-                        *index = max_items - 1;
-                        return EventResult::Consumed;
-                    }
-                    *index = offset as usize - 1;
+        if let Some(index) = app.selected_index(mode) {
+            if *index > area.height as usize - 2 {
+                let new_index = *index - (area.height as usize - 2) + offset as usize;
+                *index = new_index;
+            } else {
+                if offset as usize > max_items {
+                    *index = max_items - 1;
+                    return EventResult::Consumed;
                 }
+                *index = offset as usize - 1;
             }
         }
     }
@@ -295,6 +297,6 @@ pub mod test {
     }
 
     pub fn setup(task_store: TaskStore) -> App {
-        App::new(crate::theme::Theme::default(), task_store)
+        App::new(crate::config::Config::default(), task_store)
     }
 }

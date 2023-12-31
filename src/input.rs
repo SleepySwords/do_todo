@@ -7,9 +7,9 @@ use crate::{
         completed_list::CompletedList,
         overlay::{input_box::InputBoxBuilder, Overlay},
     },
+    config::KeyBindings,
     draw::EventResult,
     task::Task,
-    config::KeyBindings,
     utils,
 };
 
@@ -39,8 +39,9 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
             }
 
             let old_task = {
-                let task = &mut app.task_store.tasks[*selected_index];
-
+                let Some(task) = app.task_store.task_mut(*selected_index) else {
+                    return EventResult::Ignored;
+                };
                 task.priority = task.priority.next_priority();
 
                 task.clone()
@@ -52,59 +53,102 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
 
             *selected_index = app
                 .task_store
-                .tasks
-                .iter()
-                .position(|t| *t == old_task)
+                .task_position(&old_task)
                 .expect("getting task index after sorting")
                 .to_owned();
         }
         KeyBindings::MoveTaskDown => {
-            let tasks_length = app.task_store.tasks.len();
+            let autosort = app.task_store.auto_sort;
 
-            if tasks_length == 0 {
+            let Some((parent_tasks, _, _)) = app.task_store.find_parent(*selected_index) else {
                 return EventResult::Ignored;
-            }
+            };
 
-            let new_index = (*selected_index + 1) % tasks_length;
+            let local_index = parent_tasks
+                .iter()
+                .position(|f| Some(f) == app.task_store.task(*selected_index))
+                .expect("Invalid offset?");
 
-            let task = &app.task_store.tasks[*selected_index];
-            let task_below = &app.task_store.tasks[new_index];
+            let new_index = (local_index + 1) % parent_tasks.len();
 
-            if task.priority == task_below.priority || !app.task_store.auto_sort {
-                let task = app.task_store.tasks.remove(*selected_index);
+            let Some((mut_parent_tasks, offset, is_global)) =
+                app.task_store.find_parent_mut(*selected_index)
+            else {
+                return EventResult::Ignored;
+            };
 
-                app.task_store.tasks.insert(new_index, task);
-                *selected_index = new_index;
+            let task = &mut_parent_tasks[local_index];
+            let task_above = &mut_parent_tasks[new_index];
+
+            // FIXME: potential refactor into another method
+            if task.priority == task_above.priority || !autosort {
+                let task = mut_parent_tasks.remove(local_index);
+
+                mut_parent_tasks.insert(new_index, task);
+
+                *selected_index = offset
+                    + mut_parent_tasks
+                        .iter()
+                        .take(new_index)
+                        .map(|task| task.find_task_draw_size())
+                        .sum::<usize>() + if is_global { 0 } else { 1 };
             }
         }
         KeyBindings::MoveTaskUp => {
-            let tasks_length = app.task_store.tasks.len();
+            let autosort = app.task_store.auto_sort;
 
-            if tasks_length == 0 {
+            let Some((parent_tasks, _, _)) = app.task_store.find_parent(*selected_index) else {
+                return EventResult::Ignored;
+            };
+
+            if parent_tasks.len() == 0 {
                 return EventResult::Ignored;
             }
 
+            let local_index = parent_tasks
+                .iter()
+                .position(|f| Some(f) == app.task_store.task(*selected_index))
+                .expect("Invalid offset?");
+
             let new_index =
-                (*selected_index as isize - 1).rem_euclid(tasks_length as isize) as usize;
+                (local_index as isize - 1).rem_euclid(parent_tasks.len() as isize) as usize;
 
-            let task = &app.task_store.tasks[*selected_index];
-            let task_above = &app.task_store.tasks[new_index];
+            let Some((mut_parent_tasks, offset, is_global)) =
+                app.task_store.find_parent_mut(*selected_index)
+            else {
+                return EventResult::Ignored;
+            };
 
-            if task.priority == task_above.priority || !app.task_store.auto_sort {
-                let task = app.task_store.tasks.remove(*selected_index);
+            let task = &mut_parent_tasks[local_index];
+            let task_above = &mut_parent_tasks[new_index];
 
-                app.task_store.tasks.insert(new_index, task);
-                *selected_index = new_index;
+            if task.priority == task_above.priority || !autosort {
+                let task = mut_parent_tasks.remove(local_index);
+
+                mut_parent_tasks.insert(new_index, task);
+
+                *selected_index = offset
+                    + mut_parent_tasks
+                        .iter()
+                        .take(new_index)
+                        .map(|tsk| tsk.find_task_draw_size())
+                        .sum::<usize>() + if is_global { 0 } else { 1 };
             }
         }
         KeyBindings::DeleteKey => actions::open_delete_task_menu(app),
         KeyBindings::EditKey => {
             let index = *selected_index;
+            let Some(task) = app.task_store.task(index) else {
+                return EventResult::Ignored;
+            };
             let edit_box = InputBoxBuilder::default()
                 .title(String::from("Edit the selected task"))
-                .fill(app.task_store.tasks[*selected_index].title.as_str())
+                .fill(task.title.as_str())
                 .callback(move |app, word| {
-                    app.task_store.tasks[index].title = word.trim().to_string();
+                    let Some(task) = app.task_store.task_mut(index) else {
+                        return Ok(());
+                    };
+                    task.title = word.trim().to_string();
                     Ok(())
                 })
                 .save_mode(app)
@@ -116,16 +160,108 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
             if app.task_store.tasks.is_empty() {
                 return EventResult::Ignored;
             }
-            app.task_store.tasks[*selected_index].progress =
-                !app.task_store.tasks[*selected_index].progress;
+            let Some(task) = app.task_store.task_mut(*selected_index) else {
+                return EventResult::Ignored;
+            };
+            task.progress = !task.progress;
         }
         KeyBindings::CompleteKey => actions::complete_task(app),
+        KeyBindings::OpenSubtasksKey => {
+            if app.task_store.tasks.is_empty() {
+                return EventResult::Ignored;
+            }
+            let Some(task) = app.task_store.task_mut(*selected_index) else {
+                return EventResult::Ignored;
+            };
+            task.opened = !task.opened;
+        }
+        KeyBindings::MoveSubtaskLevelUp => {
+            let Some((parent_tasks, offset, is_global)) =
+                app.task_store.find_parent(*selected_index)
+            else {
+                return EventResult::Ignored;
+            };
+
+            if parent_tasks.len() == 0 {
+                return EventResult::Ignored;
+            }
+
+            let local_index = parent_tasks
+                .iter()
+                .position(|f| Some(f) == app.task_store.task(*selected_index))
+                .expect("Invalid offset?");
+
+            if local_index == 0 {
+                return EventResult::Ignored;
+            }
+
+            let prev_index = local_index - 1;
+            let prev_global_offset = offset
+                + parent_tasks
+                    .iter()
+                    .take(prev_index)
+                    .map(|tsk| tsk.find_task_draw_size())
+                    // Focus the correct element, if it's global however
+                    // no need to do this.
+                    .sum::<usize>() + if is_global { 0 } else { 1 };
+
+            let Some(task) = app.task_store.delete_task(*selected_index) else {
+                return EventResult::Ignored;
+            };
+
+            let Some(prev_task) = app.task_store.task_mut(prev_global_offset) else {
+                return EventResult::Ignored;
+            };
+
+            prev_task.opened = true;
+            prev_task.sub_tasks.push(task);
+        }
+        KeyBindings::MoveSubtaskLevelDown => {
+            let Some((_, offset, is_global)) = app.task_store.find_parent(*selected_index) else {
+                return EventResult::Ignored;
+            };
+
+            if is_global {
+                return EventResult::Ignored;
+            }
+
+            let Some(task) = app.task_store.delete_task(*selected_index) else {
+                return EventResult::Ignored;
+            };
+
+            let Some((prev_task_list, _, _)) = app.task_store.find_parent(offset) else {
+                return EventResult::Ignored;
+            };
+
+            let parent_local_index = prev_task_list
+                .iter()
+                .position(|t| {
+                    t == app
+                        .task_store
+                        .task(offset)
+                        .expect("This is definately a task")
+                })
+                .expect("This is not possible?");
+
+            if let Some((prev_task_list, parent_global_index, is_global)) =
+                app.task_store.find_parent_mut(offset)
+            {
+                let new_index = parent_local_index + 1;
+                prev_task_list.insert(new_index, task);
+                *selected_index = parent_global_index
+                    + prev_task_list
+                        .iter()
+                        .take(new_index)
+                        .map(|tsk| tsk.find_task_draw_size())
+                        .sum::<usize>() + if is_global { 0 } else { 1 }
+            }
+        }
         _ => {
             return utils::handle_key_movement(
                 theme,
                 key_event,
                 selected_index,
-                app.task_store.tasks.len(),
+                app.task_store.find_task_size(),
             );
         }
     }

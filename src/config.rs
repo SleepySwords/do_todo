@@ -51,10 +51,14 @@ pub struct Config {
     pub enable_autosort_key: Key,
     pub tag_menu: Key,
 
+    pub flip_subtask_key: Key,
+    move_subtask_level_up: Key,
+
     #[serde(with = "border_parser")]
     pub border_type: BorderType,
 
     pub selected_cursor: String,
+    move_subtask_level_down: Key,
 }
 
 impl Default for Config {
@@ -87,7 +91,7 @@ impl Default for Config {
             edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
             delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
             add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
-            change_priority_key: Key::new(KeyCode::Char('h'), KeyModifiers::NONE),
+            change_priority_key: Key::new(KeyCode::Char('p'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
             tasks_menu_key: Key::new(KeyCode::Char('1'), KeyModifiers::NONE),
@@ -98,6 +102,10 @@ impl Default for Config {
 
             enable_autosort_key: Key::new(KeyCode::Char('S'), KeyModifiers::NONE),
             sort_key: Key::new(KeyCode::Char('s'), KeyModifiers::NONE),
+
+            flip_subtask_key: Key::new(KeyCode::Enter, KeyModifiers::NONE),
+            move_subtask_level_up: Key::new(KeyCode::Char('l'), KeyModifiers::NONE),
+            move_subtask_level_down: Key::new(KeyCode::Char('h'), KeyModifiers::NONE),
 
             border_type: BorderType::Plain,
             selected_cursor: String::from(" > "),
@@ -196,6 +204,10 @@ pub enum KeyBindings {
     EnableAutosortKey,
     SortKey,
 
+    OpenSubtasksKey,
+    MoveSubtaskLevelUp,
+    MoveSubtaskLevelDown,
+
     None,
 }
 
@@ -269,6 +281,15 @@ impl KeyBindings {
         }
         if theme.sort_key.is_pressed(event) {
             return KeyBindings::SortKey;
+        }
+        if theme.flip_subtask_key.is_pressed(event) {
+            return KeyBindings::OpenSubtasksKey;
+        }
+        if theme.move_subtask_level_up.is_pressed(event) {
+            return KeyBindings::MoveSubtaskLevelUp;
+        }
+        if theme.move_subtask_level_down.is_pressed(event) {
+            return KeyBindings::MoveSubtaskLevelDown;
         }
 
         KeyBindings::None
