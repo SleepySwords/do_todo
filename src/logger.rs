@@ -41,7 +41,9 @@ impl DrawableComponent for Logger {
                     .border_style(style),
             );
             let mut list_state = ListState::default();
-            list_state.select(Some(self.logs.len() - 1));
+            if !self.logs.is_empty() {
+                list_state.select(Some(self.logs.len() - 1));
+            }
             drawer.draw_widget(Clear, self.draw_area);
             drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
         }

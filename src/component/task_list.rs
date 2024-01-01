@@ -100,7 +100,7 @@ impl TaskList {
             spans.push(priority);
         } else {
             let sub_tasks = Span::styled(
-                if task.opened { " v  " } else { " >  " },
+                if task.opened { "   " } else { "   " },
                 style.fg(task.priority.colour(config)),
             );
             spans.push(sub_tasks);

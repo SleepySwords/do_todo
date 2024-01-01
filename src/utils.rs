@@ -277,10 +277,7 @@ mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
-    use crate::{
-        app::{App, TaskStore},
-        input,
-    };
+    use crate::{app::App, input, task::TaskStore};
 
     pub fn input_char(character: char, app: &mut App) {
         input::key_event(

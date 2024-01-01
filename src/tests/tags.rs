@@ -4,8 +4,8 @@ use crossterm::event::KeyCode;
 use tui::style::Color;
 
 use crate::{
-    app::{App, TaskStore},
-    task::{Tag, Task},
+    app::App,
+    task::{Tag, Task, TaskStore},
     utils::test::{input_char, input_code, setup},
 };
 

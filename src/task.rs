@@ -263,7 +263,7 @@ impl TaskStore {
 
     pub fn local_index_to_global(
         index: usize,
-        parent_list: &Vec<Task>,
+        parent_list: &[Task],
         parent_global_offset: usize,
         is_global: bool,
     ) -> usize {
@@ -278,6 +278,7 @@ impl TaskStore {
                 + if is_global { 0 } else { 1 }
     }
 
+    /// Is global refers to the indexed task.
     pub fn find_parent(&self, to_find: usize) -> Option<(&Vec<Task>, usize, bool)> {
         Self::_find_parent(&self.tasks, &mut 0, to_find, 0, true)
     }
@@ -313,47 +314,15 @@ impl TaskStore {
         None
     }
 
-    // FIXME: This does not actually get the parent properly.
-    pub fn find_parent_mut(&mut self, to_find: usize) -> Option<(&mut Vec<Task>, usize, bool)> {
-        // FIXME: I have given up on finding a smart way to do this.
-        // More inefficient, but should still be O(n)
-        let (_, offset, is_global) = Self::find_parent(self, to_find)?;
+    /// Returns the subtasks of a task if `is_global` is true
+    /// Otherwise returns the global tasks.
+    pub fn subtasks(&mut self, offset: usize, is_global: bool) -> Option<&mut Vec<Task>> {
         if is_global {
-            Some((&mut self.tasks, offset, is_global))
+            Some(&mut self.tasks)
         } else {
-            Some((&mut self.task_mut(offset)?.sub_tasks, offset, is_global))
+            Some(&mut self.task_mut(offset)?.sub_tasks)
         }
     }
-
-    // fn _find_parent_mut<'a>(
-    //     tasks: &'a mut Vec<Task>,
-    //     current_index: &mut usize,
-    //     to_find: usize,
-    //     offset: usize,
-    //     is_global: bool,
-    // ) -> Option<(&'a mut Vec<Task>, usize, bool)> {
-    //     // FIXME: I have given up on finding a smart way to do this.
-
-    //     // for task_index in 0..tasks.len() {
-    //     //         let offset = *current_index;
-
-    //     //         *current_index += 1;
-
-    //     //         if tasks[task_index].opened {
-    //     //             let sub_tasks = &mut tasks[task_index].sub_tasks;
-    //     //             // FIXME: borrow checker bs leads to jank
-    //     //             let hi =
-    //     //                 Self::_find_parent_mut(sub_tasks, current_index, to_find, offset, false);
-    //     //             if hi.is_none() {
-    //     //                 continue;
-    //     //             }
-    //     //             return hi;
-    //     //     }
-    //     // }
-    //     // None
-
-    //     Self::find_parent(&self, to_find)
-    // }
 
     pub fn task_position(&self, to_find: &Task) -> Option<usize> {
         let mut index = 0;

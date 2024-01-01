@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    app::{App, TaskStore},
+    app::App,
     component::task_list::TaskList,
-    task::Task,
+    config::Config,
+    task::{Task, TaskStore},
     tests::assert_task_eq,
-    theme::Config,
     utils::test::input_char,
 };
 
