@@ -89,7 +89,7 @@ impl TaskList {
         );
         spans.push(progress);
 
-        let padding = "    │ ".repeat(nested_level);
+        let padding = config.nested_padding.repeat(nested_level);
         spans.push(Span::styled(padding, Style::default().fg(Color::DarkGray)));
 
         if task.sub_tasks.is_empty() {
@@ -100,7 +100,7 @@ impl TaskList {
             spans.push(priority);
         } else {
             let sub_tasks = Span::styled(
-                if task.opened { "   " } else { "   " },
+                if task.opened { &config.open_subtask } else { &config.closed_subtask },
                 style.fg(task.priority.colour(config)),
             );
             spans.push(sub_tasks);
