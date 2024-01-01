@@ -27,13 +27,31 @@ For the following, replace `YOUR_USERNAME` with your username.
 
 ## Keybindings
 
+### Main default binds
+
 | Key          | Action                      |
 |--------------|-----------------------------|
 | `1`          | Select tasklist             |
 | `2`          | Select completed tasklist   |
-| `h`          | Move up                     |
+| `k`          | Move up                     |
 | `j`          | Move down                   |
 | `Ctrl` + `n` | Move up in the fuzzy list   |
 | `Ctrl` + `p` | Move down in the fuzzy list |
 | `x`          | Open the help menu          |
 | `q`          | Quit do_todo                |
+
+### Task list default binds
+| Key    | Action
+|--------|--------------------------------------------------------|
+| `a`    | Adds a task|
+| `c`    | Completes the selected task |            | `d`    | Delete the selected task|
+| `e`    | Edits the selected task|
+| `t`    | Add or remove the tags from this task or project|
+| `k`    | Gives selected task lower| priority
+| `J`    | Moves the task down on the task list|
+| `K`    | Moves the task up on the task list|
+| `s`    | Sorts tasks (by priority)|
+| `S`    | Toggles automatic task sort|
+| `enter` | Open/closes the subtask|                  
+| `L`     | Make the selected task a subtask of above             |
+| `H`.    | Make the selected task not a subtask of the parent |
