@@ -90,7 +90,7 @@ impl MessageBox {
         let list = list.block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_type(app.theme.border_type)
+                .border_type(app.config.border_type)
                 .border_style(style)
                 .title(message.title.as_ref()),
         );

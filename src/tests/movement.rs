@@ -1,18 +1,18 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    app::{App, TaskStore},
+    app::App,
     component::task_list::TaskList,
-    task::Task,
+    config::Config,
+    task::{Task, TaskStore},
     tests::assert_task_eq,
-    theme::Theme,
     utils::test::input_char,
 };
 
 #[test]
 fn test_rollover() {
     let mut app = App::new(
-        Theme::default(),
+        Config::default(),
         TaskStore {
             tasks: vec![
                 Task::from_string(String::from("meme")),
@@ -45,7 +45,7 @@ fn test_rollover() {
 #[test]
 fn test_shifting_tasks() {
     let mut app = App::new(
-        Theme::default(),
+        Config::default(),
         TaskStore {
             tasks: vec![
                 Task::from_string(String::from("meme")),

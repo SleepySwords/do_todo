@@ -44,7 +44,7 @@ impl HelpAction<'_> {
 }
 
 fn open_dialog_or_fuzzy(app: &mut App, title: &str, options: Vec<DialogAction<'static>>) {
-    if app.theme.use_fuzzy {
+    if app.config.use_fuzzy {
         let fuzzy = FuzzyBoxBuilder::default()
             .title(title.to_string())
             .options(options)
@@ -67,7 +67,7 @@ pub fn open_help_menu(app: &mut App) {
         DialogAction::new(
             format!(
                 "{: <15}Change to current task window",
-                app.theme.tasks_menu_key.to_string()
+                app.config.tasks_menu_key.to_string()
             ),
             |app| {
                 app.mode = Mode::CurrentTasks;
@@ -76,14 +76,14 @@ pub fn open_help_menu(app: &mut App) {
         DialogAction::new(
             format!(
                 "{: <15}Change to completed task window",
-                app.theme.completed_tasks_menu_key.to_string()
+                app.config.completed_tasks_menu_key.to_string()
             ),
             |app| {
                 app.mode = Mode::CompletedTasks;
             },
         ),
     ];
-    for ac in app.mode.available_help_actions(&app.theme) {
+    for ac in app.mode.available_help_actions(&app.config) {
         actions.push(DialogAction::new(
             format!("{: <15}{}", ac.short_hand, ac.description),
             move |app| {
@@ -106,8 +106,10 @@ pub fn open_delete_task_menu(app: &mut App) {
         .title("Delete selected task".to_string())
         .add_option(DialogAction::new(String::from("Delete"), move |app| {
             let selected_index = &mut app.task_list.selected_index;
-            app.task_store.tasks.remove(*selected_index);
-            if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
+            app.task_store.delete_task(*selected_index);
+            if *selected_index == app.task_store.find_tasks_draw_size()
+                && !app.task_store.tasks.is_empty()
+            {
                 *selected_index -= 1;
             }
         }))
@@ -124,11 +126,14 @@ pub fn complete_task(app: &mut App) {
     let selected_index = &mut app.task_list.selected_index;
     let local = Local::now();
     let time_completed = local.naive_local();
-    let task = app.task_store.tasks.remove(*selected_index);
+    let Some(task) = app.task_store.delete_task(*selected_index) else {
+        return;
+    };
     app.task_store
         .completed_tasks
         .push(CompletedTask::from_task(task, time_completed));
-    if *selected_index == app.task_store.tasks.len() && !app.task_store.tasks.is_empty() {
+    if *selected_index == app.task_store.find_tasks_draw_size() && !app.task_store.tasks.is_empty()
+    {
         *selected_index -= 1;
     }
 }
@@ -147,7 +152,9 @@ pub fn open_tag_menu(app: &mut App) {
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
                 move |app| {
-                    app.task_store.tasks[selected_index].flip_tag(moved);
+                    if let Some(task) = app.task_store.task_mut(selected_index) {
+                        task.flip_tag(moved);
+                    };
                 },
             ));
         }
@@ -169,7 +176,9 @@ pub fn open_tag_menu(app: &mut App) {
         tag_options.push(DialogAction::new(
             String::from("Clear all tags"),
             move |app| {
-                app.task_store.tasks[selected_index].tags.clear();
+                if let Some(task) = app.task_store.task_mut(selected_index) {
+                    task.tags.clear();
+                };
             },
         ));
     }
@@ -249,7 +258,9 @@ fn open_select_tag_colour(app: &mut App, selected_index: usize, tag_name: String
                 },
             );
             if app.task_store.tasks.len() > selected_index {
-                app.task_store.tasks[selected_index].flip_tag(tag_id);
+                if let Some(task) = app.task_store.task_mut(selected_index) {
+                    task.flip_tag(tag_id);
+                }
             }
             Ok(())
         })

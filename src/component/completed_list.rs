@@ -8,9 +8,9 @@ use tui::{
 use crate::{
     actions::HelpAction,
     app::{App, Mode},
+    config::Config,
     draw::{DrawableComponent, EventResult},
     task::Task,
-    theme::Theme,
     utils,
 };
 
@@ -32,9 +32,9 @@ impl CompletedList {
         }
     }
 
-    pub fn available_actions(theme: &Theme) -> Vec<HelpAction<'static>> {
+    pub fn available_actions(config: &Config) -> Vec<HelpAction<'static>> {
         vec![HelpAction::new(
-            theme.restore_key,
+            config.restore_key,
             "Restores the selected task",
         )]
     }
@@ -62,7 +62,7 @@ impl CompletedList {
 
 impl DrawableComponent for CompletedList {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
-        let theme = &app.theme;
+        let theme = &app.config;
 
         let selected_index = app.completed_list.selected_index;
 

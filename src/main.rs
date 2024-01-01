@@ -2,6 +2,7 @@ mod actions;
 mod app;
 mod component;
 mod config;
+mod data_io;
 mod draw;
 mod error;
 mod input;
@@ -10,7 +11,6 @@ mod logger;
 mod screens;
 mod task;
 mod tests;
-mod theme;
 mod utils;
 
 use component::overlay::Overlay;
@@ -39,7 +39,7 @@ use crate::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (theme, tasks) = config::get_data();
+    let (theme, tasks) = data_io::get_data();
 
     enable_raw_mode()?;
 
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    config::save_data(&app.theme, &app.task_store);
+    data_io::save_data(&app.config, &app.task_store);
 
     if let Err(err) = result {
         eprintln!("{:?}", err);
@@ -119,8 +119,9 @@ pub fn start_app(
                     {
                         return Ok(());
                     }
-                    if EventResult::Ignored == input::key_event(app, key_event) {
-                        logger.key_event(app, key_event);
+                    if !app.config.debug || EventResult::Ignored == logger.key_event(app, key_event)
+                    {
+                        input::key_event(app, key_event);
                     }
                 }
                 Event::Mouse(mouse_event) => {

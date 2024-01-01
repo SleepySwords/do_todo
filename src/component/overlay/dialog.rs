@@ -65,7 +65,7 @@ impl DialogBox<'_> {
                 .map(ListItem::new)
                 .collect::<Vec<ListItem>>(),
         )
-        .highlight_symbol(&app.theme.selected_cursor)
+        .highlight_symbol(&app.config.selected_cursor)
         .block(utils::ui::generate_default_block(
             app,
             dialog.title.as_str(),
@@ -78,7 +78,7 @@ impl DialogBox<'_> {
             .iter()
             .all(|f| f.style.fg.is_none())
         {
-            list = list.highlight_style(app.theme.highlight_dropdown_style())
+            list = list.highlight_style(app.config.highlight_dropdown_style())
         } else {
             list = list.highlight_style(Style::default().add_modifier(Modifier::BOLD))
         }
@@ -101,7 +101,7 @@ impl DialogBox<'_> {
             }
         }
         utils::handle_key_movement(
-            &app.theme,
+            &app.config,
             key_event,
             &mut dialog.index,
             dialog.options.len(),

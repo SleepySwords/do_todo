@@ -5,8 +5,7 @@ use crossterm::event::KeyCode;
 use itertools::Itertools;
 
 use crate::{
-    app::TaskStore,
-    task::{CompletedTask, Priority, Task},
+    task::{CompletedTask, Priority, Task, TaskStore},
     utils::test::{input_char, input_code, setup},
 };
 
@@ -189,12 +188,14 @@ fn sort() {
                 title: String::from("Toaj"),
                 priority: Priority::Low,
                 tags: Vec::new(),
+                ..Default::default()
             },
             Task {
                 progress: false,
                 title: String::from("Toajeoifj"),
                 priority: Priority::High,
                 tags: Vec::new(),
+                ..Default::default()
             },
         ],
         completed_tasks: vec![CompletedTask::from_string(
@@ -222,12 +223,14 @@ fn test_autosort() {
                 title: String::from("Toaj"),
                 priority: Priority::Low,
                 tags: Vec::new(),
+                ..Default::default()
             },
             Task {
                 progress: false,
                 title: String::from("Toajeoifj"),
                 priority: Priority::High,
                 tags: Vec::new(),
+                ..Default::default()
             },
         ],
         completed_tasks: vec![CompletedTask::from_string(

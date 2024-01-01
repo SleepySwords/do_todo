@@ -1,9 +1,5 @@
 use chrono::{Local, NaiveTime};
 
-use serde::{Deserialize, Serialize};
-
-use std::{cmp, collections::BTreeMap};
-
 use crate::{
     actions::HelpAction,
     component::completed_list::CompletedList,
@@ -13,13 +9,13 @@ use crate::{
         overlay::Overlay,
         task_list::{TaskList, TaskListContext},
     },
-    task::{CompletedTask, Tag, Task},
-    theme::Theme,
+    config::Config,
+    task::TaskStore,
 };
 
 #[derive(Default)]
 pub struct App {
-    pub theme: Theme,
+    pub config: Config,
     pub task_store: TaskStore,
 
     pub status_line: StatusLine,
@@ -36,9 +32,9 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(theme: Theme, task_data: TaskStore) -> App {
+    pub fn new(theme: Config, task_data: TaskStore) -> App {
         App {
-            theme,
+            config: theme,
             task_store: task_data,
             status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
             ..Default::default()
@@ -75,37 +71,6 @@ impl App {
     }
 }
 
-#[derive(Default, Deserialize, Serialize)]
-#[serde(default)]
-pub struct TaskStore {
-    pub tags: BTreeMap<u32, Tag>,
-    pub tasks: Vec<Task>,
-    pub completed_tasks: Vec<CompletedTask>,
-    pub auto_sort: bool,
-}
-
-impl TaskStore {
-    pub fn delete_tag(&mut self, tag_id: u32) {
-        self.tags.remove(&tag_id);
-        for task in &mut self.tasks {
-            task.tags.retain(|f| f != &tag_id);
-        }
-    }
-
-    pub fn sort(&mut self) {
-        self.tasks.sort_by_key(|t| cmp::Reverse(t.priority));
-    }
-
-    pub fn add_task(&mut self, task: Task) {
-        if self.auto_sort {
-            self.tasks.push(task);
-            self.sort();
-        } else {
-            self.tasks.push(task);
-        }
-    }
-}
-
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Mode {
     CurrentTasks,
@@ -120,7 +85,7 @@ impl Default for Mode {
 }
 
 impl Mode {
-    pub fn available_help_actions(&self, theme: &Theme) -> Vec<HelpAction> {
+    pub fn available_help_actions(&self, theme: &Config) -> Vec<HelpAction> {
         match self {
             Mode::CurrentTasks => TaskList::available_actions(theme),
             Mode::CompletedTasks => CompletedList::available_actions(theme),
