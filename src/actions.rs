@@ -108,7 +108,7 @@ pub fn open_delete_task_menu(app: &mut App) {
             let selected_index = &mut app.task_list.selected_index;
             app.task_store.delete_task(*selected_index);
             // FIXME: Better way to do this
-            if *selected_index == app.task_store.find_task_draw_size()
+            if *selected_index == app.task_store.find_tasks_draw_size()
                 && !app.task_store.tasks.is_empty()
             {
                 *selected_index -= 1;
@@ -133,7 +133,8 @@ pub fn complete_task(app: &mut App) {
     app.task_store
         .completed_tasks
         .push(CompletedTask::from_task(task, time_completed));
-    if *selected_index == app.task_store.find_task_draw_size() && !app.task_store.tasks.is_empty() {
+    if *selected_index == app.task_store.find_tasks_draw_size() && !app.task_store.tasks.is_empty()
+    {
         *selected_index -= 1;
     }
 }

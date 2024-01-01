@@ -40,8 +40,16 @@ impl StatusLine {
 
 impl DrawableComponent for StatusLine {
     // Should be able to do commands?!
-    fn draw(&self, _: &App, drawer: &mut Drawer) {
-        let help = Text::styled(self.status_line.as_str(), Style::default().fg(self.colour));
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
+        let help = Text::styled(
+            self.status_line.clone()
+                + if app.task_store.auto_sort {
+                    " Auto sort is current enabled"
+                } else {
+                    ""
+                },
+            Style::default().fg(self.colour),
+        );
         let paragraph = Paragraph::new(help);
         drawer.draw_widget(paragraph, self.draw_area);
     }

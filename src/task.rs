@@ -212,17 +212,16 @@ pub struct TaskStore {
 }
 
 impl TaskStore {
-    // FIXME: This is kinda badly structued :(
-    pub fn task_mut(&mut self, mut selected: usize) -> Option<&mut Task> {
+    pub fn task_mut(&mut self, mut global_index: usize) -> Option<&mut Task> {
         self.tasks
             .iter_mut()
-            .find_map(|t| t._find_selected_mut(&mut selected))
+            .find_map(|t| t._find_selected_mut(&mut global_index))
     }
 
-    pub fn task(&self, mut selected: usize) -> Option<&Task> {
+    pub fn task(&self, mut global_index: usize) -> Option<&Task> {
         self.tasks
             .iter()
-            .find_map(|t| t._find_selected(&mut selected))
+            .find_map(|t| t._find_selected(&mut global_index))
     }
 
     pub fn delete_task(&mut self, to_delete: usize) -> Option<Task> {
@@ -254,7 +253,7 @@ impl TaskStore {
         None
     }
 
-    pub fn find_task_draw_size(&self) -> usize {
+    pub fn find_tasks_draw_size(&self) -> usize {
         self.tasks
             .iter()
             .map(|t| t.find_task_draw_size())
@@ -264,10 +263,10 @@ impl TaskStore {
     pub fn local_index_to_global(
         index: usize,
         parent_list: &[Task],
-        parent_global_offset: usize,
+        parent_global_index: usize,
         is_global: bool,
     ) -> usize {
-        parent_global_offset
+        parent_global_index
                 + parent_list
                     .iter()
                     .take(index)
@@ -278,8 +277,12 @@ impl TaskStore {
                 + if is_global { 0 } else { 1 }
     }
 
-    /// Is global refers to the indexed task.
-    pub fn find_parent(&self, to_find: usize) -> Option<(&Vec<Task>, usize, bool)> {
+    /// Returns an option tuple
+    /// The first is the parent subtasks
+    /// Second is the parent_index
+    /// Third is the tasks local offset
+    /// Fourth is if it is a boolean
+    pub fn find_parent(&self, to_find: usize) -> Option<(&Vec<Task>, usize, usize, bool)> {
         Self::_find_parent(&self.tasks, &mut 0, to_find, 0, true)
     }
 
@@ -287,15 +290,15 @@ impl TaskStore {
         tasks: &'a Vec<Task>,
         current_index: &mut usize,
         to_find: usize,
-        offset: usize,
+        index: usize,
         is_global: bool,
-    ) -> Option<(&'a Vec<Task>, usize, bool)> {
+    ) -> Option<(&'a Vec<Task>, usize, usize, bool)> {
         for task_index in 0..tasks.len() {
             if *current_index == to_find {
-                return Some((tasks, offset, is_global));
+                return Some((tasks, index, task_index, is_global));
             }
 
-            let offset = *current_index;
+            let index = *current_index;
 
             *current_index += 1;
 
@@ -304,7 +307,7 @@ impl TaskStore {
                     &tasks[task_index].sub_tasks,
                     current_index,
                     to_find,
-                    offset,
+                    index,
                     false,
                 ) {
                     return Some(task);
@@ -316,11 +319,11 @@ impl TaskStore {
 
     /// Returns the subtasks of a task if `is_global` is true
     /// Otherwise returns the global tasks.
-    pub fn subtasks(&mut self, offset: usize, is_global: bool) -> Option<&mut Vec<Task>> {
+    pub fn subtasks(&mut self, index: usize, is_global: bool) -> Option<&mut Vec<Task>> {
         if is_global {
             Some(&mut self.tasks)
         } else {
-            Some(&mut self.task_mut(offset)?.sub_tasks)
+            Some(&mut self.task_mut(index)?.sub_tasks)
         }
     }
 

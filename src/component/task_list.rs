@@ -178,7 +178,7 @@ impl DrawableComponent for TaskList {
             app,
             self.area,
             COMPONENT_TYPE,
-            app.task_store.find_task_draw_size(),
+            app.task_store.find_tasks_draw_size(),
             mouse_event,
         )
     }
