@@ -62,6 +62,8 @@ pub struct Config {
     pub nested_padding: String,
     pub closed_subtask: String,
     pub open_subtask: String,
+
+    pub debug: bool,
 }
 
 impl Default for Config {
@@ -115,6 +117,7 @@ impl Default for Config {
             nested_padding: String::from("    │ "),
             closed_subtask: String::from("   "),
             open_subtask: String::from("   "),
+            debug: false,
         }
     }
 }

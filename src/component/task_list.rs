@@ -56,6 +56,15 @@ impl TaskList {
             HelpAction::new_multiple(config.down_keys, "Moves up one task"),
             HelpAction::new(config.sort_key, "Sorts tasks (by priority)"),
             HelpAction::new(config.enable_autosort_key, "Toggles automatic task sort"),
+            HelpAction::new(config.flip_subtask_key, "Open/closes the subtask"),
+            HelpAction::new(
+                config.move_subtask_level_up,
+                "Make the selected task a subtask of above",
+            ),
+            HelpAction::new(
+                config.move_subtask_level_down,
+                "Make the selected task not a subtask of the parent",
+            ),
         ]
     }
 

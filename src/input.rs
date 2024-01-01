@@ -73,9 +73,9 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> EventResult {
             };
 
             let task = &parent_subtasks[local_index];
-            let task_above = &parent_subtasks[new_index];
+            let task_below = &parent_subtasks[new_index];
 
-            if task.priority == task_above.priority || !autosort {
+            if task.priority == task_below.priority || !autosort {
                 let task = parent_subtasks.remove(local_index);
 
                 parent_subtasks.insert(new_index, task);

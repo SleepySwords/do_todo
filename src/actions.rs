@@ -107,7 +107,6 @@ pub fn open_delete_task_menu(app: &mut App) {
         .add_option(DialogAction::new(String::from("Delete"), move |app| {
             let selected_index = &mut app.task_list.selected_index;
             app.task_store.delete_task(*selected_index);
-            // FIXME: Better way to do this
             if *selected_index == app.task_store.find_tasks_draw_size()
                 && !app.task_store.tasks.is_empty()
             {
@@ -153,10 +152,9 @@ pub fn open_tag_menu(app: &mut App) {
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
                 move |app| {
-                    let Some(task) = app.task_store.task_mut(selected_index) else {
-                        return;
+                    if let Some(task) = app.task_store.task_mut(selected_index) {
+                        task.flip_tag(moved);
                     };
-                    task.flip_tag(moved);
                 },
             ));
         }
@@ -178,10 +176,9 @@ pub fn open_tag_menu(app: &mut App) {
         tag_options.push(DialogAction::new(
             String::from("Clear all tags"),
             move |app| {
-                let Some(task) = app.task_store.task_mut(selected_index) else {
-                    return;
+                if let Some(task) = app.task_store.task_mut(selected_index) {
+                    task.tags.clear();
                 };
-                task.tags.clear();
             },
         ));
     }

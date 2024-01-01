@@ -44,8 +44,6 @@ impl Task {
     pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + '_ {
         self.tags
             .iter()
-            // FIXME: Remove tags from submenus, this is a hack for now, as new tags can share old
-            // indicies
             .filter_map(|tag_index| return app.task_store.tags.get(tag_index))
     }
 
@@ -68,36 +66,12 @@ impl Task {
         }
     }
 
-    pub fn _find_selected_mut<'a>(&'a mut self, selected: &mut usize) -> Option<&'a mut Task> {
-        if *selected == 0 {
-            return Some(self);
+    pub fn delete_tag(&mut self, tag_id: u32) {
+        self.sub_tasks.sort_by_key(|t| cmp::Reverse(t.priority));
+        self.tags.retain(|f| f != &tag_id);
+        for task in &mut self.sub_tasks {
+            task.delete_tag(tag_id)
         }
-
-        *selected -= 1;
-
-        if !self.opened {
-            return None;
-        }
-
-        self.sub_tasks
-            .iter_mut()
-            .find_map(|t| t._find_selected_mut(selected))
-    }
-
-    pub fn _find_selected<'a>(&'a self, selected: &mut usize) -> Option<&'a Task> {
-        if *selected == 0 {
-            return Some(self);
-        }
-
-        *selected -= 1;
-
-        if !self.opened {
-            return None;
-        }
-
-        self.sub_tasks
-            .iter()
-            .find_map(|t| t._find_selected(selected))
     }
 
     // Includes this current task
@@ -215,20 +189,52 @@ impl TaskStore {
     pub fn task_mut(&mut self, mut global_index: usize) -> Option<&mut Task> {
         self.tasks
             .iter_mut()
-            .find_map(|t| t._find_selected_mut(&mut global_index))
+            .find_map(|t| Self::internal_task_mut(t, &mut global_index))
+    }
+
+    fn internal_task_mut<'a>(task: &'a mut Task, selected: &mut usize) -> Option<&'a mut Task> {
+        if *selected == 0 {
+            return Some(task);
+        }
+
+        *selected -= 1;
+
+        if !task.opened {
+            return None;
+        }
+
+        task.sub_tasks
+            .iter_mut()
+            .find_map(|t| Self::internal_task_mut(t, selected))
     }
 
     pub fn task(&self, mut global_index: usize) -> Option<&Task> {
         self.tasks
             .iter()
-            .find_map(|t| t._find_selected(&mut global_index))
+            .find_map(|t| Self::internal_task(t, &mut global_index))
+    }
+
+    fn internal_task<'a>(task: &'a Task, selected: &mut usize) -> Option<&'a Task> {
+        if *selected == 0 {
+            return Some(task);
+        }
+
+        *selected -= 1;
+
+        if !task.opened {
+            return None;
+        }
+
+        task.sub_tasks
+            .iter()
+            .find_map(|t| Self::internal_task(t, selected))
     }
 
     pub fn delete_task(&mut self, to_delete: usize) -> Option<Task> {
-        Self::_delete_task(&mut self.tasks, &mut 0, to_delete)
+        Self::internal_delete_task(&mut self.tasks, &mut 0, to_delete)
     }
 
-    fn _delete_task(
+    fn internal_delete_task(
         tasks: &mut Vec<Task>,
         current_index: &mut usize,
         to_delete: usize,
@@ -244,9 +250,11 @@ impl TaskStore {
                 continue;
             }
 
-            if let Some(task) =
-                Self::_delete_task(&mut tasks[task_index].sub_tasks, current_index, to_delete)
-            {
+            if let Some(task) = Self::internal_delete_task(
+                &mut tasks[task_index].sub_tasks,
+                current_index,
+                to_delete,
+            ) {
                 return Some(task);
             }
         }
@@ -283,10 +291,10 @@ impl TaskStore {
     /// Third is the tasks local offset
     /// Fourth is if it is a boolean
     pub fn find_parent(&self, to_find: usize) -> Option<(&Vec<Task>, usize, usize, bool)> {
-        Self::_find_parent(&self.tasks, &mut 0, to_find, 0, true)
+        Self::internal_find_parent(&self.tasks, &mut 0, to_find, 0, true)
     }
 
-    fn _find_parent<'a>(
+    fn internal_find_parent<'a>(
         tasks: &'a Vec<Task>,
         current_index: &mut usize,
         to_find: usize,
@@ -303,7 +311,7 @@ impl TaskStore {
             *current_index += 1;
 
             if tasks[task_index].opened {
-                if let Some(task) = Self::_find_parent(
+                if let Some(task) = Self::internal_find_parent(
                     &tasks[task_index].sub_tasks,
                     current_index,
                     to_find,
@@ -331,11 +339,10 @@ impl TaskStore {
         let mut index = 0;
         self.tasks
             .iter()
-            .find_map(|tsk| Self::_task_position(to_find, tsk, &mut index))
+            .find_map(|tsk| Self::internal_task_pos(to_find, tsk, &mut index))
     }
 
-    // FIXME: Move to task
-    fn _task_position(to_find: &Task, current_task: &Task, index: &mut usize) -> Option<usize> {
+    fn internal_task_pos(to_find: &Task, current_task: &Task, index: &mut usize) -> Option<usize> {
         if *to_find == *current_task {
             return Some(*index);
         }
@@ -346,16 +353,16 @@ impl TaskStore {
         current_task
             .sub_tasks
             .iter()
-            .find_map(|sub_task| Self::_task_position(to_find, sub_task, index))
+            .find_map(|sub_task| Self::internal_task_pos(to_find, sub_task, index))
     }
 
     pub fn delete_tag(&mut self, tag_id: u32) {
         self.tags.remove(&tag_id);
         for task in &mut self.tasks {
-            task.tags.retain(|f| f != &tag_id);
+            task.delete_tag(tag_id);
         }
         for completed_task in &mut self.completed_tasks {
-            completed_task.task.tags.retain(|f| f != &tag_id);
+            completed_task.task.delete_tag(tag_id);
         }
     }
 

@@ -119,7 +119,8 @@ pub fn start_app(
                     {
                         return Ok(());
                     }
-                    if EventResult::Ignored == logger.key_event(app, key_event) {
+                    if !app.config.debug || EventResult::Ignored == logger.key_event(app, key_event)
+                    {
                         input::key_event(app, key_event);
                     }
                 }
