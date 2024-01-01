@@ -100,7 +100,11 @@ impl TaskList {
             spans.push(priority);
         } else {
             let sub_tasks = Span::styled(
-                if task.opened { &config.open_subtask } else { &config.closed_subtask },
+                if task.opened {
+                    &config.open_subtask
+                } else {
+                    &config.closed_subtask
+                },
                 style.fg(task.priority.colour(config)),
             );
             spans.push(sub_tasks);
