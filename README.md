@@ -56,4 +56,6 @@ For the following, replace `YOUR_USERNAME` with your username.
 | `H`     | Make the selected task not a subtask of the parent |
 
 ### Completed list default binds
+| Key | Action |
+|-----|----------------------------|
 | `r` | Restores the selected task |
