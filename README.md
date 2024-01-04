@@ -16,7 +16,6 @@ Be sure to backup your data!
 3. Run `cargo install --path ./`
 
 ## Configuration/data paths
-Paths to your data.
 
 For the following, replace `YOUR_USERNAME` with your username.
 
