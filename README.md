@@ -15,7 +15,25 @@ Be sure to backup your data!
 2. Run `cd do_todo`
 3. Run `cargo install --path ./`
 
-## Configuration/data paths
+## Configuration
+
+The `config.yml` contains your configuration and allows you to customise colours, keys and string components!
+
+#### Colours
+
+Colours can be customised with either hex (eg: `#121212`), names (eg: `red`) or indexes (eg: `12`).
+
+#### Keys
+
+Keybinds are also able to be customised to something other than the default binds below. This can be done using any character or through the use of keywords, such as `space`  or `enter`. This can be further customised by appending modifiers at the start seperated by a dash (eg: `alt-space`).
+
+#### String components
+
+String components are able to be customised by using quotation marks and placing the desired string between them.
+
+This allows customisation of things, such as the cursor within the fuzzy finder.
+
+### Data paths
 
 For the following, replace `YOUR_USERNAME` with your username.
 
