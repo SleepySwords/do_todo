@@ -1,13 +1,9 @@
 use chrono::{Local, NaiveTime};
 
 use crate::{
-    actions::HelpEntry,
-    component::completed_list::CompletedList,
     component::status_line::StatusLine,
     component::{
-        completed_list::CompletedListContext,
-        overlay::Overlay,
-        task_list::{TaskList, TaskListContext},
+        completed_list::CompletedListContext, overlay::Overlay, task_list::TaskListContext,
     },
     config::Config,
     task::TaskStore,

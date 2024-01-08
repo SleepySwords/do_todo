@@ -6,9 +6,7 @@ use tui::{
 };
 
 use crate::{
-    actions::HelpEntry,
     app::{App, Mode},
-    config::Config,
     draw::{DrawableComponent, EventResult},
     task::Task,
     utils,
