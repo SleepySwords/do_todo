@@ -3,7 +3,7 @@ use tui::prelude::Rect;
 
 use crate::{
     app::App,
-    draw::{Drawer, EventResult},
+    draw::{Drawer, EventResult}, error::AppError,
 };
 
 use self::{dialog::DialogBox, fuzzy::FuzzyBox, input_box::InputBox};
@@ -22,15 +22,15 @@ pub enum Overlay<'a> {
 }
 
 impl Overlay<'_> {
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
+    pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result< EventResult, AppError > {
         if FuzzyBox::key_event(app, key_event) == EventResult::Consumed
             || InputBox::key_event(app, key_event) == EventResult::Consumed
             || DialogBox::key_event(app, key_event) == EventResult::Consumed
             || MessageBox::key_event(app, key_event) == EventResult::Consumed
         {
-            return EventResult::Consumed;
+            return Ok(EventResult::Consumed);
         }
-        EventResult::Ignored
+        Ok(EventResult::Ignored)
     }
 
     pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {

@@ -13,15 +13,18 @@ mod task;
 mod tests;
 mod utils;
 
-use component::overlay::Overlay;
+use app::Mode;
+use component::{message_box::MessageBox, overlay::Overlay};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use error::AppError;
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Layout},
+    style::Color,
     Terminal,
 };
 
@@ -121,7 +124,18 @@ pub fn start_app(
                     }
                     if !app.config.debug || EventResult::Ignored == logger.key_event(app, key_event)
                     {
-                        input::key_event(app, key_event);
+                        let result = input::key_event(app, key_event);
+                        if let Err(AppError::InvalidState(msg)) = result {
+                            let prev_mode = app.mode;
+                            app.push_layer(Overlay::Message(MessageBox::new(
+                                "An error occured".to_string(),
+                                move |app| app.mode = prev_mode,
+                                msg,
+                                Color::Red,
+                                0,
+                            )));
+                            app.mode = Mode::Overlay;
+                        }
                     }
                 }
                 Event::Mouse(mouse_event) => {
