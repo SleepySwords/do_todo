@@ -114,7 +114,7 @@ impl Default for Config {
 
             border_type: BorderType::Plain,
             selected_cursor: String::from(" > "),
-            nested_padding: String::from("    │ "),
+            nested_padding: String::from(" │  "),
             closed_subtask: String::from("   "),
             open_subtask: String::from("   "),
             debug: false,
