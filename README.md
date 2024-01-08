@@ -48,34 +48,33 @@ This allows customisation of things, such as the cursor within the fuzzy finder.
 
 | Key          | Action                      |
 |--------------|-----------------------------|
-| `a`    | Adds a task|
+| `a`          | Adds a task                 |
 | `1`          | Select tasklist             |
 | `2`          | Select completed tasklist   |
 | `k`          | Move up                     |
 | `j`          | Move down                   |
-| `s`    | Sorts tasks (by priority)|
-| `S`    | Toggles automatic task sort|
+| `s`          | Sorts tasks (by priority)   |
+| `S`          | Toggles automatic task sort |
 | `Ctrl` + `n` | Move up in the fuzzy list   |
 | `Ctrl` + `p` | Move down in the fuzzy list |
 | `x`          | Open the help menu          |
 | `q`          | Quit do_todo                |
 
 ### Task list default binds
-| Key    | Action |
-|--------|--------------------------------------------------------|
-| `c`    | Completes the selected task |
-| `d`    | Delete the selected task|
-| `e`    | Edits the selected task|
-| `t`    | Add or remove the tags from this task or project|
-| `h`    | Gives selected task lower priority|
-| `k`    | Gives selected task lower| priority
-| `J`    | Moves the task down on the task list|
-| `K`    | Moves the task up on the task list|
-| `enter` | Open/closes the subtask|                  
-| `L`     | Make the selected task a subtask of above             |
+| Key     | Action                                             |
+|---------|----------------------------------------------------|
+| `c`     | Completes the selected task                        |
+| `d`     | Delete the selected task                           |
+| `e`     | Edits the selected task                            |
+| `t`     | Add or remove the tags from this task or project   |
+| `p`     | Gives selected task lower priority                 |
+| `J`     | Moves the task down on the task list               |
+| `K`     | Moves the task up on the task list                 |
+| `enter` | Open/closes the subtask                            |                  
+| `L`     | Make the selected task a subtask of above          |
 | `H`     | Make the selected task not a subtask of the parent |
 
 ### Completed list default binds
-| Key | Action |
+| Key | Action                     |
 |-----|----------------------------|
 | `r` | Restores the selected task |
