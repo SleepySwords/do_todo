@@ -7,9 +7,7 @@ use tui::{
 };
 
 use crate::{
-    actions::HelpAction,
     app::{App, Mode},
-    config::Config,
     draw::{DrawableComponent, EventResult},
     task::Task,
     utils::{self, handle_mouse_movement},
@@ -31,41 +29,6 @@ impl TaskList {
         Self {
             area: Rect::default(),
         }
-    }
-
-    pub fn available_actions(config: &Config) -> Vec<HelpAction<'static>> {
-        vec![
-            HelpAction::new(config.add_key, "Adds a task"),
-            HelpAction::new(config.complete_key, "Completes the selected task"),
-            HelpAction::new(config.delete_key, "Delete the selected task"),
-            HelpAction::new(config.edit_key, "Edits the selected task"),
-            HelpAction::new(
-                config.tag_menu,
-                "Add or remove the tags from this task or project",
-            ),
-            HelpAction::new(
-                config.change_priority_key,
-                "Gives selected task lower priority",
-            ),
-            HelpAction::new(
-                config.move_task_down,
-                "Moves the task down on the task list",
-            ),
-            HelpAction::new(config.move_task_up, "Moves the task up on the task list"),
-            HelpAction::new_multiple(config.down_keys, "Moves down one task"),
-            HelpAction::new_multiple(config.down_keys, "Moves up one task"),
-            HelpAction::new(config.sort_key, "Sorts tasks (by priority)"),
-            HelpAction::new(config.enable_autosort_key, "Toggles automatic task sort"),
-            HelpAction::new(config.flip_subtask_key, "Open/closes the subtask"),
-            HelpAction::new(
-                config.move_subtask_level_up,
-                "Make the selected task a subtask of above",
-            ),
-            HelpAction::new(
-                config.move_subtask_level_down,
-                "Make the selected task not a subtask of the parent",
-            ),
-        ]
     }
 
     fn is_task_selected(app: &App, current_index: &usize) -> bool {

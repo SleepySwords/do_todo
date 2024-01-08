@@ -17,6 +17,9 @@ pub enum AppError {
     YamlError(YamlError),
     #[error("Key parsing error: {0}")]
     InvalidKey(String),
+
+    #[error("Invalid state: {0}")]
+    InvalidState(String),
 }
 
 impl From<ParseIntError> for AppError {

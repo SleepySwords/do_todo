@@ -1,13 +1,9 @@
 use chrono::{Local, NaiveTime};
 
 use crate::{
-    actions::HelpAction,
-    component::completed_list::CompletedList,
     component::status_line::StatusLine,
     component::{
-        completed_list::CompletedListContext,
-        overlay::Overlay,
-        task_list::{TaskList, TaskListContext},
+        completed_list::CompletedListContext, overlay::Overlay, task_list::TaskListContext,
     },
     config::Config,
     task::TaskStore,
@@ -81,15 +77,5 @@ pub enum Mode {
 impl Default for Mode {
     fn default() -> Self {
         Self::CurrentTasks
-    }
-}
-
-impl Mode {
-    pub fn available_help_actions(&self, theme: &Config) -> Vec<HelpAction> {
-        match self {
-            Mode::CurrentTasks => TaskList::available_actions(theme),
-            Mode::CompletedTasks => CompletedList::available_actions(theme),
-            Mode::Overlay => vec![],
-        }
     }
 }

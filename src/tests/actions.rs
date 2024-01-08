@@ -125,26 +125,26 @@ fn test_priority() {
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::High);
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::Normal);
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::Low);
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::None);
 
     input_char('j', &mut app);
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::None);
     assert_eq!(app.task_store.tasks[1].priority, Priority::High);
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::None);
     assert_eq!(app.task_store.tasks[1].priority, Priority::Normal);
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::None);
     assert_eq!(app.task_store.tasks[1].priority, Priority::Low);
-    input_char('h', &mut app);
+    input_char('p', &mut app);
     assert_eq!(app.task_store.tasks[0].priority, Priority::None);
     assert_eq!(app.task_store.tasks[1].priority, Priority::None);
 }

@@ -96,7 +96,7 @@ impl Default for Config {
             edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
             delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
             add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
-            change_priority_key: Key::new(KeyCode::Char('h'), KeyModifiers::NONE),
+            change_priority_key: Key::new(KeyCode::Char('p'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
             tasks_menu_key: Key::new(KeyCode::Char('1'), KeyModifiers::NONE),
@@ -114,9 +114,9 @@ impl Default for Config {
 
             border_type: BorderType::Plain,
             selected_cursor: String::from(" > "),
-            nested_padding: String::from("    │ "),
-            closed_subtask: String::from("   "),
-            open_subtask: String::from("   "),
+            nested_padding: String::from(" │  "),
+            closed_subtask: String::from(" >  "),
+            open_subtask: String::from(" v  "),
             debug: false,
         }
     }

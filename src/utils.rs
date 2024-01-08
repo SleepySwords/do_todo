@@ -280,14 +280,14 @@ pub mod test {
     use crate::{app::App, input, task::TaskStore};
 
     pub fn input_char(character: char, app: &mut App) {
-        input::key_event(
+        let _result = input::key_event(
             app,
             crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE),
         );
     }
 
     pub fn input_code(key: KeyCode, app: &mut App) {
-        input::key_event(
+        let _result = input::key_event(
             app,
             crossterm::event::KeyEvent::new(key, KeyModifiers::NONE),
         );
