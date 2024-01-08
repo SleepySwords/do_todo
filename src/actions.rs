@@ -16,22 +16,22 @@ use crate::{
 };
 
 // Action class maybe?!!
-pub struct HelpAction<'a> {
+pub struct HelpEntry<'a> {
     character: Key,
     short_hand: String,
     description: &'a str,
 }
 
-impl HelpAction<'_> {
-    pub fn new(character: Key, description: &str) -> HelpAction<'_> {
-        HelpAction {
+impl HelpEntry<'_> {
+    pub fn new(character: Key, description: &str) -> HelpEntry<'_> {
+        HelpEntry {
             character,
             short_hand: character.to_string(),
             description,
         }
     }
-    pub fn new_multiple(character: [Key; 2], description: &str) -> HelpAction<'_> {
-        HelpAction {
+    pub fn new_multiple(character: [Key; 2], description: &str) -> HelpEntry<'_> {
+        HelpEntry {
             character: character[0],
             short_hand: itertools::intersperse(
                 character.iter().map(|f| f.to_string()),
@@ -83,14 +83,25 @@ pub fn open_help_menu(app: &mut App) {
             },
         ),
     ];
-    for ac in app.mode.available_help_actions(&app.config) {
+    for ac in app.mode.help_entries(&app.config) {
         actions.push(DialogAction::new(
             format!("{: <15}{}", ac.short_hand, ac.description),
             move |app| {
-                input::key_event(
+                let result = input::key_event(
                     app,
                     KeyEvent::new(ac.character.code, ac.character.modifiers),
                 );
+                if let Err(AppError::InvalidState(msg)) = result {
+                    let prev_mode = app.mode;
+                    app.push_layer(Overlay::Message(MessageBox::new(
+                        "An error occured".to_string(),
+                        move |app| app.mode = prev_mode,
+                        msg,
+                        Color::Red,
+                        0,
+                    )));
+                    app.mode = Mode::Overlay;
+                }
             },
         ));
     }

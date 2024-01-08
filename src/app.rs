@@ -1,7 +1,7 @@
 use chrono::{Local, NaiveTime};
 
 use crate::{
-    actions::HelpAction,
+    actions::HelpEntry,
     component::completed_list::CompletedList,
     component::status_line::StatusLine,
     component::{
@@ -81,15 +81,5 @@ pub enum Mode {
 impl Default for Mode {
     fn default() -> Self {
         Self::CurrentTasks
-    }
-}
-
-impl Mode {
-    pub fn available_help_actions(&self, theme: &Config) -> Vec<HelpAction> {
-        match self {
-            Mode::CurrentTasks => TaskList::available_actions(theme),
-            Mode::CompletedTasks => CompletedList::available_actions(theme),
-            Mode::Overlay => vec![],
-        }
     }
 }

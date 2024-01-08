@@ -1,13 +1,13 @@
 use crossterm::event::KeyEvent;
 
 use crate::{
-    actions,
+    actions::{self, HelpEntry},
     app::{App, Mode},
     component::{
         completed_list::CompletedList,
         overlay::{input_box::InputBoxBuilder, Overlay},
     },
-    config::KeyBindings,
+    config::{Config, KeyBindings},
     draw::EventResult,
     error::AppError,
     task::{Task, TaskStore},
@@ -280,6 +280,41 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
     Ok(EventResult::Consumed)
 }
 
+fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
+    vec![
+        HelpEntry::new(config.add_key, "Adds a task"),
+        HelpEntry::new(config.complete_key, "Completes the selected task"),
+        HelpEntry::new(config.delete_key, "Delete the selected task"),
+        HelpEntry::new(config.edit_key, "Edits the selected task"),
+        HelpEntry::new(
+            config.tag_menu,
+            "Add or remove the tags from this task or project",
+        ),
+        HelpEntry::new(
+            config.change_priority_key,
+            "Gives selected task lower priority",
+        ),
+        HelpEntry::new(
+            config.move_task_down,
+            "Moves the task down on the task list",
+        ),
+        HelpEntry::new(config.move_task_up, "Moves the task up on the task list"),
+        HelpEntry::new_multiple(config.down_keys, "Moves down one task"),
+        HelpEntry::new_multiple(config.down_keys, "Moves up one task"),
+        HelpEntry::new(config.sort_key, "Sorts tasks (by priority)"),
+        HelpEntry::new(config.enable_autosort_key, "Toggles automatic task sort"),
+        HelpEntry::new(config.flip_subtask_key, "Open/closes the subtask"),
+        HelpEntry::new(
+            config.move_subtask_level_up,
+            "Make the selected task a subtask of above",
+        ),
+        HelpEntry::new(
+            config.move_subtask_level_down,
+            "Make the selected task not a subtask of the parent",
+        ),
+    ]
+}
+
 fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, AppError> {
     let result = utils::handle_key_movement(
         &app.config,
@@ -298,6 +333,13 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResul
     } else {
         Ok(EventResult::Ignored)
     }
+}
+
+fn completed_list_help_entries(config: &Config) -> Vec<HelpEntry<'static>> {
+    vec![HelpEntry::new(
+        config.restore_key,
+        "Restores the selected task",
+    )]
 }
 
 fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
@@ -344,4 +386,14 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
         }
         _ => EventResult::Ignored,
     };
+}
+
+impl Mode {
+    pub fn help_entries(&self, config: &Config) -> Vec<HelpEntry<'_>> {
+        match self {
+            Mode::CurrentTasks => task_list_help_entry(config),
+            Mode::CompletedTasks => completed_list_help_entries(config),
+            Mode::Overlay => vec![],
+        }
+    }
 }

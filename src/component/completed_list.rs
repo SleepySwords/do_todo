@@ -6,7 +6,7 @@ use tui::{
 };
 
 use crate::{
-    actions::HelpAction,
+    actions::HelpEntry,
     app::{App, Mode},
     config::Config,
     draw::{DrawableComponent, EventResult},
@@ -30,13 +30,6 @@ impl CompletedList {
         Self {
             area: Rect::default(),
         }
-    }
-
-    pub fn available_actions(config: &Config) -> Vec<HelpAction<'static>> {
-        vec![HelpAction::new(
-            config.restore_key,
-            "Restores the selected task",
-        )]
     }
 
     pub fn restore_task(app: &mut App) {

@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    actions::HelpAction,
+    actions::HelpEntry,
     app::{App, Mode},
     config::Config,
     draw::{DrawableComponent, EventResult},
@@ -33,35 +33,35 @@ impl TaskList {
         }
     }
 
-    pub fn available_actions(config: &Config) -> Vec<HelpAction<'static>> {
+    pub fn available_actions(config: &Config) -> Vec<HelpEntry<'static>> {
         vec![
-            HelpAction::new(config.add_key, "Adds a task"),
-            HelpAction::new(config.complete_key, "Completes the selected task"),
-            HelpAction::new(config.delete_key, "Delete the selected task"),
-            HelpAction::new(config.edit_key, "Edits the selected task"),
-            HelpAction::new(
+            HelpEntry::new(config.add_key, "Adds a task"),
+            HelpEntry::new(config.complete_key, "Completes the selected task"),
+            HelpEntry::new(config.delete_key, "Delete the selected task"),
+            HelpEntry::new(config.edit_key, "Edits the selected task"),
+            HelpEntry::new(
                 config.tag_menu,
                 "Add or remove the tags from this task or project",
             ),
-            HelpAction::new(
+            HelpEntry::new(
                 config.change_priority_key,
                 "Gives selected task lower priority",
             ),
-            HelpAction::new(
+            HelpEntry::new(
                 config.move_task_down,
                 "Moves the task down on the task list",
             ),
-            HelpAction::new(config.move_task_up, "Moves the task up on the task list"),
-            HelpAction::new_multiple(config.down_keys, "Moves down one task"),
-            HelpAction::new_multiple(config.down_keys, "Moves up one task"),
-            HelpAction::new(config.sort_key, "Sorts tasks (by priority)"),
-            HelpAction::new(config.enable_autosort_key, "Toggles automatic task sort"),
-            HelpAction::new(config.flip_subtask_key, "Open/closes the subtask"),
-            HelpAction::new(
+            HelpEntry::new(config.move_task_up, "Moves the task up on the task list"),
+            HelpEntry::new_multiple(config.down_keys, "Moves down one task"),
+            HelpEntry::new_multiple(config.down_keys, "Moves up one task"),
+            HelpEntry::new(config.sort_key, "Sorts tasks (by priority)"),
+            HelpEntry::new(config.enable_autosort_key, "Toggles automatic task sort"),
+            HelpEntry::new(config.flip_subtask_key, "Open/closes the subtask"),
+            HelpEntry::new(
                 config.move_subtask_level_up,
                 "Make the selected task a subtask of above",
             ),
-            HelpAction::new(
+            HelpEntry::new(
                 config.move_subtask_level_down,
                 "Make the selected task not a subtask of the parent",
             ),
