@@ -8,7 +8,7 @@ use tui::{
 // A viewer of a task/something
 use crate::{
     app::{App, Mode},
-    draw::{DrawableComponent, Drawer, EventResult},
+    draw::{Component, Drawer, EventResult},
     task::Task,
     utils,
 };
@@ -125,7 +125,7 @@ fn tag_names<'a>(app: &'a App, task: &'a Task) -> Line<'a> {
     }
 }
 
-impl DrawableComponent for Viewer {
+impl Component for Viewer {
     fn draw(&self, app: &App, drawer: &mut Drawer) {
         let theme = &app.config;
         let draw_area = self.area;

@@ -13,7 +13,7 @@ pub enum EventResult {
 }
 
 /// A component that is able to be drawn on the screen.
-pub trait DrawableComponent {
+pub trait Component {
     /// Draws the component onto the [[Drawer]]
     fn draw(&self, app: &App, drawer: &mut Drawer);
 
@@ -44,7 +44,7 @@ impl Drawer<'_, '_> {
     }
 
     // update_layout works nice for now, but might experiment with adding grids.
-    pub fn draw_component(&mut self, app: &App, drawable: &dyn DrawableComponent) {
+    pub fn draw_component(&mut self, app: &App, drawable: &dyn Component) {
         drawable.draw(app, self);
     }
 

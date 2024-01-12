@@ -1,7 +1,7 @@
 use crate::{
     app::App,
     component::{completed_list::CompletedList, task_list::TaskList, viewer::Viewer},
-    draw::{DrawableComponent, Drawer, EventResult},
+    draw::{Component, Drawer, EventResult},
     utils,
 };
 use crossterm::event::MouseEvent;
@@ -29,7 +29,7 @@ impl MainScreen {
     }
 }
 
-impl DrawableComponent for MainScreen {
+impl Component for MainScreen {
     fn draw(&self, app: &App, drawer: &mut Drawer) {
         drawer.draw_component(app, &self.task_list);
         drawer.draw_component(app, &self.completed_list);

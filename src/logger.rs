@@ -7,7 +7,7 @@ use tui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
-use crate::{draw::DrawableComponent, utils};
+use crate::{draw::Component, utils};
 
 #[derive(Default)]
 pub struct Logger {
@@ -22,7 +22,7 @@ impl Logger {
     }
 }
 
-impl DrawableComponent for Logger {
+impl Component for Logger {
     fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
         if self.opened {
             let style = Style::default().fg(Color::Red);
