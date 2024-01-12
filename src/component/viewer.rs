@@ -8,7 +8,7 @@ use tui::{
 // A viewer of a task/something
 use crate::{
     app::{App, Mode},
-    draw::{Component, Drawer, EventResult},
+    draw::{Component, Drawer, PostAction, Action},
     task::Task,
     utils,
 };
@@ -156,8 +156,11 @@ impl Component for Viewer {
         }
     }
 
-    fn key_event(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> EventResult {
-        EventResult::Ignored
+    fn key_event(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> PostAction {
+        PostAction {
+            propegate_further: true,
+            action: Action::Noop,
+        }
     }
 
     fn update_layout(&mut self, area: Rect) {

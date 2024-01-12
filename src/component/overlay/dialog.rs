@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::EventResult,
+    draw::{Action, PostAction},
     utils::{self, handle_mouse_movement},
 };
 
@@ -90,14 +90,20 @@ impl DialogBox<'_> {
         drawer.draw_stateful_widget(list, &mut list_state, dialog.draw_area);
     }
 
-    pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
+    pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> PostAction {
         let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
         let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
-                return EventResult::Consumed;
+                return PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                };
             }
         }
         utils::handle_key_movement(
@@ -109,7 +115,10 @@ impl DialogBox<'_> {
         match key_code {
             KeyCode::Enter => {
                 let Some(Overlay::Dialog(mut dialog)) = app.overlays.pop() else {
-                    return EventResult::Ignored;
+                    return PostAction {
+                        propegate_further: true,
+                        action: Action::Noop,
+                    };
                 };
                 if let Some(mode) = dialog.prev_mode {
                     app.mode = mode;
@@ -122,7 +131,10 @@ impl DialogBox<'_> {
             }
             KeyCode::Esc => {
                 let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
-                    return EventResult::Ignored;
+                    return PostAction {
+                        propegate_further: true,
+                        action: Action::Noop,
+                    };
                 };
                 if let Some(mode) = dialog.prev_mode {
                     app.mode = mode;
@@ -130,12 +142,18 @@ impl DialogBox<'_> {
             }
             _ => {}
         }
-        EventResult::Consumed
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> EventResult {
+    pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> PostAction {
         let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
         if utils::inside_rect((mouse_event.row, mouse_event.column), dialog.draw_area) {
             let draw_area = dialog.draw_area;
@@ -145,13 +163,19 @@ impl DialogBox<'_> {
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
             let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
-                return EventResult::Ignored;
+                return PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                };
             };
             if let Some(mode) = dialog.prev_mode {
                 app.mode = mode;
             }
         }
-        EventResult::Consumed
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
     pub fn update_layout(&mut self, area: Rect) {

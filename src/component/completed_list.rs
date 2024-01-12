@@ -7,7 +7,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Component, EventResult},
+    draw::{Component, PostAction},
     task::Task,
     utils,
 };
@@ -104,7 +104,7 @@ impl Component for CompletedList {
         &mut self,
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
-    ) -> EventResult {
+    ) -> PostAction {
         utils::handle_mouse_movement(
             app,
             self.area,

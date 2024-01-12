@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::EventResult,
+    draw::{Action, PostAction},
     utils::{self, centre_rect},
 };
 
@@ -100,9 +100,12 @@ impl MessageBox {
         drawer.draw_stateful_widget(list, &mut list_state, message.draw_area);
     }
 
-    pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> EventResult {
+    pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> PostAction {
         let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
         if let Some(mode) = message.mode_to_restore {
             app.mode = mode;
@@ -110,17 +113,26 @@ impl MessageBox {
         if let Some(callback) = message.callback.take() {
             (callback)(app);
         }
-        crate::draw::EventResult::Consumed
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostAction {
         let Some(Overlay::Message(message)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), message.draw_area) {
                 let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
-                    return EventResult::Ignored;
+                    return PostAction {
+                        propegate_further: true,
+                        action: Action::Noop,
+                    };
                 };
                 if let Some(mode) = message.mode_to_restore {
                     app.mode = mode;
@@ -130,7 +142,10 @@ impl MessageBox {
                 }
             }
         }
-        EventResult::Consumed
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
     pub fn update_layout(&mut self, draw_area: Rect) {

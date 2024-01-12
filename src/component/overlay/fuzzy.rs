@@ -9,7 +9,7 @@ use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
-    draw::EventResult,
+    draw::{Action, PostAction},
     utils::{self, handle_mouse_movement},
 };
 
@@ -33,45 +33,72 @@ impl FuzzyBox<'_> {
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
 
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
+    pub fn key_event(app: &mut App, key_event: KeyEvent) -> PostAction {
         let code = key_event.code;
         let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
         match code {
             _ if app.config.move_down_fuzzy.is_pressed(key_event) => {
                 if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                    return PostAction {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
                 }
                 fuzzy.index = (fuzzy.index + 1).rem_euclid(fuzzy.active.len());
-                EventResult::Consumed
+                PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                }
             }
             KeyCode::Down => {
                 if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                    return PostAction {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
                 }
                 fuzzy.index = (fuzzy.index + 1).rem_euclid(fuzzy.active.len());
-                EventResult::Consumed
+                PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                }
             }
             _ if app.config.move_up_fuzzy.is_pressed(key_event) => {
                 if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                    return PostAction {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
                 }
                 match fuzzy.index.checked_sub(1) {
                     Some(val) => fuzzy.index = val,
                     None => fuzzy.index = fuzzy.active.len() - 1,
                 }
-                EventResult::Consumed
+                PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                }
             }
             KeyCode::Up => {
                 if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                    return PostAction {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
                 }
                 match fuzzy.index.checked_sub(1) {
                     Some(val) => fuzzy.index = val,
                     None => fuzzy.index = fuzzy.active.len() - 1,
                 }
-                EventResult::Consumed
+                PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                }
             }
             KeyCode::Enter => {
                 if let Some(Overlay::Fuzzy(mut fuzzy)) = app.overlays.pop() {
@@ -88,7 +115,10 @@ impl FuzzyBox<'_> {
                         }
                     }
                 }
-                EventResult::Consumed
+                PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                }
             }
             KeyCode::Esc => {
                 if let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.pop() {
@@ -96,7 +126,10 @@ impl FuzzyBox<'_> {
                         app.mode = mode;
                     }
                 }
-                EventResult::Consumed
+                PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                }
             }
             _ => {
                 fuzzy.text_area.input(Input::from(key_event));
@@ -115,7 +148,10 @@ impl FuzzyBox<'_> {
                         fuzzy.active.push(i)
                     }
                 }
-                EventResult::Consumed
+                PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                }
             }
         }
     }
@@ -180,15 +216,21 @@ impl FuzzyBox<'_> {
         self.list_draw_area = layout[1];
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostAction {
         let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
         if utils::inside_rect((mouse_event.row, mouse_event.column), fuzzy.text_draw_area) {
             match mouse_event.kind {
                 MouseEventKind::Down(..) => {}
                 _ => {
-                    return EventResult::Consumed;
+                    return PostAction {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
                 }
             }
 
@@ -200,7 +242,10 @@ impl FuzzyBox<'_> {
                         app.mode = mode;
                     }
                 }
-                return EventResult::Consumed;
+                return PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                };
             }
 
             // Either we use inner on draw_area to exclude border, or this to include it
@@ -219,7 +264,10 @@ impl FuzzyBox<'_> {
                     mouse_event.column - draw_area.x - 1,
                 ));
             }
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         } else if utils::inside_rect((mouse_event.row, mouse_event.column), fuzzy.list_draw_area) {
             let ar = fuzzy.list_draw_area;
             let size = fuzzy.active.len();
@@ -232,7 +280,10 @@ impl FuzzyBox<'_> {
                     }
                 }
             }
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
     }
 }

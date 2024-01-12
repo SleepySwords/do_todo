@@ -27,6 +27,12 @@ pub struct App {
     should_shutdown: bool,
 }
 
+// Above should be data, this should be map.
+pub struct MainApp {
+    pub app: App,
+    pub overlays: Vec<Overlay<'static>>,
+}
+
 impl App {
     pub fn new(theme: Config, task_data: TaskStore) -> App {
         App {

@@ -10,7 +10,7 @@ use tui_textarea::{CursorMove, Input, TextArea};
 use crate::{
     app::{App, Mode},
     config::Config,
-    draw::{Drawer, EventResult},
+    draw::{Action, Drawer, PostAction},
     error::AppError,
     utils,
 };
@@ -89,9 +89,12 @@ impl InputBox {
         drawer.draw_widget(widget, box_area);
     }
 
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
+    pub fn key_event(app: &mut App, key_event: KeyEvent) -> PostAction {
         let Some(Overlay::Input(input)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
         match key_event.code {
             KeyCode::Enter => {
@@ -99,7 +102,10 @@ impl InputBox {
                     // When popping the layer, probably should do the callback, rather than have an
                     // option.
                     let Some(Overlay::Input(mut input)) = app.overlays.pop() else {
-                        return EventResult::Consumed;
+                        return PostAction {
+                            propegate_further: false,
+                            action: Action::Noop,
+                        };
                     };
                     if let Some(mode) = input.prev_mode {
                         app.mode = mode;
@@ -118,7 +124,10 @@ impl InputBox {
             }
             KeyCode::Esc => {
                 let Some(Overlay::Input(input)) = app.overlays.pop() else {
-                    return EventResult::Consumed;
+                    return PostAction {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
                 };
                 if let Some(mode) = input.prev_mode {
                     app.mode = mode;
@@ -128,7 +137,10 @@ impl InputBox {
                 input.text_area.input(Input::from(key_event));
             }
         }
-        EventResult::Consumed
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
     pub fn update_layout(&mut self, draw_area: Rect) {
@@ -143,15 +155,21 @@ impl InputBox {
         }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostAction {
         let Some(Overlay::Input(input)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         };
 
         match mouse_event.kind {
             MouseEventKind::Down(..) => {}
             _ => {
-                return EventResult::Consumed;
+                return PostAction {
+                    propegate_further: false,
+                    action: Action::Noop,
+                };
             }
         }
 
@@ -159,12 +177,18 @@ impl InputBox {
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             let Some(Overlay::Input(input)) = app.overlays.pop() else {
-                return EventResult::Ignored;
+                return PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                };
             };
             if let Some(mode) = input.prev_mode {
                 app.mode = mode;
             }
-            return EventResult::Consumed;
+            return PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            };
         }
 
         // Either we use inner on draw_area to exclude border, or this to include it
@@ -183,7 +207,10 @@ impl InputBox {
                 mouse_event.column - draw_area.x - 1,
             ));
         }
-        EventResult::Consumed
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 }
 

@@ -4,12 +4,16 @@ use tui::{
     Frame,
 };
 
-use crate::app::App;
+use crate::{app::App, component::overlay::Overlay};
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum EventResult {
-    Consumed,
-    Ignored,
+pub enum Action {
+    PopOverlay(Box<dyn FnOnce(&mut App, Overlay)>),
+    Noop
+}
+
+pub struct PostAction {
+    pub propegate_further: bool,
+    pub action: Action
 }
 
 /// A component that is able to be drawn on the screen.
@@ -17,16 +21,22 @@ pub trait Component {
     /// Draws the component onto the [[Drawer]]
     fn draw(&self, app: &App, drawer: &mut Drawer);
 
-    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> EventResult {
-        EventResult::Ignored
+    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> PostAction {
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop
+        }
     }
 
     fn mouse_event(
         &mut self,
         _app: &mut App,
         _mouse_event: crossterm::event::MouseEvent,
-    ) -> EventResult {
-        EventResult::Ignored
+    ) -> PostAction {
+        PostAction {
+            propegate_further: false,
+            action: Action::Noop
+        }
     }
 
     fn update_layout(&mut self, draw_area: Rect);

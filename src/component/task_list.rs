@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Component, EventResult},
+    draw::{Component, PostAction},
     task::Task,
     utils::{self, handle_mouse_movement},
 };
@@ -149,7 +149,7 @@ impl Component for TaskList {
         &mut self,
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
-    ) -> EventResult {
+    ) -> PostAction {
         handle_mouse_movement(
             app,
             self.area,

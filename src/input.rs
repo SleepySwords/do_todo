@@ -8,26 +8,30 @@ use crate::{
         overlay::{input_box::InputBoxBuilder, Overlay},
     },
     config::{Config, KeyBindings},
-    draw::EventResult,
+    draw::{Action, PostAction},
     error::AppError,
     task::{Task, TaskStore},
     utils,
 };
 
-pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<EventResult, AppError> {
+pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<PostAction, AppError> {
     let event = match app.mode {
         Mode::Overlay => Overlay::key_event(app, key_event),
         Mode::CurrentTasks => task_list_input(app, key_event),
         Mode::CompletedTasks => completed_list_input(app, key_event),
     };
-    if let Ok(EventResult::Ignored) = event {
+    if let Ok(PostAction {
+        propegate_further: true,
+        ..
+    }) = event
+    {
         Ok(universal_input(app, key_event))
     } else {
         event
     }
 }
 
-fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, AppError> {
+fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostAction, AppError> {
     let theme = &app.config;
 
     let selected_index = &mut app.task_list.selected_index;
@@ -36,12 +40,18 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
     match KeyBindings::from_event(theme, key_event) {
         KeyBindings::ChangePriorityKey => {
             if app.task_store.tasks.is_empty() {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             }
 
             let old_task = {
                 let Some(task) = app.task_store.task_mut(*selected_index) else {
-                    return Ok(EventResult::Ignored);
+                    return Ok(PostAction {
+                        propegate_further: true,
+                        action: Action::Noop,
+                    });
                 };
                 task.priority = task.priority.next_priority();
 
@@ -62,13 +72,19 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             let Some((parent_tasks, parent_index, local_index, is_global)) =
                 app.task_store.find_parent(*selected_index)
             else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             let new_index = (local_index + 1) % parent_tasks.len();
 
             let Some(parent_subtasks) = app.task_store.subtasks(parent_index, is_global) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             let task = &parent_subtasks[local_index];
@@ -93,18 +109,27 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             let Some((parent_subtasks, parent_index, local_index, is_global)) =
                 app.task_store.find_parent(*selected_index)
             else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             if parent_subtasks.is_empty() {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             }
 
             let new_index =
                 (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
 
             let Some(mut_parent_subtasks) = app.task_store.subtasks(parent_index, is_global) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             let task = &mut_parent_subtasks[local_index];
@@ -127,7 +152,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
         KeyBindings::EditKey => {
             let index = *selected_index;
             let Some(task) = app.task_store.task(index) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
             let edit_box = InputBoxBuilder::default()
                 .title(String::from("Edit the selected task"))
@@ -146,20 +174,32 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
         KeyBindings::TagMenu => app.open_tag_menu(),
         KeyBindings::FlipProgressKey => {
             if app.task_store.tasks.is_empty() {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             }
             let Some(task) = app.task_store.task_mut(*selected_index) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
             task.progress = !task.progress;
         }
         KeyBindings::CompleteKey => app.complete_selected_task(),
         KeyBindings::OpenSubtasksKey => {
             if app.task_store.tasks.is_empty() {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             }
             let Some(task) = app.task_store.task_mut(*selected_index) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
             task.opened = !task.opened;
         }
@@ -167,15 +207,24 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             let Some((parent_tasks, parent_index, local_index, is_task_global)) =
                 app.task_store.find_parent(*selected_index)
             else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             if parent_tasks.is_empty() {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             }
 
             if local_index == 0 {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             }
 
             let prev_local_index = local_index - 1;
@@ -187,11 +236,17 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             );
 
             let Some(task) = app.task_store.delete_task(*selected_index) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             let Some(prev_task) = app.task_store.task_mut(prev_global_index) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             prev_task.opened = true;
@@ -201,7 +256,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             if app.task_store.auto_sort {
                 // FIXME: should be an error.
                 let Some(task) = app.task_store.task(*selected_index).cloned() else {
-                    return Ok(EventResult::Ignored);
+                    return Ok(PostAction {
+                        propegate_further: true,
+                        action: Action::Noop,
+                    });
                 };
                 app.task_store.sort();
                 if let Some(task_pos) = app.task_store.task_position(&task) {
@@ -213,21 +271,33 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             let Some((_, parent_index, _, is_task_global)) =
                 app.task_store.find_parent(*selected_index)
             else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             if is_task_global {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             }
 
             let Some(task) = app.task_store.delete_task(*selected_index) else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             let Some((grandparent_subtasks, grandparent_index, _, is_parent_global)) =
                 app.task_store.find_parent(parent_index)
             else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             let parent_local_index = grandparent_subtasks
@@ -245,7 +315,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             let Some(grandparent_subtasks) =
                 app.task_store.subtasks(grandparent_index, is_parent_global)
             else {
-                return Ok(EventResult::Ignored);
+                return Ok(PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                });
             };
 
             let new_index = parent_local_index + 1;
@@ -260,7 +333,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             if app.task_store.auto_sort {
                 // FIXME: should be an error.
                 let Some(task) = app.task_store.task(*selected_index).cloned() else {
-                    return Ok(EventResult::Ignored);
+                    return Ok(PostAction {
+                        propegate_further: true,
+                        action: Action::Noop,
+                    });
                 };
                 app.task_store.sort();
                 if let Some(task_pos) = app.task_store.task_position(&task) {
@@ -277,7 +353,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             ));
         }
     }
-    Ok(EventResult::Consumed)
+    Ok(PostAction {
+        propegate_further: false,
+        action: Action::Noop,
+    })
 }
 
 fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
@@ -315,7 +394,7 @@ fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
     ]
 }
 
-fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, AppError> {
+fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostAction, AppError> {
     let result = utils::handle_key_movement(
         &app.config,
         key_event,
@@ -323,15 +402,21 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResul
         app.task_store.completed_tasks.len(),
     );
 
-    if result == EventResult::Consumed {
-        return Ok(EventResult::Consumed);
+    if !result.propegate_further {
+        return Ok(result);
     }
 
     if app.config.restore_key.is_pressed(key_event) {
         CompletedList::restore_task(app);
-        Ok(EventResult::Consumed)
+        Ok(PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        })
     } else {
-        Ok(EventResult::Ignored)
+        Ok(PostAction {
+            propegate_further: true,
+            action: Action::Noop,
+        })
     }
 }
 
@@ -342,7 +427,7 @@ fn completed_list_help_entries(config: &Config) -> Vec<HelpEntry<'static>> {
     )]
 }
 
-fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
+fn universal_input(app: &mut App, key_event: KeyEvent) -> PostAction {
     // Global keybindings
     return match KeyBindings::from_event(&app.config, key_event) {
         KeyBindings::AddKey => {
@@ -357,34 +442,58 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
                 .save_mode(app)
                 .build();
             app.push_layer(add_input_dialog);
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::TasksMenuKey => {
             app.mode = Mode::CurrentTasks;
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::CompletedTasksMenuKey => {
             app.mode = Mode::CompletedTasks;
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::OpenHelpKey => {
             app.open_help_menu();
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::QuitKey => {
             app.shutdown();
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::SortKey => {
             app.task_store.sort();
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::EnableAutosortKey => {
             app.task_store.auto_sort = !app.task_store.auto_sort;
             app.task_store.sort();
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
-        _ => EventResult::Ignored,
+        _ => PostAction {
+            propegate_further: true,
+            action: Action::Noop,
+        },
     };
 }
 

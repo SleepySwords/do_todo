@@ -36,7 +36,7 @@ use std::{
 
 use crate::{
     app::App,
-    draw::{Component, Drawer, EventResult},
+    draw::{Component, Drawer},
     logger::Logger,
     screens::main_screen::MainScreen,
 };
@@ -122,7 +122,7 @@ pub fn start_app(
                     {
                         return Ok(());
                     }
-                    if !app.config.debug || EventResult::Ignored == logger.key_event(app, key_event)
+                    if !app.config.debug || logger.key_event(app, key_event).propegate_further
                     {
                         let result = input::key_event(app, key_event);
                         if let Err(AppError::InvalidState(msg)) = result {
@@ -139,7 +139,7 @@ pub fn start_app(
                     }
                 }
                 Event::Mouse(mouse_event) => {
-                    if EventResult::Ignored == Overlay::mouse_event(app, mouse_event) {
+                    if Overlay::mouse_event(app, mouse_event).propegate_further {
                         main_screen.mouse_event(app, mouse_event);
                     }
                 }

@@ -3,7 +3,7 @@ use tui::prelude::Rect;
 
 use crate::{
     app::App,
-    draw::{Drawer, EventResult},
+    draw::{Action, Drawer, PostAction},
     error::AppError,
 };
 
@@ -23,26 +23,39 @@ pub enum Overlay<'a> {
 }
 
 impl Overlay<'_> {
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<EventResult, AppError> {
-        if FuzzyBox::key_event(app, key_event) == EventResult::Consumed
-            || InputBox::key_event(app, key_event) == EventResult::Consumed
-            || DialogBox::key_event(app, key_event) == EventResult::Consumed
-            || MessageBox::key_event(app, key_event) == EventResult::Consumed
+    pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<PostAction, AppError> {
+        // FIXME: This does not actually consider what the action is...
+        if !FuzzyBox::key_event(app, key_event).propegate_further
+            || !InputBox::key_event(app, key_event).propegate_further
+            || !DialogBox::key_event(app, key_event).propegate_further
+            || !MessageBox::key_event(app, key_event).propegate_further
         {
-            return Ok(EventResult::Consumed);
+            return Ok(PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            });
         }
-        Ok(EventResult::Ignored)
+        Ok(PostAction {
+            propegate_further: true,
+            action: Action::Noop,
+        })
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
-        if FuzzyBox::mouse_event(app, mouse_event) == EventResult::Consumed
-            || InputBox::mouse_event(app, mouse_event) == EventResult::Consumed
-            || DialogBox::mouse_event(app, mouse_event) == EventResult::Consumed
-            || MessageBox::mouse_event(app, mouse_event) == EventResult::Consumed
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostAction {
+        if !FuzzyBox::mouse_event(app, mouse_event).propegate_further
+            || !InputBox::mouse_event(app, mouse_event).propegate_further
+            || !DialogBox::mouse_event(app, mouse_event).propegate_further
+            || !MessageBox::mouse_event(app, mouse_event).propegate_further
         {
-            return EventResult::Consumed;
+            return PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            };
         }
-        EventResult::Ignored
+        PostAction {
+            propegate_further: true,
+            action: Action::Noop,
+        }
     }
 
     pub fn draw(&self, app: &App, drawer: &mut Drawer) {

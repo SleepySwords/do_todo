@@ -3,11 +3,9 @@ use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
 
+use crate::app::{App, Mode};
 use crate::config::{Config, KeyBindings};
-use crate::{
-    app::{App, Mode},
-    draw::EventResult,
-};
+use crate::draw::{Action, PostAction};
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -61,34 +59,55 @@ pub fn handle_key_movement(
     key_event: KeyEvent,
     index: &mut usize,
     max_items: usize,
-) -> EventResult {
+) -> PostAction {
     match KeyBindings::from_event(theme, key_event) {
         KeyBindings::MoveTop => {
             *index = 0;
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::MoveBottom => {
             *index = max_items - 1;
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::DownKeys => {
             if max_items == 0 {
-                return EventResult::Ignored;
+                return PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                };
             }
             *index = (*index + 1).rem_euclid(max_items);
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
         KeyBindings::UpKeys => {
             if max_items == 0 {
-                return EventResult::Ignored;
+                return PostAction {
+                    propegate_further: true,
+                    action: Action::Noop,
+                };
             }
             match index.checked_sub(1) {
                 Some(val) => *index = val,
                 None => *index = max_items - 1,
             }
-            EventResult::Consumed
+            PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            }
         }
-        _ => EventResult::Ignored,
+        _ => PostAction {
+            propegate_further: true,
+            action: Action::Noop,
+        },
     }
 }
 
@@ -98,13 +117,19 @@ pub fn handle_mouse_movement(
     mode: Mode,
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
-) -> EventResult {
+) -> PostAction {
     let Some(index) = app.selected_index(mode) else {
-        return EventResult::Consumed;
+        return PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        };
     };
 
     if max_items == 0 {
-        return EventResult::Consumed;
+        return PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        };
     }
     let offset = row - area.y;
     if let MouseEventKind::ScrollUp = kind {
@@ -122,7 +147,10 @@ pub fn handle_mouse_movement(
     if let MouseEventKind::Down(_) = kind {
         app.mode = mode;
         if offset == 0 {
-            return EventResult::Consumed;
+            return PostAction {
+                propegate_further: false,
+                action: Action::Noop,
+            };
         }
         if let Some(index) = app.selected_index(mode) {
             if *index > area.height as usize - 2 {
@@ -131,13 +159,19 @@ pub fn handle_mouse_movement(
             } else {
                 if offset as usize > max_items {
                     *index = max_items - 1;
-                    return EventResult::Consumed;
+                    return PostAction {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
                 }
                 *index = offset as usize - 1;
             }
         }
     }
-    EventResult::Consumed
+    PostAction {
+        propegate_further: false,
+        action: Action::Noop,
+    }
 }
 
 pub(crate) mod ui {

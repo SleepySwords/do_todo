@@ -7,7 +7,10 @@ use tui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState},
 };
 
-use crate::{draw::Component, utils};
+use crate::{
+    draw::{Action, Component, PostAction},
+    utils,
+};
 
 #[derive(Default)]
 pub struct Logger {
@@ -54,17 +57,26 @@ impl Component for Logger {
         &mut self,
         _: &mut crate::app::App,
         key_event: crossterm::event::KeyEvent,
-    ) -> crate::draw::EventResult {
+    ) -> PostAction {
         let key_code = key_event.code;
         if self.opened {
             self.opened = false;
-            return crate::draw::EventResult::Consumed;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         }
         if key_code == KeyCode::Char('p') {
             self.opened = true;
-            return crate::draw::EventResult::Consumed;
+            return PostAction {
+                propegate_further: true,
+                action: Action::Noop,
+            };
         }
-        crate::draw::EventResult::Ignored
+        return PostAction {
+            propegate_further: false,
+            action: Action::Noop,
+        };
     }
 
     fn update_layout(&mut self, draw_area: tui::layout::Rect) {
