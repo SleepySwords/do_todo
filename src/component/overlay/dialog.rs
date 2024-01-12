@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, PostAction},
+    draw::{Action, PostEvent},
     utils::{self, handle_mouse_movement},
 };
 
@@ -90,9 +90,9 @@ impl DialogBox<'_> {
         drawer.draw_stateful_widget(list, &mut list_state, dialog.draw_area);
     }
 
-    pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> PostAction {
+    pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> PostEvent {
         let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
-            return PostAction {
+            return PostEvent {
                 propegate_further: true,
                 action: Action::Noop,
             };
@@ -100,7 +100,7 @@ impl DialogBox<'_> {
         let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
-                return PostAction {
+                return PostEvent {
                     propegate_further: false,
                     action: Action::Noop,
                 };
@@ -115,7 +115,7 @@ impl DialogBox<'_> {
         match key_code {
             KeyCode::Enter => {
                 let Some(Overlay::Dialog(mut dialog)) = app.overlays.pop() else {
-                    return PostAction {
+                    return PostEvent {
                         propegate_further: true,
                         action: Action::Noop,
                     };
@@ -131,7 +131,7 @@ impl DialogBox<'_> {
             }
             KeyCode::Esc => {
                 let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
-                    return PostAction {
+                    return PostEvent {
                         propegate_further: true,
                         action: Action::Noop,
                     };
@@ -142,15 +142,15 @@ impl DialogBox<'_> {
             }
             _ => {}
         }
-        PostAction {
+        PostEvent {
             propegate_further: false,
             action: Action::Noop,
         }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> PostAction {
+    pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> PostEvent {
         let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
-            return PostAction {
+            return PostEvent {
                 propegate_further: true,
                 action: Action::Noop,
             };
@@ -163,7 +163,7 @@ impl DialogBox<'_> {
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
             let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
-                return PostAction {
+                return PostEvent {
                     propegate_further: true,
                     action: Action::Noop,
                 };
@@ -172,7 +172,7 @@ impl DialogBox<'_> {
                 app.mode = mode;
             }
         }
-        PostAction {
+        PostEvent {
             propegate_further: false,
             action: Action::Noop,
         }

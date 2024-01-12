@@ -5,7 +5,7 @@ use std::usize;
 
 use crate::app::{App, Mode};
 use crate::config::{Config, KeyBindings};
-use crate::draw::{Action, PostAction};
+use crate::draw::{Action, PostEvent};
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -59,38 +59,38 @@ pub fn handle_key_movement(
     key_event: KeyEvent,
     index: &mut usize,
     max_items: usize,
-) -> PostAction {
+) -> PostEvent {
     match KeyBindings::from_event(theme, key_event) {
         KeyBindings::MoveTop => {
             *index = 0;
-            PostAction {
+            PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             }
         }
         KeyBindings::MoveBottom => {
             *index = max_items - 1;
-            PostAction {
+            PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             }
         }
         KeyBindings::DownKeys => {
             if max_items == 0 {
-                return PostAction {
+                return PostEvent {
                     propegate_further: true,
                     action: Action::Noop,
                 };
             }
             *index = (*index + 1).rem_euclid(max_items);
-            PostAction {
+            PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             }
         }
         KeyBindings::UpKeys => {
             if max_items == 0 {
-                return PostAction {
+                return PostEvent {
                     propegate_further: true,
                     action: Action::Noop,
                 };
@@ -99,12 +99,12 @@ pub fn handle_key_movement(
                 Some(val) => *index = val,
                 None => *index = max_items - 1,
             }
-            PostAction {
+            PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             }
         }
-        _ => PostAction {
+        _ => PostEvent {
             propegate_further: true,
             action: Action::Noop,
         },
@@ -117,16 +117,16 @@ pub fn handle_mouse_movement(
     mode: Mode,
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
-) -> PostAction {
+) -> PostEvent {
     let Some(index) = app.selected_index(mode) else {
-        return PostAction {
+        return PostEvent {
             propegate_further: false,
             action: Action::Noop,
         };
     };
 
     if max_items == 0 {
-        return PostAction {
+        return PostEvent {
             propegate_further: false,
             action: Action::Noop,
         };
@@ -147,7 +147,7 @@ pub fn handle_mouse_movement(
     if let MouseEventKind::Down(_) = kind {
         app.mode = mode;
         if offset == 0 {
-            return PostAction {
+            return PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             };
@@ -159,7 +159,7 @@ pub fn handle_mouse_movement(
             } else {
                 if offset as usize > max_items {
                     *index = max_items - 1;
-                    return PostAction {
+                    return PostEvent {
                         propegate_further: false,
                         action: Action::Noop,
                     };
@@ -168,7 +168,7 @@ pub fn handle_mouse_movement(
             }
         }
     }
-    PostAction {
+    PostEvent {
         propegate_further: false,
         action: Action::Noop,
     }

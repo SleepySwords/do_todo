@@ -3,7 +3,7 @@ use tui::prelude::Rect;
 
 use crate::{
     app::App,
-    draw::{Action, Drawer, PostAction},
+    draw::{Action, Drawer, PostEvent},
     error::AppError,
 };
 
@@ -23,36 +23,36 @@ pub enum Overlay<'a> {
 }
 
 impl Overlay<'_> {
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<PostAction, AppError> {
+    pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppError> {
         // FIXME: This does not actually consider what the action is...
         if !FuzzyBox::key_event(app, key_event).propegate_further
             || !InputBox::key_event(app, key_event).propegate_further
             || !DialogBox::key_event(app, key_event).propegate_further
             || !MessageBox::key_event(app, key_event).propegate_further
         {
-            return Ok(PostAction {
+            return Ok(PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             });
         }
-        Ok(PostAction {
+        Ok(PostEvent {
             propegate_further: true,
             action: Action::Noop,
         })
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostAction {
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if !FuzzyBox::mouse_event(app, mouse_event).propegate_further
             || !InputBox::mouse_event(app, mouse_event).propegate_further
             || !DialogBox::mouse_event(app, mouse_event).propegate_further
             || !MessageBox::mouse_event(app, mouse_event).propegate_further
         {
-            return PostAction {
+            return PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             };
         }
-        PostAction {
+        PostEvent {
             propegate_further: true,
             action: Action::Noop,
         }

@@ -8,7 +8,7 @@ use tui::{
 // A viewer of a task/something
 use crate::{
     app::{App, Mode},
-    draw::{Component, Drawer, PostAction, Action},
+    draw::{Component, Drawer, PostEvent, Action},
     task::Task,
     utils,
 };
@@ -156,8 +156,8 @@ impl Component for Viewer {
         }
     }
 
-    fn key_event(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> PostAction {
-        PostAction {
+    fn key_event(&mut self, _app: &mut App, _key_code: crossterm::event::KeyEvent) -> PostEvent {
+        PostEvent {
             propegate_further: true,
             action: Action::Noop,
         }

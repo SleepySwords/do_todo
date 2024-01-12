@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, PostAction},
+    draw::{Action, PostEvent},
     utils::{self, centre_rect},
 };
 
@@ -100,9 +100,9 @@ impl MessageBox {
         drawer.draw_stateful_widget(list, &mut list_state, message.draw_area);
     }
 
-    pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> PostAction {
+    pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
         let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
-            return PostAction {
+            return PostEvent {
                 propegate_further: true,
                 action: Action::Noop,
             };
@@ -113,15 +113,15 @@ impl MessageBox {
         if let Some(callback) = message.callback.take() {
             (callback)(app);
         }
-        PostAction {
+        PostEvent {
             propegate_further: false,
             action: Action::Noop,
         }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostAction {
+    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         let Some(Overlay::Message(message)) = app.overlays.last_mut() else {
-            return PostAction {
+            return PostEvent {
                 propegate_further: true,
                 action: Action::Noop,
             };
@@ -129,7 +129,7 @@ impl MessageBox {
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), message.draw_area) {
                 let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
-                    return PostAction {
+                    return PostEvent {
                         propegate_further: true,
                         action: Action::Noop,
                     };
@@ -142,7 +142,7 @@ impl MessageBox {
                 }
             }
         }
-        PostAction {
+        PostEvent {
             propegate_further: false,
             action: Action::Noop,
         }

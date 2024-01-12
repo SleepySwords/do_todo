@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    draw::{Action, Component, PostAction},
+    draw::{Action, Component, PostEvent},
     utils,
 };
 
@@ -57,23 +57,23 @@ impl Component for Logger {
         &mut self,
         _: &mut crate::app::App,
         key_event: crossterm::event::KeyEvent,
-    ) -> PostAction {
+    ) -> PostEvent {
         let key_code = key_event.code;
         if self.opened {
             self.opened = false;
-            return PostAction {
+            return PostEvent {
                 propegate_further: true,
                 action: Action::Noop,
             };
         }
         if key_code == KeyCode::Char('p') {
             self.opened = true;
-            return PostAction {
+            return PostEvent {
                 propegate_further: true,
                 action: Action::Noop,
             };
         }
-        return PostAction {
+        return PostEvent {
             propegate_further: false,
             action: Action::Noop,
         };

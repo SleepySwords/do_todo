@@ -11,7 +11,7 @@ pub enum Action {
     Noop
 }
 
-pub struct PostAction {
+pub struct PostEvent {
     pub propegate_further: bool,
     pub action: Action
 }
@@ -21,8 +21,8 @@ pub trait Component {
     /// Draws the component onto the [[Drawer]]
     fn draw(&self, app: &App, drawer: &mut Drawer);
 
-    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> PostAction {
-        PostAction {
+    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> PostEvent {
+        PostEvent {
             propegate_further: false,
             action: Action::Noop
         }
@@ -32,8 +32,8 @@ pub trait Component {
         &mut self,
         _app: &mut App,
         _mouse_event: crossterm::event::MouseEvent,
-    ) -> PostAction {
-        PostAction {
+    ) -> PostEvent {
+        PostEvent {
             propegate_further: false,
             action: Action::Noop
         }
