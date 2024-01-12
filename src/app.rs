@@ -22,7 +22,6 @@ pub struct App {
 
     pub task_list: TaskListContext,
     pub completed_list: CompletedListContext,
-    pub overlays: Vec<Overlay<'static>>,
 
     should_shutdown: bool,
 }
@@ -31,6 +30,16 @@ pub struct App {
 pub struct MainApp {
     pub app: App,
     pub overlays: Vec<Overlay<'static>>,
+}
+
+impl MainApp {
+    pub fn push_layer(&mut self, component: Overlay<'static>) {
+        self.overlays.push(component);
+    }
+
+    pub fn pop_layer(&mut self) -> Option<Overlay<'static>> {
+        self.overlays.pop()
+    }
 }
 
 impl App {

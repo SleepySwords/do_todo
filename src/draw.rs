@@ -8,12 +8,31 @@ use crate::{app::App, component::overlay::Overlay};
 
 pub enum Action {
     PopOverlay(Box<dyn FnOnce(&mut App, Overlay)>),
-    Noop
+    Noop,
 }
 
 pub struct PostEvent {
     pub propegate_further: bool,
-    pub action: Action
+    pub action: Action,
+}
+
+impl PostEvent {
+    pub fn noop(propegate_further: bool) -> PostEvent {
+        return PostEvent {
+            propegate_further,
+            action: Action::Noop,
+        };
+    }
+
+    pub fn pop_overlay<F: 'static>(propegate_further: bool, function: F) -> PostEvent
+    where
+        F: FnOnce(&mut App, Overlay),
+    {
+        return PostEvent {
+            propegate_further,
+            action: Action::PopOverlay(Box::new(function)),
+        };
+    }
 }
 
 /// A component that is able to be drawn on the screen.
@@ -24,7 +43,7 @@ pub trait Component {
     fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> PostEvent {
         PostEvent {
             propegate_further: false,
-            action: Action::Noop
+            action: Action::Noop,
         }
     }
 
@@ -35,7 +54,7 @@ pub trait Component {
     ) -> PostEvent {
         PostEvent {
             propegate_further: false,
-            action: Action::Noop
+            action: Action::Noop,
         }
     }
 

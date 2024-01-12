@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use tui::prelude::Rect;
 
 use crate::{
-    app::App,
+    app::{App, MainApp},
     draw::{Action, Drawer, PostEvent},
     error::AppError,
 };
@@ -23,46 +23,51 @@ pub enum Overlay<'a> {
 }
 
 impl Overlay<'_> {
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppError> {
+    pub fn key_event(main_app: &mut MainApp, key_event: KeyEvent) -> Result<PostEvent, AppError> {
         // FIXME: This does not actually consider what the action is...
-        if !FuzzyBox::key_event(app, key_event).propegate_further
-            || !InputBox::key_event(app, key_event).propegate_further
-            || !DialogBox::key_event(app, key_event).propegate_further
-            || !MessageBox::key_event(app, key_event).propegate_further
-        {
-            return Ok(PostEvent {
-                propegate_further: false,
-                action: Action::Noop,
-            });
-        }
-        Ok(PostEvent {
-            propegate_further: true,
-            action: Action::Noop,
-        })
-    }
-
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostEvent {
-        if !FuzzyBox::mouse_event(app, mouse_event).propegate_further
-            || !InputBox::mouse_event(app, mouse_event).propegate_further
-            || !DialogBox::mouse_event(app, mouse_event).propegate_further
-            || !MessageBox::mouse_event(app, mouse_event).propegate_further
-        {
-            return PostEvent {
-                propegate_further: false,
-                action: Action::Noop,
+        if let Some(overlay) = main_app.overlays.last_mut() {
+            return match overlay {
+                Overlay::Fuzzy(fuzzy) => Ok(fuzzy.key_event(&mut main_app.app, key_event)),
+                Overlay::Input(_) => todo!(),
+                Overlay::Dialog(_) => todo!(),
+                Overlay::Message(_) => todo!(),
             };
         }
+    }
+
+    pub fn mouse_event(app: &mut MainApp, mouse_event: MouseEvent) -> PostEvent {
+        if let Some(overlay) = app.overlays.last_mut() {
+            return match overlay {
+                Overlay::Fuzzy(fuzzy) => fuzzy.mouse_event(&mut app.app, mouse_event),
+                Overlay::Input(_) => todo!(),
+                Overlay::Dialog(_) => todo!(),
+                Overlay::Message(_) => todo!(),
+            };
+        }
+
+        // if !FuzzyBox::mouse_event(app, mouse_event).propegate_further
+        //     || !InputBox::mouse_event(app, mouse_event).propegate_further
+        //     || !DialogBox::mouse_event(app, mouse_event).propegate_further
+        //     || !MessageBox::mouse_event(app, mouse_event).propegate_further
+        // {
+        //     return PostEvent {
+        //         propegate_further: false,
+        //         action: Action::Noop,
+        //     };
+        // }
         PostEvent {
             propegate_further: true,
             action: Action::Noop,
         }
     }
 
-    pub fn draw(&self, app: &App, drawer: &mut Drawer) {
-        FuzzyBox::draw(app, drawer);
-        InputBox::draw(app, drawer);
-        DialogBox::draw(app, drawer);
-        MessageBox::draw(app, drawer);
+    pub fn draw(&self, main_app: &MainApp, drawer: &mut Drawer) {
+        match self {
+            Overlay::Fuzzy(fuzzy) => fuzzy.draw(&main_app.app, drawer),
+            Overlay::Input(_) => todo!(),
+            Overlay::Dialog(_) => todo!(),
+            Overlay::Message(_) => todo!(),
+        }
     }
 
     pub fn update_layout(&mut self, draw_area: Rect) {
