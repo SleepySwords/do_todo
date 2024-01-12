@@ -75,12 +75,9 @@ impl MessageBox {
 }
 
 impl MessageBox {
-    pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::Message(message)) = app.overlays.last() else {
-            return;
-        };
-        let style = Style::default().fg(message.colour);
-        let text = message
+    pub fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+        let style = Style::default().fg(self.colour);
+        let text = self
             .message
             .iter()
             .map(|msg| ListItem::new(Span::styled(msg, style)))
@@ -92,12 +89,12 @@ impl MessageBox {
                 .borders(Borders::ALL)
                 .border_type(app.config.border_type)
                 .border_style(style)
-                .title(message.title.as_ref()),
+                .title(self.title.as_ref()),
         );
         let mut list_state = ListState::default();
-        list_state.select(Some(message.selected_index));
-        drawer.draw_widget(Clear, message.draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, message.draw_area);
+        list_state.select(Some(self.selected_index));
+        drawer.draw_widget(Clear, self.draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
     pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
@@ -119,27 +116,19 @@ impl MessageBox {
         }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostEvent {
-        let Some(Overlay::Message(message)) = app.overlays.last_mut() else {
-            return PostEvent {
-                propegate_further: true,
-                action: Action::Noop,
-            };
-        };
+    pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if let MouseEventKind::Down(..) = mouse_event.kind {
-            if !utils::inside_rect((mouse_event.row, mouse_event.column), message.draw_area) {
-                let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
-                    return PostEvent {
-                        propegate_further: true,
-                        action: Action::Noop,
-                    };
-                };
-                if let Some(mode) = message.mode_to_restore {
-                    app.mode = mode;
-                }
-                if let Some(callback) = message.callback.take() {
-                    (callback)(app);
-                }
+            if !utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
+                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                    if let Overlay::Message(mut message) = overlay {
+                        if let Some(mode) = message.mode_to_restore {
+                            app.mode = mode;
+                        }
+                        if let Some(callback) = message.callback.take() {
+                            (callback)(app);
+                        }
+                    }
+                });
             }
         }
         PostEvent {

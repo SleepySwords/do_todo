@@ -35,13 +35,13 @@ impl Overlay<'_> {
         }
     }
 
-    pub fn mouse_event(app: &mut MainApp, mouse_event: MouseEvent) -> PostEvent {
-        if let Some(overlay) = app.overlays.last_mut() {
+    pub fn mouse_event(main_app: &mut MainApp, mouse_event: MouseEvent) -> PostEvent {
+        if let Some(overlay) = main_app.overlays.last_mut() {
             return match overlay {
-                Overlay::Fuzzy(fuzzy) => fuzzy.mouse_event(&mut app.app, mouse_event),
-                Overlay::Input(_) => todo!(),
-                Overlay::Dialog(_) => todo!(),
-                Overlay::Message(_) => todo!(),
+                Overlay::Fuzzy(fuzzy) => fuzzy.mouse_event(&mut main_app.app, mouse_event),
+                Overlay::Input(input) => input.mouse_event(&mut main_app.app, mouse_event),
+                Overlay::Dialog(dialog) => dialog.mouse_event(&mut main_app.app, mouse_event),
+                Overlay::Message(message) => message.mouse_event(&mut main_app.app, mouse_event),
             };
         }
 

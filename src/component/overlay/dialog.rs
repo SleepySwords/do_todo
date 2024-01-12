@@ -13,7 +13,7 @@ use crate::{
     utils::{self, handle_mouse_movement},
 };
 
-use super::Overlay;
+use super::{Overlay, fuzzy::FuzzyBox};
 
 type DialogCallback = Box<dyn FnOnce(&mut App)>;
 
@@ -53,12 +53,9 @@ pub struct DialogBox<'a> {
 }
 
 impl DialogBox<'_> {
-    pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::Dialog(dialog)) = app.overlays.last() else {
-            return;
-        };
+    pub fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let mut list = List::new(
-            dialog
+            self
                 .options
                 .iter()
                 .map(|action| action.name.clone())
@@ -68,11 +65,11 @@ impl DialogBox<'_> {
         .highlight_symbol(&app.config.selected_cursor)
         .block(utils::ui::generate_default_block(
             app,
-            dialog.title.as_str(),
+            self.title.as_str(),
             Mode::Overlay,
         ));
 
-        if dialog.options[dialog.index]
+        if self.options[self.index]
             .name
             .spans
             .iter()
@@ -84,10 +81,10 @@ impl DialogBox<'_> {
         }
 
         let mut list_state = ListState::default();
-        list_state.select(Some(dialog.index));
+        list_state.select(Some(self.index));
 
-        drawer.draw_widget(Clear, dialog.draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, dialog.draw_area);
+        drawer.draw_widget(Clear, self.draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
     pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> PostEvent {
@@ -148,29 +145,21 @@ impl DialogBox<'_> {
         }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> PostEvent {
-        let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
-            return PostEvent {
-                propegate_further: true,
-                action: Action::Noop,
-            };
-        };
-        if utils::inside_rect((mouse_event.row, mouse_event.column), dialog.draw_area) {
-            let draw_area = dialog.draw_area;
-            let size = dialog.options.len();
-            return handle_mouse_movement(app, draw_area, Mode::Overlay, size, mouse_event);
+    pub fn mouse_event(&self, app: &mut App, mouse_event: crossterm::event::MouseEvent) -> PostEvent {
+        if utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
+            let draw_area = self.draw_area;
+            let size = self.options.len();
+            return handle_mouse_movement(app, &mut self.index, draw_area, Mode::Overlay, size, mouse_event);
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
-            let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
-                return PostEvent {
-                    propegate_further: true,
-                    action: Action::Noop,
-                };
-            };
-            if let Some(mode) = dialog.prev_mode {
-                app.mode = mode;
-            }
+            return PostEvent::pop_overlay(false, |app, overlay| {
+                if let Overlay::Fuzzy(FuzzyBox { prev_mode, ..}) = overlay {
+                    if let Some(mode) = prev_mode {
+                        app.mode = mode;
+                    }
+                }
+            });
         }
         PostEvent {
             propegate_further: false,

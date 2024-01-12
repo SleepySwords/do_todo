@@ -113,18 +113,12 @@ pub fn handle_key_movement(
 
 pub fn handle_mouse_movement(
     app: &mut App,
+    index: &mut usize,
     area: Rect,
     mode: Mode,
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> PostEvent {
-    let Some(index) = app.selected_index(mode) else {
-        return PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        };
-    };
-
     if max_items == 0 {
         return PostEvent {
             propegate_further: false,

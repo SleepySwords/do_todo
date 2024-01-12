@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Component, PostEvent},
+    draw::{Component, PostEvent, Action},
     task::Task,
     utils::{self, handle_mouse_movement},
 };
@@ -150,8 +150,16 @@ impl Component for TaskList {
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
     ) -> PostEvent {
+        let Some(index) = app.selected_index(app.mode) else {
+            return PostEvent {
+                propegate_further: false,
+                action: Action::Noop,
+            };
+        };
+
         handle_mouse_movement(
             app,
+            index,
             self.area,
             COMPONENT_TYPE,
             app.task_store.find_tasks_draw_size(),

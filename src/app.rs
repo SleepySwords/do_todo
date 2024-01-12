@@ -52,15 +52,13 @@ impl App {
         }
     }
 
+    /// Returns the selected index only for the current tasks and completed tasks
+    /// This returns None for Overlays.
     pub fn selected_index(&mut self, mode: Mode) -> Option<&mut usize> {
         match mode {
             Mode::CurrentTasks => Some(&mut self.task_list.selected_index),
             Mode::CompletedTasks => Some(&mut self.completed_list.selected_index),
-            Mode::Overlay => match self.overlays.last_mut() {
-                Some(Overlay::Dialog(dialog)) => Some(&mut dialog.index),
-                Some(Overlay::Fuzzy(fuzzy)) => Some(&mut fuzzy.index),
-                _ => None,
-            },
+            Mode::Overlay => None,
         }
     }
 
@@ -75,10 +73,6 @@ impl App {
     // Perhaps should use a static variable.
     pub fn println(&mut self, line: String) {
         self.logs.push((line, Local::now().time()));
-    }
-
-    pub fn push_layer(&mut self, component: Overlay<'static>) {
-        self.overlays.push(component);
     }
 }
 

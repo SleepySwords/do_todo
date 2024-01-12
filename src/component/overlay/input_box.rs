@@ -15,7 +15,7 @@ use crate::{
     utils,
 };
 
-use super::Overlay;
+use super::{Overlay, fuzzy::FuzzyBox};
 
 type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
@@ -56,15 +56,12 @@ impl InputBox {
         self.text_area.lines().join("\n")
     }
 
-    pub fn draw(app: &App, drawer: &mut Drawer) {
-        let Some(Overlay::Input(input)) = app.overlays.last() else {
-            return;
-        };
+    pub fn draw(&self, app: &App, drawer: &mut Drawer) {
         Self::draw_input_box(
             &app.config,
-            input.draw_area,
-            &input.text_area,
-            &input.title,
+            self.draw_area,
+            &self.text_area,
+            &self.title,
             drawer,
         );
     }
@@ -89,7 +86,7 @@ impl InputBox {
         drawer.draw_widget(widget, box_area);
     }
 
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> PostEvent {
+    pub fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
         let Some(Overlay::Input(input)) = app.overlays.last_mut() else {
             return PostEvent {
                 propegate_further: true,
@@ -155,14 +152,7 @@ impl InputBox {
         }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> PostEvent {
-        let Some(Overlay::Input(input)) = app.overlays.last_mut() else {
-            return PostEvent {
-                propegate_further: true,
-                action: Action::Noop,
-            };
-        };
-
+    pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         match mouse_event.kind {
             MouseEventKind::Down(..) => {}
             _ => {
@@ -173,36 +163,30 @@ impl InputBox {
             }
         }
 
-        let draw_area = input.draw_area;
+        let draw_area = self.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            let Some(Overlay::Input(input)) = app.overlays.pop() else {
-                return PostEvent {
-                    propegate_further: true,
-                    action: Action::Noop,
-                };
-            };
-            if let Some(mode) = input.prev_mode {
-                app.mode = mode;
-            }
-            return PostEvent {
-                propegate_further: false,
-                action: Action::Noop,
-            };
+            return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                if let Overlay::Fuzzy(FuzzyBox { prev_mode, ..}) = overlay {
+                    if let Some(mode) = prev_mode {
+                        app.mode = mode;
+                    }
+                }
+            });
         }
 
         // Either we use inner on draw_area to exclude border, or this to include it
         // and set the border to jump to 0
         if draw_area.x == mouse_event.column {
-            input
+            self
                 .text_area
                 .move_cursor(CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
         } else if draw_area.y == mouse_event.row {
-            input
+            self
                 .text_area
                 .move_cursor(CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
         } else {
-            input.text_area.move_cursor(CursorMove::Jump(
+            self.text_area.move_cursor(CursorMove::Jump(
                 mouse_event.row - draw_area.y - 1,
                 mouse_event.column - draw_area.x - 1,
             ));

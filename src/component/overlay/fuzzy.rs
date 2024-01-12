@@ -24,7 +24,7 @@ pub struct FuzzyBox<'a> {
     active: Vec<usize>,
     pub index: usize,
     options: Vec<DialogAction<'a>>,
-    prev_mode: Option<Mode>,
+    pub prev_mode: Option<Mode>,
 }
 
 impl FuzzyBox<'_> {
@@ -252,14 +252,16 @@ impl FuzzyBox<'_> {
         } else if utils::inside_rect((mouse_event.row, mouse_event.column), self.list_draw_area) {
             let ar = self.list_draw_area;
             let size = self.active.len();
-            return handle_mouse_movement(app, ar, Mode::Overlay, size, mouse_event);
+            return handle_mouse_movement(app, &mut self.index, ar, Mode::Overlay, size, mouse_event);
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                if let Some(Overlay::Fuzzy(self)) = app.overlays.pop() {
-                    if let Some(mode) = self.prev_mode {
-                        app.mode = mode;
+                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                    if let Overlay::Fuzzy(FuzzyBox {  prev_mode, .. }) = overlay {
+                        if let Some(mode) = prev_mode {
+                            app.mode = mode;
+                        }
                     }
-                }
+                });
             }
             PostEvent {
                 propegate_further: false,

@@ -7,7 +7,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Component, PostEvent},
+    draw::{Component, PostEvent, Action},
     task::Task,
     utils,
 };
@@ -105,8 +105,16 @@ impl Component for CompletedList {
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
     ) -> PostEvent {
+        let Some(index) = app.selected_index(app.mode) else {
+            return PostEvent {
+                propegate_further: false,
+                action: Action::Noop,
+            };
+        };
+        
         utils::handle_mouse_movement(
             app,
+            index,
             self.area,
             COMPONENT_TYPE,
             app.task_store.completed_tasks.len(),
