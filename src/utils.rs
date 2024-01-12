@@ -185,7 +185,7 @@ mod wrap {
     use tui::text::{Line, Span, Text};
     use unicode_segmentation::UnicodeSegmentation;
 
-    // FIX: This can be replaced when https://github.com/fdehau/tui-rs/pull/413 is merged
+    // FIX: This can be replaced when https://github.com/ratatui-org/ratatui/issues/293 is merged
     pub fn wrap_text(line: Line, width: u16) -> Text {
         let mut text = Text::default();
         let mut queue = Vec::new();
