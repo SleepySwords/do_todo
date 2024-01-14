@@ -13,110 +13,110 @@ const TEST_TASK_NAME: &str = "yay it works, test letters => abcdefghijklmnopqrst
 
 #[test]
 fn test_add_task() {
-    let mut app = setup(TaskStore::default());
-    input_char('a', &mut app);
+    let mut main_app = setup(TaskStore::default());
+    input_char('a', &mut main_app);
 
     TEST_TASK_NAME.chars().for_each(|chr| {
-        input_char(chr, &mut app);
+        input_char(chr, &mut main_app);
     });
-    input_code(KeyCode::Enter, &mut app);
-    assert_eq!(app.task_store.tasks[0].title, TEST_TASK_NAME)
+    input_code(KeyCode::Enter, &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].title, TEST_TASK_NAME)
 }
 
 #[test]
 fn test_cancel_add_task() {
-    let mut app = setup(TaskStore::default());
-    input_char('a', &mut app);
+    let mut main_app = setup(TaskStore::default());
+    input_char('a', &mut main_app);
 
     TEST_TASK_NAME.chars().for_each(|chr| {
-        input_char(chr, &mut app);
+        input_char(chr, &mut main_app);
     });
-    input_code(KeyCode::Esc, &mut app);
-    assert_eq!(app.task_store.tasks.len(), 0)
+    input_code(KeyCode::Esc, &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks.len(), 0)
 }
 
 #[test]
 fn test_edit_task() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from(TEST_TASK_NAME))],
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('e', &mut app);
-    input_char('r', &mut app);
-    input_char('q', &mut app);
-    input_code(KeyCode::Enter, &mut app);
+    input_char('e', &mut main_app);
+    input_char('r', &mut main_app);
+    input_char('q', &mut main_app);
+    input_code(KeyCode::Enter, &mut main_app);
     assert_eq!(
-        app.task_store.tasks[0].title,
+        main_app.app.task_store.tasks[0].title,
         TEST_TASK_NAME.to_owned() + "rq"
     )
 }
 
 #[test]
 fn test_edit_delete_task() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from(TEST_TASK_NAME))],
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('e', &mut app);
-    input_code(KeyCode::Backspace, &mut app);
-    input_code(KeyCode::Backspace, &mut app);
-    input_code(KeyCode::Enter, &mut app);
+    input_char('e', &mut main_app);
+    input_code(KeyCode::Backspace, &mut main_app);
+    input_code(KeyCode::Backspace, &mut main_app);
+    input_code(KeyCode::Enter, &mut main_app);
     assert_eq!(
-        app.task_store.tasks[0].title,
+        main_app.app.task_store.tasks[0].title,
         TEST_TASK_NAME[..TEST_TASK_NAME.len() - 2]
     )
 }
 
 #[test]
 fn test_cancel_edit_task() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('e', &mut app);
-    input_code(KeyCode::Backspace, &mut app);
-    input_char('r', &mut app);
-    input_char('q', &mut app);
-    input_code(KeyCode::Esc, &mut app);
-    assert_eq!(app.task_store.tasks[0].title, "meme")
+    input_char('e', &mut main_app);
+    input_code(KeyCode::Backspace, &mut main_app);
+    input_char('r', &mut main_app);
+    input_char('q', &mut main_app);
+    input_code(KeyCode::Esc, &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].title, "meme")
 }
 
 #[test]
 fn test_delete_task() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('d', &mut app);
-    input_code(KeyCode::Enter, &mut app);
-    assert_eq!(app.task_store.tasks.len(), 0)
+    input_char('d', &mut main_app);
+    input_code(KeyCode::Enter, &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks.len(), 0)
 }
 
 #[test]
 fn test_cancel_delete_task() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('d', &mut app);
-    input_char('j', &mut app);
-    input_code(KeyCode::Enter, &mut app);
-    assert_eq!(app.task_store.tasks.len(), 1)
+    input_char('d', &mut main_app);
+    input_char('j', &mut main_app);
+    input_code(KeyCode::Enter, &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks.len(), 1)
 }
 
 #[test]
 fn test_priority() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![
             Task::from_string(String::from("meme")),
             Task::from_string(String::from("oof")),
@@ -125,46 +125,46 @@ fn test_priority() {
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::High);
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::Normal);
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::Low);
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::None);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::High);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::Normal);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::Low);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::None);
 
-    input_char('j', &mut app);
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::None);
-    assert_eq!(app.task_store.tasks[1].priority, Priority::High);
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::None);
-    assert_eq!(app.task_store.tasks[1].priority, Priority::Normal);
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::None);
-    assert_eq!(app.task_store.tasks[1].priority, Priority::Low);
-    input_char('p', &mut app);
-    assert_eq!(app.task_store.tasks[0].priority, Priority::None);
-    assert_eq!(app.task_store.tasks[1].priority, Priority::None);
+    input_char('j', &mut main_app);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::None);
+    assert_eq!(main_app.app.task_store.tasks[1].priority, Priority::High);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::None);
+    assert_eq!(main_app.app.task_store.tasks[1].priority, Priority::Normal);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::None);
+    assert_eq!(main_app.app.task_store.tasks[1].priority, Priority::Low);
+    input_char('p', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks[0].priority, Priority::None);
+    assert_eq!(main_app.app.task_store.tasks[1].priority, Priority::None);
 }
 
 #[test]
 fn test_complete_task() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('c', &mut app);
-    assert_eq!(app.task_store.tasks.len(), 0);
-    assert_eq!(app.task_store.completed_tasks.len(), 1);
+    input_char('c', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks.len(), 0);
+    assert_eq!(main_app.app.task_store.completed_tasks.len(), 1);
 }
 
 #[test]
 fn test_restore_task() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![],
         completed_tasks: vec![CompletedTask::from_string(
             String::from("meme"),
@@ -173,15 +173,15 @@ fn test_restore_task() {
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('2', &mut app);
-    input_char('r', &mut app);
-    assert_eq!(app.task_store.tasks.len(), 1);
-    assert_eq!(app.task_store.completed_tasks.len(), 0);
+    input_char('2', &mut main_app);
+    input_char('r', &mut main_app);
+    assert_eq!(main_app.app.task_store.tasks.len(), 1);
+    assert_eq!(main_app.app.task_store.completed_tasks.len(), 0);
 }
 
 #[test]
 fn sort() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![
             Task {
                 progress: false,
@@ -205,18 +205,19 @@ fn sort() {
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('s', &mut app);
-    assert!(app
+    input_char('s', &mut main_app);
+    assert!(main_app
+        .app
         .task_store
         .tasks
         .iter()
         .sorted_by_key(|t| cmp::Reverse(t.priority))
-        .eq(app.task_store.tasks.iter()));
+        .eq(main_app.app.task_store.tasks.iter()));
 }
 
 #[test]
 fn test_autosort() {
-    let mut app = setup(TaskStore {
+    let mut main_app = setup(TaskStore {
         tasks: vec![
             Task {
                 progress: false,
@@ -240,12 +241,13 @@ fn test_autosort() {
         tags: BTreeMap::new(),
         auto_sort: false,
     });
-    input_char('S', &mut app);
-    input_char('J', &mut app);
-    assert!(app
+    input_char('S', &mut main_app);
+    input_char('J', &mut main_app);
+    assert!(main_app
+        .app
         .task_store
         .tasks
         .iter()
         .sorted_by_key(|t| cmp::Reverse(t.priority))
-        .eq(app.task_store.tasks.iter()));
+        .eq(main_app.app.task_store.tasks.iter()));
 }

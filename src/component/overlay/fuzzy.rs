@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, PostEvent},
+    draw::PostEvent,
     utils::{self, handle_mouse_movement},
 };
 
@@ -39,61 +39,37 @@ impl FuzzyBox<'_> {
         match code {
             _ if app.config.move_down_fuzzy.is_pressed(key_event) => {
                 if self.active.is_empty() {
-                    return PostEvent {
-                        propegate_further: false,
-                        action: Action::Noop,
-                    };
+                    return PostEvent::noop(false);
                 }
                 self.index = (self.index + 1).rem_euclid(self.active.len());
-                PostEvent {
-                    propegate_further: false,
-                    action: Action::Noop,
-                }
+                PostEvent::noop(false)
             }
             KeyCode::Down => {
                 if self.active.is_empty() {
-                    return PostEvent {
-                        propegate_further: false,
-                        action: Action::Noop,
-                    };
+                    return PostEvent::noop(false);
                 }
                 self.index = (self.index + 1).rem_euclid(self.active.len());
-                PostEvent {
-                    propegate_further: false,
-                    action: Action::Noop,
-                }
+                PostEvent::noop(false)
             }
             _ if app.config.move_up_fuzzy.is_pressed(key_event) => {
                 if self.active.is_empty() {
-                    return PostEvent {
-                        propegate_further: false,
-                        action: Action::Noop,
-                    };
+                    return PostEvent::noop(false);
                 }
                 match self.index.checked_sub(1) {
                     Some(val) => self.index = val,
                     None => self.index = self.active.len() - 1,
                 }
-                PostEvent {
-                    propegate_further: false,
-                    action: Action::Noop,
-                }
+                PostEvent::noop(false)
             }
             KeyCode::Up => {
                 if self.active.is_empty() {
-                    return PostEvent {
-                        propegate_further: false,
-                        action: Action::Noop,
-                    };
+                    return PostEvent::noop(false);
                 }
                 match self.index.checked_sub(1) {
                     Some(val) => self.index = val,
                     None => self.index = self.active.len() - 1,
                 }
-                PostEvent {
-                    propegate_further: false,
-                    action: Action::Noop,
-                }
+                PostEvent::noop(false)
             }
             KeyCode::Enter => {
                 return PostEvent::pop_overlay(false, |app, overlay| {
@@ -144,10 +120,7 @@ impl FuzzyBox<'_> {
                         self.active.push(i)
                     }
                 }
-                PostEvent {
-                    propegate_further: false,
-                    action: Action::Noop,
-                }
+                PostEvent::noop(false)
             }
         }
     }
@@ -227,10 +200,7 @@ impl FuzzyBox<'_> {
                     PostEvent::noop(false)
                 });
             }
-            PostEvent {
-                propegate_further: false,
-                action: Action::Noop,
-            }
+            PostEvent::noop(false)
         }
     }
 }

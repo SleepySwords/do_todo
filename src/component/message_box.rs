@@ -14,7 +14,7 @@ use crate::{
 
 use super::overlay::Overlay;
 
-type MessageCallback = dyn FnOnce(&mut App);
+type MessageCallback = dyn FnOnce(&mut App) -> PostEvent;
 
 pub struct MessageBox {
     title: String,
@@ -27,7 +27,7 @@ pub struct MessageBox {
 }
 
 impl MessageBox {
-    pub fn new<T: FnOnce(&mut App) + 'static>(
+    pub fn new<T: FnOnce(&mut App) -> PostEvent + 'static>(
         title: String,
         callback: T,
         words: String,
@@ -48,7 +48,7 @@ impl MessageBox {
         }
     }
 
-    pub fn new_by_list<T: Fn(&mut App) + 'static>(
+    pub fn new_by_list<T: Fn(&mut App) -> PostEvent + 'static>(
         title: String,
         draw_area: Rect,
         callback: T,
@@ -102,12 +102,10 @@ impl MessageBox {
             app.mode = mode;
         }
         if let Some(callback) = self.callback.take() {
-            (callback)(app);
+            let result = (callback)(app);
+            return PostEvent::pop_overlay(false, |_, _| return result);
         }
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        }
+        return PostEvent::pop_overlay(false, |_, _| PostEvent::noop(false));
     }
 
     pub fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {

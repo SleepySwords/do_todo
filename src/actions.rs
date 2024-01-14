@@ -107,7 +107,10 @@ impl App {
                             false,
                             Overlay::Message(MessageBox::new(
                                 "An error occured".to_string(),
-                                move |app| app.mode = prev_mode,
+                                move |app| {
+                                    app.mode = prev_mode;
+                                    return PostEvent::noop(false);
+                                },
                                 msg,
                                 Color::Red,
                                 0,
@@ -194,7 +197,7 @@ impl App {
             let tag_menu = InputBoxBuilder::default()
                 .title(String::from("Tag name"))
                 .callback(move |app, tag_name| {
-                    Ok(app.open_select_tag_colour(selected_index, tag_name))
+                    Ok(app.create_select_tag_colour(selected_index, tag_name))
                 })
                 .save_mode(app)
                 .build_overlay();
@@ -260,7 +263,7 @@ impl App {
         self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
 
-    fn open_select_tag_colour(&mut self, selected_index: usize, tag_name: String) -> PostEvent {
+    fn create_select_tag_colour(&mut self, selected_index: usize, tag_name: String) -> PostEvent {
         let tag = tag_name.clone();
         let colour_menu = InputBoxBuilder::default()
             .title(String::from("Tag colour"))
@@ -304,7 +307,7 @@ impl App {
                 let message_box = MessageBox::new(
                     String::from("Error"),
                     move |app| {
-                        app.open_select_tag_colour(selected_index, tag_name);
+                        return app.create_select_tag_colour(selected_index, tag_name);
                     },
                     err.to_string(),
                     tui::style::Color::Red,

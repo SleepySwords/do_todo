@@ -6,8 +6,10 @@ use tui::{
 
 use crate::{app::App, component::overlay::Overlay};
 
+type PopOverlayCallback = dyn FnOnce(&mut App, Overlay) -> PostEvent;
+
 pub enum Action {
-    PopOverlay(Box<dyn FnOnce(&mut App, Overlay) -> PostEvent>),
+    PopOverlay(Box<PopOverlayCallback>),
     PushLayer(Overlay<'static>),
     Noop,
 }

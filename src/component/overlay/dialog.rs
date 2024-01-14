@@ -13,7 +13,7 @@ use crate::{
     utils::{self, handle_mouse_movement},
 };
 
-use super::{fuzzy::FuzzyBox, Overlay};
+use super::Overlay;
 
 type DialogCallback = Box<dyn FnOnce(&mut App) -> PostEvent>;
 
@@ -155,10 +155,8 @@ impl DialogBox<'_> {
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
             return PostEvent::pop_overlay(false, |app, overlay| {
-                if let Overlay::Fuzzy(FuzzyBox { prev_mode, .. }) = overlay {
-                    if let Some(mode) = prev_mode {
-                        app.mode = mode;
-                    }
+                if let Some(mode) = overlay.prev_mode() {
+                    app.mode = mode;
                 }
                 PostEvent::noop(false)
             });

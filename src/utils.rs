@@ -5,7 +5,7 @@ use std::usize;
 
 use crate::app::{App, Mode};
 use crate::config::{Config, KeyBindings};
-use crate::draw::{Action, PostEvent};
+use crate::draw::PostEvent;
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -316,23 +316,36 @@ mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
-    use crate::{app::App, input, task::TaskStore};
+    use crate::{
+        app::{App, MainApp},
+        input,
+        task::TaskStore,
+    };
 
-    pub fn input_char(character: char, app: &mut App) {
-        let _result = input::key_event(
-            app,
+    pub fn input_char(character: char, main_app: &mut MainApp) {
+        let result = input::key_event(
+            main_app,
             crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE),
         );
+        if let Ok(post_event) = result {
+            main_app.handle_post_event(post_event);
+        }
     }
 
-    pub fn input_code(key: KeyCode, app: &mut App) {
-        let _result = input::key_event(
-            app,
+    pub fn input_code(key: KeyCode, main_app: &mut MainApp) {
+        let result = input::key_event(
+            main_app,
             crossterm::event::KeyEvent::new(key, KeyModifiers::NONE),
         );
+        if let Ok(post_event) = result {
+            main_app.handle_post_event(post_event);
+        }
     }
 
-    pub fn setup(task_store: TaskStore) -> App {
-        App::new(crate::config::Config::default(), task_store)
+    pub fn setup(task_store: TaskStore) -> MainApp {
+        MainApp {
+            overlays: vec![],
+            app: App::new(crate::config::Config::default(), task_store),
+        }
     }
 }

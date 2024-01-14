@@ -8,7 +8,7 @@ use crate::{
         overlay::{input_box::InputBoxBuilder, Overlay},
     },
     config::{Config, KeyBindings},
-    draw::{Action, PostEvent},
+    draw::PostEvent,
     error::AppError,
     task::{Task, TaskStore},
     utils,

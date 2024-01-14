@@ -20,6 +20,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use draw::PostEvent;
 use error::AppError;
 use tui::{
     backend::CrosstermBackend,
@@ -139,7 +140,10 @@ pub fn start_app(
                                 let prev_mode = main_app.app.mode;
                                 main_app.push_layer(Overlay::Message(MessageBox::new(
                                     "An error occured".to_string(),
-                                    move |app| app.mode = prev_mode,
+                                    move |app| {
+                                        app.mode = prev_mode;
+                                        return PostEvent::noop(false);
+                                    },
                                     msg,
                                     Color::Red,
                                     0,
