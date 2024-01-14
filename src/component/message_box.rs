@@ -22,7 +22,7 @@ pub struct MessageBox {
     message: Vec<String>,
     colour: Color,
     selected_index: usize,
-    mode_to_restore: Option<Mode>,
+    pub mode_to_restore: Option<Mode>,
     draw_area: Rect,
 }
 

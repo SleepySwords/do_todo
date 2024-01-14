@@ -9,7 +9,6 @@ use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
-    config::Config,
     draw::{Action, Drawer, PostEvent},
     error::AppError,
     utils,
@@ -26,98 +25,63 @@ pub struct InputBox {
     text_area: TextArea<'static>,
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
-    prev_mode: Option<Mode>,
+    pub prev_mode: Option<Mode>,
     full_width: bool,
 }
 
 impl InputBox {
-    #[allow(dead_code)]
-    pub fn filled(title: String, words: &str, callback: InputBoxCallback) -> InputBox {
-        let words = words
-            .split('\n')
-            .map(|f| f.to_string())
-            .collect::<Vec<String>>();
-        let c = words[0].len();
-
-        let mut text_area = TextArea::new(words);
-        text_area.move_cursor(tui_textarea::CursorMove::Jump(0, c as u16));
-        InputBox {
-            title,
-            text_area,
-            callback,
-            error_callback: Box::new(|_, _| PostEvent::noop(false)),
-            draw_area: Rect::default(),
-            prev_mode: None,
-            full_width: false,
-        }
-    }
-
     pub fn text(&self) -> String {
         self.text_area.lines().join("\n")
     }
 
     pub fn draw(&self, app: &App, drawer: &mut Drawer) {
-        Self::draw_input_box(
-            &app.config,
-            self.draw_area,
-            &self.text_area,
-            &self.title,
-            drawer,
-        );
-    }
-
-    pub fn draw_input_box(
-        config: &Config,
-        draw_area: Rect,
-        text_area: &TextArea,
-        title: &str,
-        drawer: &mut Drawer,
-    ) {
-        let widget = text_area.widget();
+        let widget = self.text_area.widget();
         let boxes = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(config.selected_border_colour))
-            .border_type(config.border_type)
-            .title(title.as_ref());
-        let box_area = boxes.inner(draw_area);
+            .border_style(Style::default().fg(app.config.selected_border_colour))
+            .border_type(app.config.border_type)
+            .title(self.title.as_ref());
+        let box_area = boxes.inner(self.draw_area);
 
-        drawer.draw_widget(Clear, draw_area);
-        drawer.draw_widget(boxes, draw_area);
+        drawer.draw_widget(Clear, self.draw_area);
+        drawer.draw_widget(boxes, self.draw_area);
         drawer.draw_widget(widget, box_area);
     }
 
     pub fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
         match key_event.code {
             KeyCode::Enter => {
-                if !self.text_area.lines().join("\n").is_empty() {
-                    // When popping the layer, probably should do the callback, rather than have an
-                    // option.
-                    return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                        if let Overlay::Input(InputBox {
-                            mut callback,
-                            prev_mode,
-                            text_area,
-                            error_callback,
-                            ..
-                        }) = overlay
-                        {
-                            if let Some(mode) = prev_mode {
-                                app.mode = mode;
-                            }
-
-                            return if let Some(callback) = callback.take() {
-                                let err = (callback)(app, text_area.lines().join("\n"));
-                                match err {
-                                    Ok(post_event) => post_event,
-                                    Err(err) => (error_callback)(app, err),
-                                }
-                            } else {
-                                PostEvent::noop(false)
-                            };
-                        }
-                        PostEvent::noop(false)
-                    });
+                if self.text_area.lines().join("\n").is_empty() {
+                    return PostEvent::noop(false);
                 }
+
+                // When popping the layer, probably should do the callback, rather than have an
+                // option.
+                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                    if let Overlay::Input(InputBox {
+                        mut callback,
+                        prev_mode,
+                        text_area,
+                        error_callback,
+                        ..
+                    }) = overlay
+                    {
+                        if let Some(mode) = prev_mode {
+                            app.mode = mode;
+                        }
+
+                        return if let Some(callback) = callback.take() {
+                            let err = (callback)(app, text_area.lines().join("\n"));
+                            match err {
+                                Ok(post_event) => post_event,
+                                Err(err) => (error_callback)(app, err),
+                            }
+                        } else {
+                            PostEvent::noop(false)
+                        };
+                    }
+                    PostEvent::noop(false)
+                });
             }
             KeyCode::Tab => {
                 self.text_area.insert_newline();
@@ -138,10 +102,7 @@ impl InputBox {
                 self.text_area.input(Input::from(key_event));
             }
         }
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        }
+        PostEvent::noop(false)
     }
 
     pub fn update_layout(&mut self, draw_area: Rect) {
@@ -171,11 +132,7 @@ impl InputBox {
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                if let Overlay::Input(InputBox {
-                    prev_mode: Some(mode),
-                    ..
-                }) = overlay
-                {
+                if let Some(mode) = overlay.prev_mode() {
                     app.mode = mode;
                 }
                 PostEvent::noop(false)
@@ -228,8 +185,12 @@ impl Default for InputBoxBuilder {
 }
 
 impl InputBoxBuilder {
-    pub fn build(self) -> Overlay<'static> {
-        Overlay::Input(InputBox {
+    pub fn build_overlay(self) -> Overlay<'static> {
+        Overlay::Input(self.build())
+    }
+
+    pub fn build(self) -> InputBox {
+        InputBox {
             title: self.title,
             text_area: self.text_area,
             callback: self.callback,
@@ -237,7 +198,7 @@ impl InputBoxBuilder {
             draw_area: self.draw_area,
             prev_mode: self.prev_mode,
             full_width: self.full_width,
-        })
+        }
     }
 
     pub fn title(mut self, title: String) -> Self {

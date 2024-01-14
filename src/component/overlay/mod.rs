@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use tui::prelude::Rect;
 
 use crate::{
-    app::MainApp,
+    app::{MainApp, Mode},
     draw::{Action, Drawer, PostEvent},
     error::AppError,
 };
@@ -24,12 +24,11 @@ pub enum Overlay<'a> {
 
 impl Overlay<'_> {
     pub fn key_event(main_app: &mut MainApp, key_event: KeyEvent) -> Result<PostEvent, AppError> {
-        // FIXME: This does not actually consider what the action is...
         if let Some(overlay) = main_app.overlays.last_mut() {
             return match overlay {
                 Overlay::Fuzzy(fuzzy) => Ok(fuzzy.key_event(&mut main_app.app, key_event)),
                 Overlay::Input(input) => Ok(input.key_event(&mut main_app.app, key_event)),
-                Overlay::Dialog(dialog) => Ok(dialog.key_event(&mut main_app.app, key_event)),
+                Overlay::Dialog(dialog) => Ok(dialog.key_event(&main_app.app, key_event)),
                 Overlay::Message(msg) => Ok(msg.key_event(&mut main_app.app, key_event)),
             };
         }
@@ -49,16 +48,6 @@ impl Overlay<'_> {
             };
         }
 
-        // if !FuzzyBox::mouse_event(app, mouse_event).propegate_further
-        //     || !InputBox::mouse_event(app, mouse_event).propegate_further
-        //     || !DialogBox::mouse_event(app, mouse_event).propegate_further
-        //     || !MessageBox::mouse_event(app, mouse_event).propegate_further
-        // {
-        //     return PostEvent {
-        //         propegate_further: false,
-        //         action: Action::Noop,
-        //     };
-        // }
         PostEvent {
             propegate_further: true,
             action: Action::Noop,
@@ -85,6 +74,14 @@ impl Overlay<'_> {
             }
             Overlay::Message(message) => message.update_layout(draw_area),
         }
-        // FuzzyBox::update_layout(app, key_event)
+    }
+
+    pub fn prev_mode(&self) -> Option<Mode> {
+        match self {
+            Overlay::Fuzzy(fuzzy) => fuzzy.prev_mode,
+            Overlay::Input(input) => input.prev_mode,
+            Overlay::Dialog(dialog) => dialog.prev_mode,
+            Overlay::Message(message) => message.mode_to_restore,
+        }
     }
 }

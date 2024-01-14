@@ -49,7 +49,7 @@ pub struct DialogBox<'a> {
     title: String,
     pub index: usize,
     options: Vec<DialogAction<'a>>,
-    prev_mode: Option<Mode>,
+    pub prev_mode: Option<Mode>,
 }
 
 impl DialogBox<'_> {
@@ -86,7 +86,7 @@ impl DialogBox<'_> {
         drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
-    pub fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> PostEvent {
+    pub fn key_event(&mut self, app: &App, key_event: crossterm::event::KeyEvent) -> PostEvent {
         let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
@@ -121,10 +121,8 @@ impl DialogBox<'_> {
             }
             KeyCode::Esc => {
                 return PostEvent::pop_overlay(false, |app, overlay| {
-                    if let Overlay::Dialog(DialogBox { prev_mode, .. }) = overlay {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
+                    if let Some(mode) = overlay.prev_mode() {
+                        app.mode = mode;
                     }
                     PostEvent::noop(false)
                 })

@@ -25,7 +25,7 @@ impl PostEvent {
         }
     }
 
-    pub fn pop_overlay<'a, F: 'static>(propegate_further: bool, function: F) -> PostEvent
+    pub fn pop_overlay<F: 'static>(propegate_further: bool, function: F) -> PostEvent
     where
         F: FnOnce(&mut App, Overlay) -> PostEvent,
     {

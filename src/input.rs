@@ -187,7 +187,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                     Ok(PostEvent::noop(false))
                 })
                 .save_mode(app)
-                .build();
+                .build_overlay();
             return Ok(PostEvent::push_layer(false, edit_box));
         }
         KeyBindings::TagMenu => return Ok(app.create_tag_menu()),
@@ -459,7 +459,7 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> PostEvent {
                     Ok(PostEvent::noop(false))
                 })
                 .save_mode(app)
-                .build();
+                .build_overlay();
             return PostEvent::push_layer(false, add_input_dialog);
         }
         KeyBindings::TasksMenuKey => {

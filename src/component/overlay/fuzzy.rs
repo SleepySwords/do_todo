@@ -5,7 +5,6 @@ use tui::{
     style::{Modifier, Style},
     widgets::{Clear, List, ListItem, ListState},
 };
-use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
@@ -13,14 +12,16 @@ use crate::{
     utils::{self, handle_mouse_movement},
 };
 
-use super::{dialog::DialogAction, input_box::InputBox, Overlay};
+use super::{
+    dialog::DialogAction,
+    input_box::{InputBox, InputBoxBuilder},
+    Overlay,
+};
 
 pub struct FuzzyBox<'a> {
     draw_area: Rect,
     list_draw_area: Rect,
-    text_draw_area: Rect,
-    title: String,
-    text_area: TextArea<'static>,
+    input_box: InputBox,
     active: Vec<usize>,
     pub index: usize,
     options: Vec<DialogAction<'a>>,
@@ -127,8 +128,8 @@ impl FuzzyBox<'_> {
                 PostEvent::noop(false)
             }),
             _ => {
-                self.text_area.input(Input::from(key_event));
-                let input = self.text_area.lines().join("\n").to_ascii_lowercase();
+                self.input_box.key_event(app, key_event);
+                let input = self.input_box.text().to_ascii_lowercase();
                 self.active.clear();
                 self.index = 0;
                 for (i, ele) in self.options.iter().enumerate() {
@@ -152,13 +153,7 @@ impl FuzzyBox<'_> {
     }
 
     pub fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
-        InputBox::draw_input_box(
-            &app.config,
-            self.text_draw_area,
-            &self.text_area,
-            self.title.as_ref(),
-            drawer,
-        );
+        self.input_box.draw(app, drawer);
 
         let mut list = List::new(
             self.active
@@ -198,55 +193,16 @@ impl FuzzyBox<'_> {
             .constraints([Constraint::Length(3), Constraint::Percentage(80)])
             .split(self.draw_area);
 
-        self.text_draw_area = layout[0];
+        self.input_box.draw_area = layout[0];
         self.list_draw_area = layout[1];
     }
 
     pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
-        if utils::inside_rect((mouse_event.row, mouse_event.column), self.text_draw_area) {
-            match mouse_event.kind {
-                MouseEventKind::Down(..) => {}
-                _ => {
-                    return PostEvent {
-                        propegate_further: false,
-                        action: Action::Noop,
-                    };
-                }
-            }
-
-            let draw_area = self.text_draw_area;
-
-            if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox {
-                        prev_mode: Some(mode),
-                        ..
-                    }) = overlay
-                    {
-                        app.mode = mode;
-                    }
-                    PostEvent::noop(false)
-                });
-            }
-
-            // Either we use inner on draw_area to exclude border, or this to include it
-            // and set the border to jump to 0
-            if draw_area.x == mouse_event.column {
-                self.text_area
-                    .move_cursor(CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
-            } else if draw_area.y == mouse_event.row {
-                self.text_area
-                    .move_cursor(CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
-            } else {
-                self.text_area.move_cursor(CursorMove::Jump(
-                    mouse_event.row - draw_area.y - 1,
-                    mouse_event.column - draw_area.x - 1,
-                ));
-            }
-            PostEvent {
-                propegate_further: false,
-                action: Action::Noop,
-            }
+        if utils::inside_rect(
+            (mouse_event.row, mouse_event.column),
+            self.input_box.draw_area,
+        ) {
+            self.input_box.mouse_event(app, mouse_event)
         } else if utils::inside_rect((mouse_event.row, mouse_event.column), self.list_draw_area) {
             let ar = self.list_draw_area;
             let size = self.active.len();
@@ -292,13 +248,11 @@ impl<'a> FuzzyBoxBuilder<'a> {
         let active = (0..self.options.len()).collect_vec();
         Overlay::Fuzzy(FuzzyBox {
             draw_area: self.draw_area,
-            text_draw_area: Rect::default(),
+            input_box: InputBoxBuilder::default().title(self.title).build(),
             list_draw_area: Rect::default(),
             index: 0,
             options: self.options,
             prev_mode: self.prev_mode,
-            title: self.title,
-            text_area: TextArea::default(),
             active,
         })
     }

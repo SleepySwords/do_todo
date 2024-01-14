@@ -197,7 +197,7 @@ impl App {
                     Ok(app.open_select_tag_colour(selected_index, tag_name))
                 })
                 .save_mode(app)
-                .build();
+                .build_overlay();
             PostEvent::push_layer(false, tag_menu)
         }));
 
@@ -314,7 +314,7 @@ impl App {
                 return PostEvent::push_layer(false, Overlay::Message(message_box));
             })
             .save_mode(self)
-            .build();
+            .build_overlay();
         PostEvent::push_layer(false, colour_menu)
     }
 }
