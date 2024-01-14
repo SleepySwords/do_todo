@@ -2,7 +2,7 @@ use crossterm::event::KeyEvent;
 
 use crate::{
     actions::HelpEntry,
-    app::{App, Mode},
+    app::{App, MainApp, Mode},
     component::{
         completed_list::CompletedList,
         overlay::{input_box::InputBoxBuilder, Overlay},
@@ -14,11 +14,28 @@ use crate::{
     utils,
 };
 
-pub fn key_event(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppError> {
+pub fn key_event(main_app: &mut MainApp, key_event: KeyEvent) -> Result<PostEvent, AppError> {
+    let event = match main_app.app.mode {
+        Mode::Overlay => Overlay::key_event(main_app, key_event),
+        Mode::CurrentTasks => task_list_input(&mut main_app.app, key_event),
+        Mode::CompletedTasks => completed_list_input(&mut main_app.app, key_event),
+    };
+    if let Ok(PostEvent {
+        propegate_further: true,
+        ..
+    }) = event
+    {
+        Ok(universal_input(&mut main_app.app, key_event))
+    } else {
+        event
+    }
+}
+
+pub fn help_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppError> {
     let event = match app.mode {
-        Mode::Overlay => Overlay::key_event(app, key_event),
         Mode::CurrentTasks => task_list_input(app, key_event),
         Mode::CompletedTasks => completed_list_input(app, key_event),
+        _ => Ok(PostEvent::noop(false)),
     };
     if let Ok(PostEvent {
         propegate_further: true,
@@ -148,7 +165,9 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                 )
             }
         }
-        KeyBindings::DeleteKey => app.open_delete_selected_task_menu(),
+        KeyBindings::DeleteKey => {
+            return Ok(app.create_delete_selected_task_menu());
+        }
         KeyBindings::EditKey => {
             let index = *selected_index;
             let Some(task) = app.task_store.task(index) else {
@@ -162,16 +181,16 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                 .fill(task.title.as_str())
                 .callback(move |app, word| {
                     let Some(task) = app.task_store.task_mut(index) else {
-                        return Ok(());
+                        return Ok(PostEvent::noop(false));
                     };
                     task.title = word.trim().to_string();
-                    Ok(())
+                    Ok(PostEvent::noop(false))
                 })
                 .save_mode(app)
                 .build();
-            app.push_layer(edit_box)
+            return Ok(PostEvent::push_layer(false, edit_box));
         }
-        KeyBindings::TagMenu => app.open_tag_menu(),
+        KeyBindings::TagMenu => return Ok(app.create_tag_menu()),
         KeyBindings::FlipProgressKey => {
             if app.task_store.tasks.is_empty() {
                 return Ok(PostEvent {
@@ -437,15 +456,11 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> PostEvent {
                     app.task_store
                         .add_task(Task::from_string(word.trim().to_string()));
 
-                    Ok(())
+                    Ok(PostEvent::noop(false))
                 })
                 .save_mode(app)
                 .build();
-            app.push_layer(add_input_dialog);
-            PostEvent {
-                propegate_further: false,
-                action: Action::Noop,
-            }
+            return PostEvent::push_layer(false, add_input_dialog);
         }
         KeyBindings::TasksMenuKey => {
             app.mode = Mode::CurrentTasks;
@@ -462,11 +477,7 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> PostEvent {
             }
         }
         KeyBindings::OpenHelpKey => {
-            app.open_help_menu();
-            PostEvent {
-                propegate_further: false,
-                action: Action::Noop,
-            }
+            return app.create_help_menu();
         }
         KeyBindings::QuitKey => {
             app.shutdown();

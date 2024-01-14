@@ -13,14 +13,13 @@ mod task;
 mod tests;
 mod utils;
 
-use app::{Mode, MainApp};
+use app::MainApp;
 use component::{message_box::MessageBox, overlay::Overlay};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use draw::Action;
 use error::AppError;
 use tui::{
     backend::CrosstermBackend,
@@ -52,10 +51,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(theme, tasks);
+    let app = App::new(theme, tasks);
     let mut main_app = MainApp {
         app,
-        overlays: vec![]
+        overlays: vec![],
     };
 
     let result = start_app(&mut main_app, &mut terminal);
@@ -71,6 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
+    let app = main_app.app;
     data_io::save_data(&app.config, &app.task_store);
 
     if let Err(err) = result {
@@ -127,34 +127,33 @@ pub fn start_app(
                     {
                         return Ok(());
                     }
-                    if !main_app.app.config.debug || logger.key_event(&mut main_app.app, key_event).propegate_further
+                    if !main_app.app.config.debug
+                        || logger
+                            .key_event(&mut main_app.app, key_event)
+                            .propegate_further
                     {
-                        let result = input::key_event(&mut main_app.app, key_event);
-                        if let Err(AppError::InvalidState(msg)) = result {
-                            let prev_mode = main_app.app.mode;
-                            main_app.app.push_layer(Overlay::Message(MessageBox::new(
-                                "An error occured".to_string(),
-                                move |app| app.mode = prev_mode,
-                                msg,
-                                Color::Red,
-                                0,
-                            )));
-                            main_app.app.mode = Mode::Overlay;
+                        let result = input::key_event(main_app, key_event);
+                        match result {
+                            Ok(post_event) => main_app.handle_post_event(post_event),
+                            Err(AppError::InvalidState(msg)) => {
+                                let prev_mode = main_app.app.mode;
+                                main_app.push_layer(Overlay::Message(MessageBox::new(
+                                    "An error occured".to_string(),
+                                    move |app| app.mode = prev_mode,
+                                    msg,
+                                    Color::Red,
+                                    0,
+                                )));
+                            }
+                            _ => {}
                         }
                     }
                 }
                 Event::Mouse(mouse_event) => {
                     let post_event = Overlay::mouse_event(main_app, mouse_event);
-                    match post_event.action {
-                        Action::PopOverlay(function) => {
-                            let layer = main_app.pop_layer();
-                            if let Some(overlay) = layer {
-                                function(&mut main_app.app, overlay);
-                            }
-                        },
-                        Action::Noop => {},
-                    }
-                    if post_event.propegate_further {
+                    let propegate = post_event.propegate_further;
+                    main_app.handle_post_event(post_event);
+                    if propegate {
                         main_screen.mouse_event(&mut main_app.app, mouse_event);
                     }
                 }
@@ -163,7 +162,6 @@ pub fn start_app(
                 }
                 _ => {}
             }
-            logger.update(main_app.app.logs.clone());
         }
     }
     Ok(())

@@ -6,6 +6,7 @@ use crate::{
         completed_list::CompletedListContext, overlay::Overlay, task_list::TaskListContext,
     },
     config::Config,
+    draw::{Action, PostEvent},
     task::TaskStore,
 };
 
@@ -40,6 +41,19 @@ impl MainApp {
     pub fn pop_layer(&mut self) -> Option<Overlay<'static>> {
         self.overlays.pop()
     }
+
+    pub(crate) fn handle_post_event(&mut self, post_event: PostEvent) {
+        match post_event.action {
+            Action::PopOverlay(fun) => {
+                if let Some(overlay) = self.pop_layer() {
+                    let mut result = (fun)(&mut self.app, overlay);
+                    self.handle_post_event(result);
+                }
+            }
+            Action::PushLayer(overlay) => self.push_layer(overlay),
+            Action::Noop => {}
+        }
+    }
 }
 
 impl App {
@@ -66,7 +80,7 @@ impl App {
         self.should_shutdown = true
     }
 
-    pub fn should_shutdown(&mut self) -> bool {
+    pub fn should_shutdown(&self) -> bool {
         self.should_shutdown
     }
 

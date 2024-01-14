@@ -28,11 +28,15 @@ impl Overlay<'_> {
         if let Some(overlay) = main_app.overlays.last_mut() {
             return match overlay {
                 Overlay::Fuzzy(fuzzy) => Ok(fuzzy.key_event(&mut main_app.app, key_event)),
-                Overlay::Input(_) => todo!(),
-                Overlay::Dialog(_) => todo!(),
-                Overlay::Message(_) => todo!(),
+                Overlay::Input(input) => Ok(input.key_event(&mut main_app.app, key_event)),
+                Overlay::Dialog(dialog) => Ok(dialog.key_event(&mut main_app.app, key_event)),
+                Overlay::Message(msg) => Ok(msg.key_event(&mut main_app.app, key_event)),
             };
         }
+        return Ok(PostEvent {
+            propegate_further: true,
+            action: Action::Noop,
+        });
     }
 
     pub fn mouse_event(main_app: &mut MainApp, mouse_event: MouseEvent) -> PostEvent {
@@ -64,9 +68,9 @@ impl Overlay<'_> {
     pub fn draw(&self, main_app: &MainApp, drawer: &mut Drawer) {
         match self {
             Overlay::Fuzzy(fuzzy) => fuzzy.draw(&main_app.app, drawer),
-            Overlay::Input(_) => todo!(),
-            Overlay::Dialog(_) => todo!(),
-            Overlay::Message(_) => todo!(),
+            Overlay::Input(input) => input.draw(&main_app.app, drawer),
+            Overlay::Dialog(dialog) => dialog.draw(&main_app.app, drawer),
+            Overlay::Message(msg) => msg.draw(&main_app.app, drawer),
         }
     }
 

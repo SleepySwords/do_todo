@@ -9,6 +9,7 @@ use crate::{
         overlay::{dialog::DialogAction, Overlay},
         overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
     },
+    draw::PostEvent,
     error::AppError,
     input,
     key::Key,
@@ -44,25 +45,29 @@ impl HelpEntry<'_> {
 }
 
 impl App {
-    fn open_dialog_or_fuzzy(&mut self, title: &str, options: Vec<DialogAction<'static>>) {
+    fn create_dialog_or_fuzzy(
+        &mut self,
+        title: &str,
+        options: Vec<DialogAction<'static>>,
+    ) -> PostEvent {
         if self.config.use_fuzzy {
             let fuzzy = FuzzyBoxBuilder::default()
                 .title(title.to_string())
                 .options(options)
                 .save_mode(self)
                 .build();
-            self.push_layer(fuzzy);
+            PostEvent::push_layer(false, fuzzy)
         } else {
             let dialog = DialogBoxBuilder::default()
                 .title(title.to_string())
                 .options(options)
                 .save_mode(self)
                 .build();
-            self.push_layer(dialog);
+            PostEvent::push_layer(false, dialog)
         }
     }
 
-    pub fn open_help_menu(&mut self) {
+    pub fn create_help_menu(&mut self) -> PostEvent {
         // Actions that are universal, should use a table?
         let mut actions: Vec<DialogAction> = vec![
             DialogAction::new(
@@ -72,6 +77,7 @@ impl App {
                 ),
                 |app| {
                     app.mode = Mode::CurrentTasks;
+                    PostEvent::noop(false)
                 },
             ),
             DialogAction::new(
@@ -81,6 +87,7 @@ impl App {
                 ),
                 |app| {
                     app.mode = Mode::CompletedTasks;
+                    PostEvent::noop(false)
                 },
             ),
         ];
@@ -88,31 +95,37 @@ impl App {
             actions.push(DialogAction::new(
                 format!("{: <15}{}", ac.short_hand, ac.description),
                 move |app| {
-                    let result = input::key_event(
+                    // FIXME: oh well
+                    let result = input::help_input(
                         app,
                         KeyEvent::new(ac.character.code, ac.character.modifiers),
                     );
                     if let Err(AppError::InvalidState(msg)) = result {
                         let prev_mode = app.mode;
-                        app.push_layer(Overlay::Message(MessageBox::new(
-                            "An error occured".to_string(),
-                            move |app| app.mode = prev_mode,
-                            msg,
-                            Color::Red,
-                            0,
-                        )));
                         app.mode = Mode::Overlay;
+                        return PostEvent::push_layer(
+                            false,
+                            Overlay::Message(MessageBox::new(
+                                "An error occured".to_string(),
+                                move |app| app.mode = prev_mode,
+                                msg,
+                                Color::Red,
+                                0,
+                            )),
+                        );
+                    } else {
+                        return PostEvent::noop(false);
                     }
                 },
             ));
         }
 
-        self.open_dialog_or_fuzzy("Help menu", actions);
+        return self.create_dialog_or_fuzzy("Help menu", actions);
     }
 
-    pub fn open_delete_selected_task_menu(&mut self) {
+    pub fn create_delete_selected_task_menu(&mut self) -> PostEvent {
         if self.task_store.tasks.is_empty() {
-            return;
+            return PostEvent::noop(false);
         }
         let delete_dialog = DialogBoxBuilder::default()
             .title("Delete selected task".to_string())
@@ -124,11 +137,14 @@ impl App {
                 {
                     *selected_index -= 1;
                 }
+                PostEvent::noop(false)
             }))
-            .add_option(DialogAction::new(String::from("Cancel"), |_| {}))
+            .add_option(DialogAction::new(String::from("Cancel"), |_| {
+                return PostEvent::noop(false);
+            }))
             .save_mode(self)
             .build();
-        self.push_layer(delete_dialog);
+        return PostEvent::push_layer(false, delete_dialog);
     }
 
     pub fn complete_selected_task(&mut self) {
@@ -151,7 +167,7 @@ impl App {
         }
     }
 
-    pub fn open_tag_menu(&mut self) {
+    pub fn create_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         let selected_index = self.task_list.selected_index;
@@ -168,6 +184,7 @@ impl App {
                         if let Some(task) = app.task_store.task_mut(selected_index) {
                             task.flip_tag(moved);
                         };
+                        return PostEvent::noop(false);
                     },
                 ));
             }
@@ -178,11 +195,11 @@ impl App {
                 .title(String::from("Tag name"))
                 .callback(move |app, tag_name| {
                     app.open_select_tag_colour(selected_index, tag_name);
-                    Ok(())
+                    Ok(PostEvent::noop(false))
                 })
                 .save_mode(app)
                 .build();
-            app.push_layer(tag_menu)
+            return PostEvent::push_layer(false, tag_menu);
         }));
 
         if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
@@ -192,22 +209,23 @@ impl App {
                     if let Some(task) = app.task_store.task_mut(selected_index) {
                         task.tags.clear();
                     };
+                    return PostEvent::noop(false);
                 },
             ));
         }
 
         tag_options.push(DialogAction::new(
             String::from("Delete a tag (permanently)"),
-            move |app| {
-                app.open_delete_tag_menu();
-            },
+            move |app| return app.create_delete_tag_menu(),
         ));
-        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
+            return PostEvent::noop(false);
+        }));
 
-        self.open_dialog_or_fuzzy("Add or remove a tag", tag_options);
+        return self.create_dialog_or_fuzzy("Add or remove a tag", tag_options);
     }
 
-    pub fn open_delete_tag_menu(&mut self) {
+    pub fn create_delete_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         for (i, tag) in self.task_store.tags.iter() {
@@ -224,21 +242,26 @@ impl App {
                             moved_name
                         ))
                         .add_option(DialogAction::new(String::from("Delete"), move |app| {
-                            app.task_store.delete_tag(moved)
+                            app.task_store.delete_tag(moved);
+                            PostEvent::noop(false)
                         }))
-                        .add_option(DialogAction::new(String::from("Cancel"), move |_| {}))
+                        .add_option(DialogAction::new(String::from("Cancel"), move |_| {
+                            PostEvent::noop(false)
+                        }))
                         .save_mode(app)
                         .build();
-                    app.push_layer(tag_dialog);
+                    return PostEvent::push_layer(false, tag_dialog);
                 },
             ));
         }
-        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {}));
+        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
+            PostEvent::noop(false)
+        }));
 
-        self.open_dialog_or_fuzzy("Delete a tag", tag_options);
+        self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
 
-    fn open_select_tag_colour(&mut self, selected_index: usize, tag_name: String) {
+    fn open_select_tag_colour(&mut self, selected_index: usize, tag_name: String) -> PostEvent {
         let tag = tag_name.clone();
         let colour_menu = InputBoxBuilder::default()
             .title(String::from("Tag colour"))
@@ -275,7 +298,7 @@ impl App {
                         task.flip_tag(tag_id);
                     }
                 }
-                Ok(())
+                Ok(PostEvent::noop(false))
             })
             .error_callback(move |app, err| {
                 let tag_name = tag.clone();
@@ -289,10 +312,10 @@ impl App {
                     0,
                 )
                 .save_mode(app);
-                app.push_layer(Overlay::Message(message_box));
+                return PostEvent::push_layer(false, Overlay::Message(message_box));
             })
             .save_mode(self)
             .build();
-        self.push_layer(colour_menu);
+        return PostEvent::push_layer(false, colour_menu);
     }
 }

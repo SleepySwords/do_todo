@@ -7,7 +7,8 @@ use tui::{
 use crate::{app::App, component::overlay::Overlay};
 
 pub enum Action {
-    PopOverlay(Box<dyn FnOnce(&mut App, Overlay)>),
+    PopOverlay(Box<dyn FnOnce(&mut App, Overlay) -> PostEvent>),
+    PushLayer(Overlay<'static>),
     Noop,
 }
 
@@ -24,13 +25,20 @@ impl PostEvent {
         };
     }
 
-    pub fn pop_overlay<F: 'static>(propegate_further: bool, function: F) -> PostEvent
+    pub fn pop_overlay<'a, F: 'static>(propegate_further: bool, function: F) -> PostEvent
     where
-        F: FnOnce(&mut App, Overlay),
+        F: FnOnce(&mut App, Overlay) -> PostEvent,
     {
         return PostEvent {
             propegate_further,
             action: Action::PopOverlay(Box::new(function)),
+        };
+    }
+
+    pub fn push_layer(propegate_further: bool, overlay: Overlay<'static>) -> PostEvent {
+        return PostEvent {
+            propegate_further,
+            action: Action::PushLayer(overlay),
         };
     }
 }

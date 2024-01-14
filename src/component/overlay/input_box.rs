@@ -15,10 +15,10 @@ use crate::{
     utils,
 };
 
-use super::{Overlay, fuzzy::FuzzyBox};
+use super::{fuzzy::FuzzyBox, Overlay};
 
-type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<(), AppError>>>;
-type ErrorCallback = Box<dyn Fn(&mut App, AppError)>;
+type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<PostEvent, AppError>>>;
+type ErrorCallback = Box<dyn Fn(&mut App, AppError) -> PostEvent>;
 
 pub struct InputBox {
     pub draw_area: Rect,
@@ -45,7 +45,7 @@ impl InputBox {
             title,
             text_area,
             callback,
-            error_callback: Box::new(|_, _| {}),
+            error_callback: Box::new(|_, _| return PostEvent::noop(false)),
             draw_area: Rect::default(),
             prev_mode: None,
             full_width: false,
@@ -87,51 +87,53 @@ impl InputBox {
     }
 
     pub fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
-        let Some(Overlay::Input(input)) = app.overlays.last_mut() else {
-            return PostEvent {
-                propegate_further: true,
-                action: Action::Noop,
-            };
-        };
         match key_event.code {
             KeyCode::Enter => {
-                if !input.text_area.lines().join("\n").is_empty() {
+                if !self.text_area.lines().join("\n").is_empty() {
                     // When popping the layer, probably should do the callback, rather than have an
                     // option.
-                    let Some(Overlay::Input(mut input)) = app.overlays.pop() else {
-                        return PostEvent {
-                            propegate_further: false,
-                            action: Action::Noop,
-                        };
-                    };
-                    if let Some(mode) = input.prev_mode {
-                        app.mode = mode;
-                    }
+                    return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                        if let Overlay::Input(InputBox {
+                            mut callback,
+                            prev_mode,
+                            text_area,
+                            error_callback,
+                            ..
+                        }) = overlay
+                        {
+                            if let Some(mode) = prev_mode {
+                                app.mode = mode;
+                            }
 
-                    if let Some(callback) = input.callback.take() {
-                        let err = (callback)(app, input.text_area.lines().join("\n"));
-                        if err.is_err() {
-                            (input.error_callback)(app, err.err().unwrap());
+                            return if let Some(callback) = callback.take() {
+                                let err = (callback)(app, text_area.lines().join("\n"));
+                                match err {
+                                    Ok(post_event) => post_event,
+                                    Err(err) => (error_callback)(app, err),
+                                }
+                            } else {
+                                PostEvent::noop(false)
+                            };
                         }
-                    }
+                        return PostEvent::noop(false);
+                    });
                 }
             }
             KeyCode::Tab => {
-                input.text_area.insert_newline();
+                self.text_area.insert_newline();
             }
             KeyCode::Esc => {
-                let Some(Overlay::Input(input)) = app.overlays.pop() else {
-                    return PostEvent {
-                        propegate_further: false,
-                        action: Action::Noop,
-                    };
-                };
-                if let Some(mode) = input.prev_mode {
-                    app.mode = mode;
-                }
+                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                    if let Overlay::Input(InputBox { prev_mode, .. }) = overlay {
+                        if let Some(mode) = prev_mode {
+                            app.mode = mode;
+                        }
+                    }
+                    return PostEvent::noop(false);
+                })
             }
             _ => {
-                input.text_area.input(Input::from(key_event));
+                self.text_area.input(Input::from(key_event));
             }
         }
         PostEvent {
@@ -167,23 +169,22 @@ impl InputBox {
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                if let Overlay::Fuzzy(FuzzyBox { prev_mode, ..}) = overlay {
+                if let Overlay::Fuzzy(FuzzyBox { prev_mode, .. }) = overlay {
                     if let Some(mode) = prev_mode {
                         app.mode = mode;
                     }
                 }
+                return PostEvent::noop(false);
             });
         }
 
         // Either we use inner on draw_area to exclude border, or this to include it
         // and set the border to jump to 0
         if draw_area.x == mouse_event.column {
-            self
-                .text_area
+            self.text_area
                 .move_cursor(CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
         } else if draw_area.y == mouse_event.row {
-            self
-                .text_area
+            self.text_area
                 .move_cursor(CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
         } else {
             self.text_area.move_cursor(CursorMove::Jump(
@@ -213,8 +214,8 @@ impl Default for InputBoxBuilder {
         InputBoxBuilder {
             title: String::default(),
             text_area: TextArea::default(),
-            callback: Some(Box::new(|_app, _task| Ok(()))),
-            error_callback: Box::new(|_app, _err| {}),
+            callback: Some(Box::new(|_app, _task| Ok(PostEvent::noop(false)))),
+            error_callback: Box::new(|_app, _err| return PostEvent::noop(false)),
             draw_area: Rect::default(),
             prev_mode: None,
             full_width: false,
@@ -259,7 +260,7 @@ impl InputBoxBuilder {
 
     pub fn callback<T: 'static>(mut self, callback: T) -> Self
     where
-        T: FnOnce(&mut App, String) -> Result<(), AppError>,
+        T: FnOnce(&mut App, String) -> Result<PostEvent, AppError>,
     {
         self.callback = Some(Box::new(callback));
         self
@@ -267,7 +268,7 @@ impl InputBoxBuilder {
 
     pub fn error_callback<T: 'static>(mut self, error_callback: T) -> Self
     where
-        T: Fn(&mut App, AppError),
+        T: Fn(&mut App, AppError) -> PostEvent,
     {
         self.error_callback = Box::new(error_callback);
         self

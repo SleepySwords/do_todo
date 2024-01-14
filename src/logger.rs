@@ -14,22 +14,15 @@ use crate::{
 
 #[derive(Default)]
 pub struct Logger {
-    logs: Vec<(String, NaiveTime)>,
     opened: bool,
     draw_area: Rect,
-}
-
-impl Logger {
-    pub fn update(&mut self, log: Vec<(String, NaiveTime)>) {
-        self.logs = log;
-    }
 }
 
 impl Component for Logger {
     fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
         if self.opened {
             let style = Style::default().fg(Color::Red);
-            let text = self
+            let text = app
                 .logs
                 .iter()
                 .map(|(msg, time)| format!("{}: {}", time.format("%H:%M:%S%.3f"), msg))
@@ -45,8 +38,8 @@ impl Component for Logger {
                     .border_style(style),
             );
             let mut list_state = ListState::default();
-            if !self.logs.is_empty() {
-                list_state.select(Some(self.logs.len() - 1));
+            if !app.logs.is_empty() {
+                list_state.select(Some(app.logs.len() - 1));
             }
             drawer.draw_widget(Clear, self.draw_area);
             drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);

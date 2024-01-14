@@ -111,9 +111,67 @@ pub fn handle_key_movement(
     }
 }
 
-pub fn handle_mouse_movement(
+pub fn handle_mouse_movement_app(
     app: &mut App,
+    area: Rect,
+    mode: Mode,
+    max_items: usize,
+    MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
+) -> PostEvent {
+    if let Some(index) = app.selected_index(mode) {
+        if max_items == 0 {
+            return PostEvent {
+                propegate_further: false,
+                action: Action::Noop,
+            };
+        }
+        let offset = row - area.y;
+        if let MouseEventKind::ScrollUp = kind {
+            if *index != 0 {
+                *index -= 1;
+            }
+        }
+
+        if let MouseEventKind::ScrollDown = kind {
+            if *index < max_items - 1 {
+                *index += 1;
+            }
+        }
+
+        if let MouseEventKind::Down(_) = kind {
+            app.mode = mode;
+            if let Some(index) = app.selected_index(mode) {
+                if offset == 0 {
+                    return PostEvent {
+                        propegate_further: false,
+                        action: Action::Noop,
+                    };
+                }
+                if *index > area.height as usize - 2 {
+                    let new_index = *index - (area.height as usize - 2) + offset as usize;
+                    *index = new_index;
+                } else {
+                    if offset as usize > max_items {
+                        *index = max_items - 1;
+                        return PostEvent {
+                            propegate_further: false,
+                            action: Action::Noop,
+                        };
+                    }
+                    *index = offset as usize - 1;
+                }
+            }
+        }
+    }
+    PostEvent {
+        propegate_further: false,
+        action: Action::Noop,
+    }
+}
+
+pub fn handle_mouse_movement(
     index: &mut usize,
+    app_mode: &mut Mode,
     area: Rect,
     mode: Mode,
     max_items: usize,
@@ -139,27 +197,25 @@ pub fn handle_mouse_movement(
     }
 
     if let MouseEventKind::Down(_) = kind {
-        app.mode = mode;
+        *app_mode = mode;
         if offset == 0 {
             return PostEvent {
                 propegate_further: false,
                 action: Action::Noop,
             };
         }
-        if let Some(index) = app.selected_index(mode) {
-            if *index > area.height as usize - 2 {
-                let new_index = *index - (area.height as usize - 2) + offset as usize;
-                *index = new_index;
-            } else {
-                if offset as usize > max_items {
-                    *index = max_items - 1;
-                    return PostEvent {
-                        propegate_further: false,
-                        action: Action::Noop,
-                    };
-                }
-                *index = offset as usize - 1;
+        if *index > area.height as usize - 2 {
+            let new_index = *index - (area.height as usize - 2) + offset as usize;
+            *index = new_index;
+        } else {
+            if offset as usize > max_items {
+                *index = max_items - 1;
+                return PostEvent {
+                    propegate_further: false,
+                    action: Action::Noop,
+                };
             }
+            *index = offset as usize - 1;
         }
     }
     PostEvent {

@@ -97,17 +97,11 @@ impl MessageBox {
         drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
-    pub fn key_event(app: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
-        let Some(Overlay::Message(mut message)) = app.overlays.pop() else {
-            return PostEvent {
-                propegate_further: true,
-                action: Action::Noop,
-            };
-        };
-        if let Some(mode) = message.mode_to_restore {
+    pub fn key_event(&mut self, app: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
+        if let Some(mode) = self.mode_to_restore {
             app.mode = mode;
         }
-        if let Some(callback) = message.callback.take() {
+        if let Some(callback) = self.callback.take() {
             (callback)(app);
         }
         PostEvent {
@@ -128,6 +122,7 @@ impl MessageBox {
                             (callback)(app);
                         }
                     }
+                    return PostEvent::noop(false);
                 });
             }
         }

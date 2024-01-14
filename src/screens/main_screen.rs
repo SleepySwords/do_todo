@@ -1,7 +1,7 @@
 use crate::{
     app::App,
     component::{completed_list::CompletedList, task_list::TaskList, viewer::Viewer},
-    draw::{Component, Drawer, PostEvent, Action},
+    draw::{Action, Component, Drawer, PostEvent},
     utils,
 };
 use crossterm::event::MouseEvent;
