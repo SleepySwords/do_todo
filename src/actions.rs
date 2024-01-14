@@ -109,7 +109,7 @@ impl App {
                                 "An error occured".to_string(),
                                 move |app| {
                                     app.mode = prev_mode;
-                                    return PostEvent::noop(false);
+                                    PostEvent::noop(false)
                                 },
                                 msg,
                                 Color::Red,
@@ -306,9 +306,7 @@ impl App {
                 let tag_name = tag.clone();
                 let message_box = MessageBox::new(
                     String::from("Error"),
-                    move |app| {
-                        return app.create_select_tag_colour(selected_index, tag_name);
-                    },
+                    move |app| app.create_select_tag_colour(selected_index, tag_name),
                     err.to_string(),
                     tui::style::Color::Red,
                     0,

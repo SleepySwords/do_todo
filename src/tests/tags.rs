@@ -45,11 +45,17 @@ fn test_tag_creation() {
 
     assert_eq!(main_app.app.task_store.tasks[0].tags.len(), tag_count);
     assert_eq!(
-        main_app.app.task_store.tasks[0].first_tag(&main_app.app).unwrap().name,
+        main_app.app.task_store.tasks[0]
+            .first_tag(&main_app.app)
+            .unwrap()
+            .name,
         TEST_TAG
     );
     assert_eq!(
-        main_app.app.task_store.tasks[0].first_tag(&main_app.app).unwrap().colour,
+        main_app.app.task_store.tasks[0]
+            .first_tag(&main_app.app)
+            .unwrap()
+            .colour,
         Color::Rgb(170, 187, 204)
     );
 
@@ -58,7 +64,9 @@ fn test_tag_creation() {
 
     assert_eq!(main_app.app.task_store.tasks[0].tags.len(), tag_count);
     assert_eq!(
-        main_app.app.task_store
+        main_app
+            .app
+            .task_store
             .tags
             .get(main_app.app.task_store.tasks[0].tags.last().unwrap())
             .unwrap()
@@ -66,7 +74,9 @@ fn test_tag_creation() {
         "Second tag"
     );
     assert_eq!(
-        main_app.app.task_store
+        main_app
+            .app
+            .task_store
             .tags
             .get(main_app.app.task_store.tasks[0].tags.last().unwrap())
             .unwrap()
@@ -79,7 +89,9 @@ fn test_tag_creation() {
 
     assert_eq!(main_app.app.task_store.tasks[0].tags.len(), tag_count);
     assert_eq!(
-        main_app.app.task_store
+        main_app
+            .app
+            .task_store
             .tags
             .get(main_app.app.task_store.tasks[0].tags.last().unwrap())
             .unwrap()
@@ -87,7 +99,9 @@ fn test_tag_creation() {
         TEST_TAG
     );
     assert_eq!(
-        main_app.app.task_store
+        main_app
+            .app
+            .task_store
             .tags
             .get(main_app.app.task_store.tasks[0].tags.last().unwrap())
             .unwrap()

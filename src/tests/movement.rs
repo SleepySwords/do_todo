@@ -24,7 +24,7 @@ fn test_rollover() {
     );
     let mut main_app = MainApp {
         app,
-        overlays: vec![]
+        overlays: vec![],
     };
 
     input_char('j', &mut main_app);
@@ -59,8 +59,8 @@ fn test_shifting_tasks() {
         },
     );
     let mut main_app = MainApp {
-        app: app,
-        overlays: vec![]
+        app,
+        overlays: vec![],
     };
 
     input_char('J', &mut main_app);

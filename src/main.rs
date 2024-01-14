@@ -142,7 +142,7 @@ pub fn start_app(
                                     "An error occured".to_string(),
                                     move |app| {
                                         app.mode = prev_mode;
-                                        return PostEvent::noop(false);
+                                        PostEvent::noop(false)
                                     },
                                     msg,
                                     Color::Red,

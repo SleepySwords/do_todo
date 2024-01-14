@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, PostEvent},
+    draw::PostEvent,
     utils::{self, centre_rect},
 };
 
@@ -103,9 +103,9 @@ impl MessageBox {
         }
         if let Some(callback) = self.callback.take() {
             let result = (callback)(app);
-            return PostEvent::pop_overlay(false, |_, _| return result);
+            return PostEvent::pop_overlay(false, |_, _| result);
         }
-        return PostEvent::pop_overlay(false, |_, _| PostEvent::noop(false));
+        PostEvent::pop_overlay(false, |_, _| PostEvent::noop(false))
     }
 
     pub fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {
@@ -124,10 +124,7 @@ impl MessageBox {
                 });
             }
         }
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        }
+        PostEvent::noop(false)
     }
 
     pub fn update_layout(&mut self, draw_area: Rect) {
