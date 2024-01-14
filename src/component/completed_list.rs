@@ -7,7 +7,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, Component, PostEvent},
+    draw::{Component, PostEvent},
     task::Task,
     utils,
 };

@@ -110,7 +110,7 @@ impl MessageBox {
         }
     }
 
-    pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
+    pub fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
                 return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
@@ -122,7 +122,7 @@ impl MessageBox {
                             (callback)(app);
                         }
                     }
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 });
             }
         }

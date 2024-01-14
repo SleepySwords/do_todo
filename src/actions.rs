@@ -114,13 +114,13 @@ impl App {
                             )),
                         );
                     } else {
-                        return PostEvent::noop(false);
+                        PostEvent::noop(false)
                     }
                 },
             ));
         }
 
-        return self.create_dialog_or_fuzzy("Help menu", actions);
+        self.create_dialog_or_fuzzy("Help menu", actions)
     }
 
     pub fn create_delete_selected_task_menu(&mut self) -> PostEvent {
@@ -140,11 +140,11 @@ impl App {
                 PostEvent::noop(false)
             }))
             .add_option(DialogAction::new(String::from("Cancel"), |_| {
-                return PostEvent::noop(false);
+                PostEvent::noop(false)
             }))
             .save_mode(self)
             .build();
-        return PostEvent::push_layer(false, delete_dialog);
+        PostEvent::push_layer(false, delete_dialog)
     }
 
     pub fn complete_selected_task(&mut self) {
@@ -184,7 +184,7 @@ impl App {
                         if let Some(task) = app.task_store.task_mut(selected_index) {
                             task.flip_tag(moved);
                         };
-                        return PostEvent::noop(false);
+                        PostEvent::noop(false)
                     },
                 ));
             }
@@ -194,11 +194,11 @@ impl App {
             let tag_menu = InputBoxBuilder::default()
                 .title(String::from("Tag name"))
                 .callback(move |app, tag_name| {
-                    return Ok(app.open_select_tag_colour(selected_index, tag_name));
+                    Ok(app.open_select_tag_colour(selected_index, tag_name))
                 })
                 .save_mode(app)
                 .build();
-            return PostEvent::push_layer(false, tag_menu);
+            PostEvent::push_layer(false, tag_menu)
         }));
 
         if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
@@ -208,20 +208,20 @@ impl App {
                     if let Some(task) = app.task_store.task_mut(selected_index) {
                         task.tags.clear();
                     };
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 },
             ));
         }
 
         tag_options.push(DialogAction::new(
             String::from("Delete a tag (permanently)"),
-            move |app| return app.create_delete_tag_menu(),
+            move |app| app.create_delete_tag_menu(),
         ));
         tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
-            return PostEvent::noop(false);
+            PostEvent::noop(false)
         }));
 
-        return self.create_dialog_or_fuzzy("Add or remove a tag", tag_options);
+        self.create_dialog_or_fuzzy("Add or remove a tag", tag_options)
     }
 
     pub fn create_delete_tag_menu(&mut self) -> PostEvent {
@@ -249,7 +249,7 @@ impl App {
                         }))
                         .save_mode(app)
                         .build();
-                    return PostEvent::push_layer(false, tag_dialog);
+                    PostEvent::push_layer(false, tag_dialog)
                 },
             ));
         }
@@ -315,6 +315,6 @@ impl App {
             })
             .save_mode(self)
             .build();
-        return PostEvent::push_layer(false, colour_menu);
+        PostEvent::push_layer(false, colour_menu)
     }
 }

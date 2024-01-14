@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use tui::prelude::Rect;
 
 use crate::{
-    app::{App, MainApp},
+    app::MainApp,
     draw::{Action, Drawer, PostEvent},
     error::AppError,
 };
@@ -33,10 +33,10 @@ impl Overlay<'_> {
                 Overlay::Message(msg) => Ok(msg.key_event(&mut main_app.app, key_event)),
             };
         }
-        return Ok(PostEvent {
+        Ok(PostEvent {
             propegate_further: true,
             action: Action::Noop,
-        });
+        })
     }
 
     pub fn mouse_event(main_app: &mut MainApp, mouse_event: MouseEvent) -> PostEvent {

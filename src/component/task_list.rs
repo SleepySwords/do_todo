@@ -8,9 +8,9 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, Component, PostEvent},
+    draw::{Component, PostEvent},
     task::Task,
-    utils::{self, handle_mouse_movement, handle_mouse_movement_app},
+    utils::{self, handle_mouse_movement_app},
 };
 
 const COMPONENT_TYPE: Mode = Mode::CurrentTasks;

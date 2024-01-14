@@ -113,19 +113,19 @@ impl FuzzyBox<'_> {
                             }
                         }
                     }
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 });
             }
-            KeyCode::Esc => {
-                return PostEvent::pop_overlay(false, |app, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox { prev_mode, .. }) = overlay {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
-                    }
-                    return PostEvent::noop(false);
-                })
-            }
+            KeyCode::Esc => PostEvent::pop_overlay(false, |app, overlay| {
+                if let Overlay::Fuzzy(FuzzyBox {
+                    prev_mode: Some(mode),
+                    ..
+                }) = overlay
+                {
+                    app.mode = mode;
+                }
+                PostEvent::noop(false)
+            }),
             _ => {
                 self.text_area.input(Input::from(key_event));
                 let input = self.text_area.lines().join("\n").to_ascii_lowercase();
@@ -218,12 +218,14 @@ impl FuzzyBox<'_> {
 
             if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
                 return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox { prev_mode, .. }) = overlay {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
+                    if let Overlay::Fuzzy(FuzzyBox {
+                        prev_mode: Some(mode),
+                        ..
+                    }) = overlay
+                    {
+                        app.mode = mode;
                     }
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 });
             }
 
@@ -259,12 +261,14 @@ impl FuzzyBox<'_> {
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
                 return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox { prev_mode, .. }) = overlay {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
+                    if let Overlay::Fuzzy(FuzzyBox {
+                        prev_mode: Some(mode),
+                        ..
+                    }) = overlay
+                    {
+                        app.mode = mode;
                     }
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 });
             }
             PostEvent {

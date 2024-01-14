@@ -116,7 +116,7 @@ impl DialogBox<'_> {
                             }
                         }
                     }
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 })
             }
             KeyCode::Esc => {
@@ -126,7 +126,7 @@ impl DialogBox<'_> {
                             app.mode = mode;
                         }
                     }
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 })
             }
             _ => {}
@@ -162,7 +162,7 @@ impl DialogBox<'_> {
                         app.mode = mode;
                     }
                 }
-                return PostEvent::noop(false);
+                PostEvent::noop(false)
             });
         }
         PostEvent {

@@ -1,4 +1,3 @@
-use chrono::NaiveTime;
 use crossterm::event::KeyCode;
 use tui::{
     layout::Rect,
@@ -66,10 +65,10 @@ impl Component for Logger {
                 action: Action::Noop,
             };
         }
-        return PostEvent {
+        PostEvent {
             propegate_further: false,
             action: Action::Noop,
-        };
+        }
     }
 
     fn update_layout(&mut self, draw_area: tui::layout::Rect) {

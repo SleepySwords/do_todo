@@ -107,7 +107,7 @@ pub fn start_app(
                 overlay.update_layout(chunk[0])
             }
             for overlay in main_app.overlays.iter() {
-                overlay.draw(&main_app, &mut drawer)
+                overlay.draw(main_app, &mut drawer)
             }
 
             main_app.app.status_line.update_layout(chunk[1]);

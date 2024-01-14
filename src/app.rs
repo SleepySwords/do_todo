@@ -46,7 +46,7 @@ impl MainApp {
         match post_event.action {
             Action::PopOverlay(fun) => {
                 if let Some(overlay) = self.pop_layer() {
-                    let mut result = (fun)(&mut self.app, overlay);
+                    let result = (fun)(&mut self.app, overlay);
                     self.handle_post_event(result);
                 }
             }

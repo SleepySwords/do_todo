@@ -15,7 +15,7 @@ use crate::{
     utils,
 };
 
-use super::{fuzzy::FuzzyBox, Overlay};
+use super::Overlay;
 
 type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<PostEvent, AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError) -> PostEvent>;
@@ -45,7 +45,7 @@ impl InputBox {
             title,
             text_area,
             callback,
-            error_callback: Box::new(|_, _| return PostEvent::noop(false)),
+            error_callback: Box::new(|_, _| PostEvent::noop(false)),
             draw_area: Rect::default(),
             prev_mode: None,
             full_width: false,
@@ -86,7 +86,7 @@ impl InputBox {
         drawer.draw_widget(widget, box_area);
     }
 
-    pub fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
+    pub fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
         match key_event.code {
             KeyCode::Enter => {
                 if !self.text_area.lines().join("\n").is_empty() {
@@ -115,7 +115,7 @@ impl InputBox {
                                 PostEvent::noop(false)
                             };
                         }
-                        return PostEvent::noop(false);
+                        PostEvent::noop(false)
                     });
                 }
             }
@@ -124,12 +124,14 @@ impl InputBox {
             }
             KeyCode::Esc => {
                 return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                    if let Overlay::Input(InputBox { prev_mode, .. }) = overlay {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
+                    if let Overlay::Input(InputBox {
+                        prev_mode: Some(mode),
+                        ..
+                    }) = overlay
+                    {
+                        app.mode = mode;
                     }
-                    return PostEvent::noop(false);
+                    PostEvent::noop(false)
                 })
             }
             _ => {
@@ -169,12 +171,14 @@ impl InputBox {
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                if let Overlay::Input(InputBox { prev_mode, .. }) = overlay {
-                    if let Some(mode) = prev_mode {
-                        app.mode = mode;
-                    }
+                if let Overlay::Input(InputBox {
+                    prev_mode: Some(mode),
+                    ..
+                }) = overlay
+                {
+                    app.mode = mode;
                 }
-                return PostEvent::noop(false);
+                PostEvent::noop(false)
             });
         }
 
@@ -215,7 +219,7 @@ impl Default for InputBoxBuilder {
             title: String::default(),
             text_area: TextArea::default(),
             callback: Some(Box::new(|_app, _task| Ok(PostEvent::noop(false)))),
-            error_callback: Box::new(|_app, _err| return PostEvent::noop(false)),
+            error_callback: Box::new(|_app, _err| PostEvent::noop(false)),
             draw_area: Rect::default(),
             prev_mode: None,
             full_width: false,
