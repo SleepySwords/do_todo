@@ -109,7 +109,7 @@ impl FuzzyBox<'_> {
                         }
                         if let Some(Some(opt)) = active.get(index).map(|&id| options.get_mut(id)) {
                             if let Some(callback) = opt.function.take() {
-                                (callback)(app);
+                                return (callback)(app);
                             }
                         }
                     }

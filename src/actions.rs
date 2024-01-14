@@ -194,8 +194,7 @@ impl App {
             let tag_menu = InputBoxBuilder::default()
                 .title(String::from("Tag name"))
                 .callback(move |app, tag_name| {
-                    app.open_select_tag_colour(selected_index, tag_name);
-                    Ok(PostEvent::noop(false))
+                    return Ok(app.open_select_tag_colour(selected_index, tag_name));
                 })
                 .save_mode(app)
                 .build();
@@ -293,7 +292,7 @@ impl App {
                         colour,
                     },
                 );
-                if app.task_store.tasks.len() > selected_index {
+                if app.task_store.find_tasks_draw_size() > selected_index {
                     if let Some(task) = app.task_store.task_mut(selected_index) {
                         task.flip_tag(tag_id);
                     }

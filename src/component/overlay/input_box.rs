@@ -154,7 +154,7 @@ impl InputBox {
         }
     }
 
-    pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
+    pub fn mouse_event(&mut self, _: &mut App, mouse_event: MouseEvent) -> PostEvent {
         match mouse_event.kind {
             MouseEventKind::Down(..) => {}
             _ => {
@@ -169,7 +169,7 @@ impl InputBox {
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
             return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                if let Overlay::Fuzzy(FuzzyBox { prev_mode, .. }) = overlay {
+                if let Overlay::Input(InputBox { prev_mode, .. }) = overlay {
                     if let Some(mode) = prev_mode {
                         app.mode = mode;
                     }

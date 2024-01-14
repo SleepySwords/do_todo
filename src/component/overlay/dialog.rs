@@ -112,7 +112,7 @@ impl DialogBox<'_> {
                         }
                         if let Some(opt) = options.get_mut(index) {
                             if let Some(callback) = opt.function.take() {
-                                (callback)(app);
+                                return (callback)(app);
                             }
                         }
                     }
