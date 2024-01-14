@@ -270,7 +270,7 @@ impl App {
                         colour,
                     },
                 );
-                if app.task_store.tasks.len() > selected_index {
+                if app.task_store.find_tasks_draw_size() > selected_index {
                     if let Some(task) = app.task_store.task_mut(selected_index) {
                         task.flip_tag(tag_id);
                     }
