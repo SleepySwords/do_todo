@@ -7,7 +7,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{DrawableComponent, EventResult},
+    draw::{Component, EventResult},
     task::Task,
     utils,
 };
@@ -51,7 +51,7 @@ impl CompletedList {
     }
 }
 
-impl DrawableComponent for CompletedList {
+impl Component for CompletedList {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let theme = &app.config;
 

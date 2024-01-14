@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{DrawableComponent, EventResult},
+    draw::{Component, EventResult},
     task::Task,
     utils::{self, handle_mouse_movement},
 };
@@ -118,7 +118,7 @@ impl TaskList {
     }
 }
 
-impl DrawableComponent for TaskList {
+impl Component for TaskList {
     fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let mut current_index = 0;
         let tasks: Vec<ListItem> = app

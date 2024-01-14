@@ -36,7 +36,7 @@ use std::{
 
 use crate::{
     app::App,
-    draw::{DrawableComponent, Drawer, EventResult},
+    draw::{Component, Drawer, EventResult},
     logger::Logger,
     screens::main_screen::MainScreen,
 };

@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::App,
-    draw::{DrawableComponent, Drawer, EventResult},
+    draw::{Component, Drawer, EventResult},
 };
 
 // TODO: Proper impl with actual colours
@@ -38,7 +38,7 @@ impl StatusLine {
     }
 }
 
-impl DrawableComponent for StatusLine {
+impl Component for StatusLine {
     // Should be able to do commands?!
     fn draw(&self, app: &App, drawer: &mut Drawer) {
         let help = Text::styled(

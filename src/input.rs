@@ -1,7 +1,7 @@
 use crossterm::event::KeyEvent;
 
 use crate::{
-    actions::{self, HelpEntry},
+    actions::HelpEntry,
     app::{App, Mode},
     component::{
         completed_list::CompletedList,
@@ -123,7 +123,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
                 )
             }
         }
-        KeyBindings::DeleteKey => actions::open_delete_task_menu(app),
+        KeyBindings::DeleteKey => app.open_delete_selected_task_menu(),
         KeyBindings::EditKey => {
             let index = *selected_index;
             let Some(task) = app.task_store.task(index) else {
@@ -143,7 +143,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
                 .build();
             app.push_layer(edit_box)
         }
-        KeyBindings::TagMenu => actions::open_tag_menu(app),
+        KeyBindings::TagMenu => app.open_tag_menu(),
         KeyBindings::FlipProgressKey => {
             if app.task_store.tasks.is_empty() {
                 return Ok(EventResult::Ignored);
@@ -153,7 +153,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<EventResult, Ap
             };
             task.progress = !task.progress;
         }
-        KeyBindings::CompleteKey => actions::complete_task(app),
+        KeyBindings::CompleteKey => app.complete_selected_task(),
         KeyBindings::OpenSubtasksKey => {
             if app.task_store.tasks.is_empty() {
                 return Ok(EventResult::Ignored);
@@ -368,7 +368,7 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> EventResult {
             EventResult::Consumed
         }
         KeyBindings::OpenHelpKey => {
-            actions::open_help_menu(app);
+            app.open_help_menu();
             EventResult::Consumed
         }
         KeyBindings::QuitKey => {

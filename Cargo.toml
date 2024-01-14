@@ -1,9 +1,9 @@
 [package]
-name = "do_todo"
-version = "0.1.0-alpha"
+name = "dotodo"
+version = "0.3.1"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Do your todos!"
+license = "MIT"
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
@@ -21,9 +21,9 @@ lazy_static = "1.4.0"
 # Using textwrap for now until tui-rs implements more general wrapping for widgets such as Tables.
 # This somewhat limits styling capabilities, as the wrapping is applied to strings, not tui::text::Text
 # However it should be fine with the current use case
+textwrap = { version = "0.15" }
 unicode-segmentation = "1.10.0"
 
-textwrap = { version = "0.15" }
 thiserror = "1.0.48"
 
 
