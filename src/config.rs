@@ -109,8 +109,8 @@ impl Default for Config {
             sort_key: Key::new(KeyCode::Char('s'), KeyModifiers::NONE),
 
             flip_subtask_key: Key::new(KeyCode::Enter, KeyModifiers::NONE),
-            move_subtask_level_up: Key::new(KeyCode::Char('l'), KeyModifiers::NONE),
-            move_subtask_level_down: Key::new(KeyCode::Char('h'), KeyModifiers::NONE),
+            move_subtask_level_up: Key::new(KeyCode::Char('L'), KeyModifiers::NONE),
+            move_subtask_level_down: Key::new(KeyCode::Char('H'), KeyModifiers::NONE),
 
             border_type: BorderType::Plain,
             selected_cursor: String::from(" > "),
