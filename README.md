@@ -12,7 +12,7 @@ Be sure to backup your data!
 
 ## Installation
 
-# From crates.io
+### From crates.io
 
 1. Run `cargo install dotodo`
 
