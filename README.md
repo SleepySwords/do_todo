@@ -5,10 +5,7 @@ A todo list to organise your needs :)
 
 Be sure to backup your data!
 
-## Pictures
-|                          <img width="1414" src="https://github.com/SleepySwords/do_todo/assets/33922797/b572a1af-3d70-46d5-ac24-17887532fbae"> Tags                          | <img width="1403" alt="Screenshot 2023-12-14 at 11 03 48 pm" src="https://github.com/SleepySwords/do_todo/assets/33922797/26429f86-15ee-492a-9c37-af187687c47f"> Fuzzy finder |
-|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-| <img width="1405" alt="Screenshot 2024-01-01 at 3 56 09 pm" src="https://github.com/SleepySwords/do_todo/assets/33922797/6bfd0088-8c31-4fa7-bd47-b0e3c96f045f"> **Subtasks** |
+![first](https://github.com/SleepySwords/do_todo/assets/33922797/2490b82c-ac5b-41f0-8baa-63009c27acc0)
 
 ## Installation
 
@@ -85,3 +82,8 @@ This allows customisation of things, such as the cursor within the fuzzy finder.
 | Key | Action                     |
 |-----|----------------------------|
 | `r` | Restores the selected task |
+
+## More pictures
+|                          <img width="1414" src="https://github.com/SleepySwords/do_todo/assets/33922797/b572a1af-3d70-46d5-ac24-17887532fbae"> Tags                          | <img width="1403" alt="Screenshot 2023-12-14 at 11 03 48 pm" src="https://github.com/SleepySwords/do_todo/assets/33922797/26429f86-15ee-492a-9c37-af187687c47f"> Fuzzy finder |
+|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+| <img width="1405" alt="Screenshot 2024-01-01 at 3 56 09 pm" src="https://github.com/SleepySwords/do_todo/assets/33922797/6bfd0088-8c31-4fa7-bd47-b0e3c96f045f"> **Subtasks** |
