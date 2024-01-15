@@ -10,7 +10,14 @@ Be sure to backup your data!
 |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 | <img width="1405" alt="Screenshot 2024-01-01 at 3 56 09 pm" src="https://github.com/SleepySwords/do_todo/assets/33922797/6bfd0088-8c31-4fa7-bd47-b0e3c96f045f"> **Subtasks** |
 
-## Install from source
+## Installation
+
+# From crates.io
+
+1. Run `cargo install dotodo`
+
+### From source
+
 1. Run `git clone git@github.com/SleepySwords/do_todo.git`
 2. Run `cd do_todo`
 3. Run `cargo install --path ./`
