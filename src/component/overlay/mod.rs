@@ -14,6 +14,7 @@ use super::message_box::MessageBox;
 pub mod dialog;
 pub mod fuzzy;
 pub mod input_box;
+mod vim;
 
 pub enum Overlay<'a> {
     Fuzzy(FuzzyBox<'a>),

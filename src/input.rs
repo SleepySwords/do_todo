@@ -377,6 +377,7 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> PostEvent {
 
                     Ok(PostEvent::noop(false))
                 })
+                .enable_vim(true)
                 .save_mode(app)
                 .build_overlay();
             return PostEvent::push_layer(false, add_input_dialog);

@@ -14,18 +14,27 @@ use crate::{
     utils,
 };
 
-use super::Overlay;
+use super::{
+    vim::{Vim, VimMode, Operator},
+    Overlay,
+};
 
 type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<PostEvent, AppError>>>;
 type ErrorCallback = Box<dyn Fn(&mut App, AppError) -> PostEvent>;
 
+pub enum InputMode {
+    Normal,
+    Vim(Vim),
+}
+
 pub struct InputBox {
     pub draw_area: Rect,
+    pub prev_mode: Option<Mode>,
+    pub input_mode: InputMode,
     title: String,
-    text_area: TextArea<'static>,
+    pub text_area: TextArea<'static>,
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
-    pub prev_mode: Option<Mode>,
     full_width: bool,
 }
 
@@ -40,7 +49,11 @@ impl InputBox {
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.config.selected_border_colour))
             .border_type(app.config.border_type)
-            .title(self.title.as_ref());
+            .title(if let InputMode::Vim(_) = &self.input_mode {
+                self.vim_title()
+            } else {
+                self.title.to_owned()
+            });
         let box_area = boxes.inner(self.draw_area);
 
         drawer.draw_widget(Clear, self.draw_area);
@@ -49,39 +62,13 @@ impl InputBox {
     }
 
     pub fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
+        if let InputMode::Vim(_) = &self.input_mode {
+            return self.input_vim(key_event);
+        }
+
         match key_event.code {
             KeyCode::Enter => {
-                if self.text_area.lines().join("\n").is_empty() {
-                    return PostEvent::noop(false);
-                }
-
-                // When popping the layer, probably should do the callback, rather than have an
-                // option.
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
-                    if let Overlay::Input(InputBox {
-                        mut callback,
-                        prev_mode,
-                        text_area,
-                        error_callback,
-                        ..
-                    }) = overlay
-                    {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
-
-                        return if let Some(callback) = callback.take() {
-                            let err = (callback)(app, text_area.lines().join("\n"));
-                            match err {
-                                Ok(post_event) => post_event,
-                                Err(err) => (error_callback)(app, err),
-                            }
-                        } else {
-                            PostEvent::noop(false)
-                        };
-                    }
-                    PostEvent::noop(false)
-                });
+                return self.submit();
             }
             KeyCode::Tab => {
                 self.text_area.insert_newline();
@@ -103,6 +90,40 @@ impl InputBox {
             }
         }
         PostEvent::noop(false)
+    }
+
+    pub fn submit(&mut self) -> PostEvent {
+        if self.text_area.lines().join("\n").is_empty() {
+            return PostEvent::noop(false);
+        }
+
+        // When popping the layer, probably should do the callback, rather than have an
+        // option.
+        return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+            if let Overlay::Input(InputBox {
+                mut callback,
+                prev_mode,
+                text_area,
+                error_callback,
+                ..
+            }) = overlay
+            {
+                if let Some(mode) = prev_mode {
+                    app.mode = mode;
+                }
+
+                return if let Some(callback) = callback.take() {
+                    let err = (callback)(app, text_area.lines().join("\n"));
+                    match err {
+                        Ok(post_event) => post_event,
+                        Err(err) => (error_callback)(app, err),
+                    }
+                } else {
+                    PostEvent::noop(false)
+                };
+            }
+            PostEvent::noop(false)
+        });
     }
 
     pub fn update_layout(&mut self, draw_area: Rect) {
@@ -162,6 +183,7 @@ impl InputBox {
 
 pub struct InputBoxBuilder {
     title: String,
+    input_mode: InputMode,
     text_area: TextArea<'static>,
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
@@ -174,6 +196,7 @@ impl Default for InputBoxBuilder {
     fn default() -> Self {
         InputBoxBuilder {
             title: String::default(),
+            input_mode: InputMode::Normal,
             text_area: TextArea::default(),
             callback: Some(Box::new(|_app, _task| Ok(PostEvent::noop(false)))),
             error_callback: Box::new(|_app, _err| PostEvent::noop(false)),
@@ -192,6 +215,7 @@ impl InputBoxBuilder {
     pub fn build(self) -> InputBox {
         InputBox {
             title: self.title,
+            input_mode: self.input_mode,
             text_area: self.text_area,
             callback: self.callback,
             error_callback: self.error_callback,
@@ -243,5 +267,18 @@ impl InputBoxBuilder {
         self.prev_mode = Some(app.mode);
         app.mode = Mode::Overlay;
         self
+    }
+
+    pub fn enable_vim(mut self, vim: bool) -> Self {
+        if vim {
+            self.input_mode = InputMode::Vim(Vim {
+                mode: VimMode::Normal,
+                operator: Operator::None,
+                pending: ' ',
+            })
+        } else {
+            self.input_mode = InputMode::Normal
+        }
+        return self;
     }
 }
