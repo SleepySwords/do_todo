@@ -5,26 +5,27 @@ use tui::{
     style::{Modifier, Style},
     widgets::{Clear, List, ListItem, ListState},
 };
-use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
-    draw::EventResult,
+    draw::PostEvent,
     utils::{self, handle_mouse_movement},
 };
 
-use super::{dialog::DialogAction, input_box::InputBox, Overlay};
+use super::{
+    dialog::DialogAction,
+    input_box::{InputBox, InputBoxBuilder},
+    Overlay,
+};
 
 pub struct FuzzyBox<'a> {
     draw_area: Rect,
     list_draw_area: Rect,
-    text_draw_area: Rect,
-    title: String,
-    text_area: TextArea<'static>,
+    input_box: InputBox,
     active: Vec<usize>,
     pub index: usize,
     options: Vec<DialogAction<'a>>,
-    prev_mode: Option<Mode>,
+    pub prev_mode: Option<Mode>,
 }
 
 impl FuzzyBox<'_> {
@@ -33,77 +34,81 @@ impl FuzzyBox<'_> {
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
 
-    pub fn key_event(app: &mut App, key_event: KeyEvent) -> EventResult {
+    pub fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
         let code = key_event.code;
-        let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
-        };
         match code {
             _ if app.config.move_down_fuzzy.is_pressed(key_event) => {
-                if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                if self.active.is_empty() {
+                    return PostEvent::noop(false);
                 }
-                fuzzy.index = (fuzzy.index + 1).rem_euclid(fuzzy.active.len());
-                EventResult::Consumed
+                self.index = (self.index + 1).rem_euclid(self.active.len());
+                PostEvent::noop(false)
             }
             KeyCode::Down => {
-                if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                if self.active.is_empty() {
+                    return PostEvent::noop(false);
                 }
-                fuzzy.index = (fuzzy.index + 1).rem_euclid(fuzzy.active.len());
-                EventResult::Consumed
+                self.index = (self.index + 1).rem_euclid(self.active.len());
+                PostEvent::noop(false)
             }
             _ if app.config.move_up_fuzzy.is_pressed(key_event) => {
-                if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                if self.active.is_empty() {
+                    return PostEvent::noop(false);
                 }
-                match fuzzy.index.checked_sub(1) {
-                    Some(val) => fuzzy.index = val,
-                    None => fuzzy.index = fuzzy.active.len() - 1,
+                match self.index.checked_sub(1) {
+                    Some(val) => self.index = val,
+                    None => self.index = self.active.len() - 1,
                 }
-                EventResult::Consumed
+                PostEvent::noop(false)
             }
             KeyCode::Up => {
-                if fuzzy.active.is_empty() {
-                    return EventResult::Consumed;
+                if self.active.is_empty() {
+                    return PostEvent::noop(false);
                 }
-                match fuzzy.index.checked_sub(1) {
-                    Some(val) => fuzzy.index = val,
-                    None => fuzzy.index = fuzzy.active.len() - 1,
+                match self.index.checked_sub(1) {
+                    Some(val) => self.index = val,
+                    None => self.index = self.active.len() - 1,
                 }
-                EventResult::Consumed
+                PostEvent::noop(false)
             }
             KeyCode::Enter => {
-                if let Some(Overlay::Fuzzy(mut fuzzy)) = app.overlays.pop() {
-                    if let Some(mode) = fuzzy.prev_mode {
-                        app.mode = mode;
-                    }
-                    if let Some(Some(opt)) = fuzzy
-                        .active
-                        .get(fuzzy.index)
-                        .map(|&id| fuzzy.options.get_mut(id))
+                return PostEvent::pop_overlay(false, |app, overlay| {
+                    if let Overlay::Fuzzy(FuzzyBox {
+                        active,
+                        index,
+                        mut options,
+                        prev_mode,
+                        ..
+                    }) = overlay
                     {
-                        if let Some(callback) = opt.function.take() {
-                            (callback)(app);
+                        if let Some(mode) = prev_mode {
+                            app.mode = mode;
+                        }
+                        if let Some(Some(opt)) = active.get(index).map(|&id| options.get_mut(id)) {
+                            if let Some(callback) = opt.function.take() {
+                                return (callback)(app);
+                            }
                         }
                     }
-                }
-                EventResult::Consumed
+                    PostEvent::noop(false)
+                });
             }
-            KeyCode::Esc => {
-                if let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.pop() {
-                    if let Some(mode) = fuzzy.prev_mode {
-                        app.mode = mode;
-                    }
+            KeyCode::Esc => PostEvent::pop_overlay(false, |app, overlay| {
+                if let Overlay::Fuzzy(FuzzyBox {
+                    prev_mode: Some(mode),
+                    ..
+                }) = overlay
+                {
+                    app.mode = mode;
                 }
-                EventResult::Consumed
-            }
+                PostEvent::noop(false)
+            }),
             _ => {
-                fuzzy.text_area.input(Input::from(key_event));
-                let input = fuzzy.text_area.lines().join("\n").to_ascii_lowercase();
-                fuzzy.active.clear();
-                fuzzy.index = 0;
-                for (i, ele) in fuzzy.options.iter().enumerate() {
+                self.input_box.key_event(app, key_event);
+                let input = self.input_box.text().to_ascii_lowercase();
+                self.active.clear();
+                self.index = 0;
+                for (i, ele) in self.options.iter().enumerate() {
                     // FIXME: Might be better to store as a seperate variable for this.
                     let name = ele
                         .name
@@ -112,32 +117,21 @@ impl FuzzyBox<'_> {
                         .map(|sp| sp.content.clone())
                         .collect::<String>();
                     if name.to_ascii_lowercase().contains(&input) {
-                        fuzzy.active.push(i)
+                        self.active.push(i)
                     }
                 }
-                EventResult::Consumed
+                PostEvent::noop(false)
             }
         }
     }
 
-    pub fn draw(app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last() else {
-            return;
-        };
-
-        InputBox::draw_input_box(
-            &app.config,
-            fuzzy.text_draw_area,
-            &fuzzy.text_area,
-            fuzzy.title.as_ref(),
-            drawer,
-        );
+    pub fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
+        self.input_box.draw(app, drawer);
 
         let mut list = List::new(
-            fuzzy
-                .active
+            self.active
                 .iter()
-                .map(|&id| ListItem::new(fuzzy.options[id].name.clone())) // NOTE: This should
+                .map(|&id| ListItem::new(self.options[id].name.clone())) // NOTE: This should
                 // probably be fine, as
                 // there would have to be
                 // a construction of a
@@ -151,11 +145,7 @@ impl FuzzyBox<'_> {
         );
 
         // FIXME: The colour does not show on the cursor if there is colour in the line :(
-        if let Some(Some(opt)) = fuzzy
-            .active
-            .get(fuzzy.index)
-            .map(|&id| fuzzy.options.get(id))
-        {
+        if let Some(Some(opt)) = self.active.get(self.index).map(|&id| self.options.get(id)) {
             if opt.name.spans.iter().all(|f| f.style.fg.is_none()) {
                 list = list.highlight_style(app.config.highlight_dropdown_style())
             } else {
@@ -163,10 +153,10 @@ impl FuzzyBox<'_> {
             }
         }
         let mut list_state = ListState::default();
-        list_state.select(Some(fuzzy.index));
+        list_state.select(Some(self.index));
 
-        drawer.draw_widget(Clear, fuzzy.list_draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, fuzzy.list_draw_area);
+        drawer.draw_widget(Clear, self.list_draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, self.list_draw_area);
     }
 
     pub fn update_layout(&mut self, draw_area: Rect) {
@@ -176,63 +166,41 @@ impl FuzzyBox<'_> {
             .constraints([Constraint::Length(3), Constraint::Percentage(80)])
             .split(self.draw_area);
 
-        self.text_draw_area = layout[0];
+        self.input_box.draw_area = layout[0];
         self.list_draw_area = layout[1];
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: MouseEvent) -> EventResult {
-        let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
-        };
-        if utils::inside_rect((mouse_event.row, mouse_event.column), fuzzy.text_draw_area) {
-            match mouse_event.kind {
-                MouseEventKind::Down(..) => {}
-                _ => {
-                    return EventResult::Consumed;
-                }
-            }
-
-            let draw_area = fuzzy.text_draw_area;
-
-            if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-                if let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.pop() {
-                    if let Some(mode) = fuzzy.prev_mode {
-                        app.mode = mode;
-                    }
-                }
-                return EventResult::Consumed;
-            }
-
-            // Either we use inner on draw_area to exclude border, or this to include it
-            // and set the border to jump to 0
-            if draw_area.x == mouse_event.column {
-                fuzzy
-                    .text_area
-                    .move_cursor(CursorMove::Jump(mouse_event.row - draw_area.y - 1, 0));
-            } else if draw_area.y == mouse_event.row {
-                fuzzy
-                    .text_area
-                    .move_cursor(CursorMove::Jump(0, mouse_event.column - draw_area.x - 1));
-            } else {
-                fuzzy.text_area.move_cursor(CursorMove::Jump(
-                    mouse_event.row - draw_area.y - 1,
-                    mouse_event.column - draw_area.x - 1,
-                ));
-            }
-            EventResult::Consumed
-        } else if utils::inside_rect((mouse_event.row, mouse_event.column), fuzzy.list_draw_area) {
-            let ar = fuzzy.list_draw_area;
-            let size = fuzzy.active.len();
-            return handle_mouse_movement(app, ar, Mode::Overlay, size, mouse_event);
+    pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
+        if utils::inside_rect(
+            (mouse_event.row, mouse_event.column),
+            self.input_box.draw_area,
+        ) {
+            self.input_box.mouse_event(app, mouse_event)
+        } else if utils::inside_rect((mouse_event.row, mouse_event.column), self.list_draw_area) {
+            let ar = self.list_draw_area;
+            let size = self.active.len();
+            return handle_mouse_movement(
+                &mut self.index,
+                &mut app.mode,
+                ar,
+                Mode::Overlay,
+                size,
+                mouse_event,
+            );
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                if let Some(Overlay::Fuzzy(fuzzy)) = app.overlays.pop() {
-                    if let Some(mode) = fuzzy.prev_mode {
+                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                    if let Overlay::Fuzzy(FuzzyBox {
+                        prev_mode: Some(mode),
+                        ..
+                    }) = overlay
+                    {
                         app.mode = mode;
                     }
-                }
+                    PostEvent::noop(false)
+                });
             }
-            EventResult::Consumed
+            PostEvent::noop(false)
         }
     }
 }
@@ -250,13 +218,11 @@ impl<'a> FuzzyBoxBuilder<'a> {
         let active = (0..self.options.len()).collect_vec();
         Overlay::Fuzzy(FuzzyBox {
             draw_area: self.draw_area,
-            text_draw_area: Rect::default(),
+            input_box: InputBoxBuilder::default().title(self.title).build(),
             list_draw_area: Rect::default(),
             index: 0,
             options: self.options,
             prev_mode: self.prev_mode,
-            title: self.title,
-            text_area: TextArea::default(),
             active,
         })
     }

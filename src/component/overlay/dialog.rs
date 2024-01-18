@@ -9,13 +9,13 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::EventResult,
+    draw::{Action, PostEvent},
     utils::{self, handle_mouse_movement},
 };
 
 use super::Overlay;
 
-type DialogCallback = Box<dyn FnOnce(&mut App)>;
+type DialogCallback = Box<dyn FnOnce(&mut App) -> PostEvent>;
 
 pub struct DialogAction<'a> {
     pub name: Line<'a>,
@@ -25,7 +25,7 @@ pub struct DialogAction<'a> {
 impl DialogAction<'_> {
     pub fn new<F: 'static>(name: String, function: F) -> DialogAction<'static>
     where
-        F: FnOnce(&mut App),
+        F: FnOnce(&mut App) -> PostEvent,
     {
         DialogAction {
             name: Line::raw(name),
@@ -35,7 +35,7 @@ impl DialogAction<'_> {
 
     pub fn styled<F: 'static>(name: String, style: Style, function: F) -> DialogAction<'static>
     where
-        F: FnOnce(&mut App),
+        F: FnOnce(&mut App) -> PostEvent,
     {
         DialogAction {
             name: Line::styled(name, style),
@@ -49,17 +49,13 @@ pub struct DialogBox<'a> {
     title: String,
     pub index: usize,
     options: Vec<DialogAction<'a>>,
-    prev_mode: Option<Mode>,
+    pub prev_mode: Option<Mode>,
 }
 
 impl DialogBox<'_> {
-    pub fn draw(app: &App, drawer: &mut crate::draw::Drawer) {
-        let Some(Overlay::Dialog(dialog)) = app.overlays.last() else {
-            return;
-        };
+    pub fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let mut list = List::new(
-            dialog
-                .options
+            self.options
                 .iter()
                 .map(|action| action.name.clone())
                 .map(ListItem::new)
@@ -68,11 +64,11 @@ impl DialogBox<'_> {
         .highlight_symbol(&app.config.selected_cursor)
         .block(utils::ui::generate_default_block(
             app,
-            dialog.title.as_str(),
+            self.title.as_str(),
             Mode::Overlay,
         ));
 
-        if dialog.options[dialog.index]
+        if self.options[self.index]
             .name
             .spans
             .iter()
@@ -84,74 +80,91 @@ impl DialogBox<'_> {
         }
 
         let mut list_state = ListState::default();
-        list_state.select(Some(dialog.index));
+        list_state.select(Some(self.index));
 
-        drawer.draw_widget(Clear, dialog.draw_area);
-        drawer.draw_stateful_widget(list, &mut list_state, dialog.draw_area);
+        drawer.draw_widget(Clear, self.draw_area);
+        drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
-    pub fn key_event(app: &mut App, key_event: crossterm::event::KeyEvent) -> EventResult {
-        let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
-        };
+    pub fn key_event(&mut self, app: &App, key_event: crossterm::event::KeyEvent) -> PostEvent {
         let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
-                return EventResult::Consumed;
+                return PostEvent {
+                    propegate_further: false,
+                    action: Action::Noop,
+                };
             }
         }
-        utils::handle_key_movement(
-            &app.config,
-            key_event,
-            &mut dialog.index,
-            dialog.options.len(),
-        );
+        utils::handle_key_movement(&app.config, key_event, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => {
-                let Some(Overlay::Dialog(mut dialog)) = app.overlays.pop() else {
-                    return EventResult::Ignored;
-                };
-                if let Some(mode) = dialog.prev_mode {
-                    app.mode = mode;
-                }
-                if let Some(opt) = dialog.options.get_mut(dialog.index) {
-                    if let Some(callback) = opt.function.take() {
-                        (callback)(app);
+                return PostEvent::pop_overlay(false, |app, overlay| {
+                    if let Overlay::Dialog(DialogBox {
+                        index,
+                        mut options,
+                        prev_mode,
+                        ..
+                    }) = overlay
+                    {
+                        if let Some(mode) = prev_mode {
+                            app.mode = mode;
+                        }
+                        if let Some(opt) = options.get_mut(index) {
+                            if let Some(callback) = opt.function.take() {
+                                return (callback)(app);
+                            }
+                        }
                     }
-                }
+                    PostEvent::noop(false)
+                })
             }
             KeyCode::Esc => {
-                let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
-                    return EventResult::Ignored;
-                };
-                if let Some(mode) = dialog.prev_mode {
-                    app.mode = mode;
-                }
+                return PostEvent::pop_overlay(false, |app, overlay| {
+                    if let Some(mode) = overlay.prev_mode() {
+                        app.mode = mode;
+                    }
+                    PostEvent::noop(false)
+                })
             }
             _ => {}
         }
-        EventResult::Consumed
+        PostEvent {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
-    pub fn mouse_event(app: &mut App, mouse_event: crossterm::event::MouseEvent) -> EventResult {
-        let Some(Overlay::Dialog(dialog)) = app.overlays.last_mut() else {
-            return EventResult::Ignored;
-        };
-        if utils::inside_rect((mouse_event.row, mouse_event.column), dialog.draw_area) {
-            let draw_area = dialog.draw_area;
-            let size = dialog.options.len();
-            return handle_mouse_movement(app, draw_area, Mode::Overlay, size, mouse_event);
+    pub fn mouse_event(
+        &mut self,
+        app: &mut App,
+        mouse_event: crossterm::event::MouseEvent,
+    ) -> PostEvent {
+        if utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
+            let draw_area = self.draw_area;
+            let size = self.options.len();
+            return handle_mouse_movement(
+                &mut self.index,
+                &mut app.mode,
+                draw_area,
+                Mode::Overlay,
+                size,
+                mouse_event,
+            );
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
-            let Some(Overlay::Dialog(dialog)) = app.overlays.pop() else {
-                return EventResult::Ignored;
-            };
-            if let Some(mode) = dialog.prev_mode {
-                app.mode = mode;
-            }
+            return PostEvent::pop_overlay(false, |app, overlay| {
+                if let Some(mode) = overlay.prev_mode() {
+                    app.mode = mode;
+                }
+                PostEvent::noop(false)
+            });
         }
-        EventResult::Consumed
+        PostEvent {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
     pub fn update_layout(&mut self, area: Rect) {

@@ -1,7 +1,7 @@
 use crate::{
     app::App,
     component::{completed_list::CompletedList, task_list::TaskList, viewer::Viewer},
-    draw::{Component, Drawer, EventResult},
+    draw::{Action, Component, Drawer, PostEvent},
     utils,
 };
 use crossterm::event::MouseEvent;
@@ -40,14 +40,17 @@ impl Component for MainScreen {
         &mut self,
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
-    ) -> EventResult {
+    ) -> PostEvent {
         let MouseEvent { row, column, .. } = mouse_event;
         if utils::inside_rect((row, column), self.task_list.area) {
             self.task_list.mouse_event(app, mouse_event);
         } else if utils::inside_rect((row, column), self.completed_list.area) {
             self.completed_list.mouse_event(app, mouse_event);
         }
-        EventResult::Ignored
+        PostEvent {
+            propegate_further: true,
+            action: Action::Noop,
+        }
     }
 
     fn update_layout(&mut self, layout: Rect) {

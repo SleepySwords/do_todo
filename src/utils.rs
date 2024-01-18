@@ -3,11 +3,9 @@ use tui::layout::{Constraint, Direction, Layout, Rect};
 
 use std::usize;
 
+use crate::app::{App, Mode};
 use crate::config::{Config, KeyBindings};
-use crate::{
-    app::{App, Mode},
-    draw::EventResult,
-};
+use crate::draw::PostEvent;
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -61,50 +59,93 @@ pub fn handle_key_movement(
     key_event: KeyEvent,
     index: &mut usize,
     max_items: usize,
-) -> EventResult {
+) -> PostEvent {
     match KeyBindings::from_event(theme, key_event) {
         KeyBindings::MoveTop => {
             *index = 0;
-            EventResult::Consumed
+            PostEvent::noop(false)
         }
         KeyBindings::MoveBottom => {
             *index = max_items - 1;
-            EventResult::Consumed
+            PostEvent::noop(false)
         }
         KeyBindings::DownKeys => {
             if max_items == 0 {
-                return EventResult::Ignored;
+                return PostEvent::noop(true);
             }
             *index = (*index + 1).rem_euclid(max_items);
-            EventResult::Consumed
+            PostEvent::noop(false)
         }
         KeyBindings::UpKeys => {
             if max_items == 0 {
-                return EventResult::Ignored;
+                return PostEvent::noop(true);
             }
             match index.checked_sub(1) {
                 Some(val) => *index = val,
                 None => *index = max_items - 1,
             }
-            EventResult::Consumed
+            PostEvent::noop(false)
         }
-        _ => EventResult::Ignored,
+        _ => PostEvent::noop(true),
     }
 }
 
-pub fn handle_mouse_movement(
+pub fn handle_mouse_movement_app(
     app: &mut App,
     area: Rect,
     mode: Mode,
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
-) -> EventResult {
-    let Some(index) = app.selected_index(mode) else {
-        return EventResult::Consumed;
-    };
+) -> PostEvent {
+    if let Some(index) = app.selected_index(mode) {
+        if max_items == 0 {
+            return PostEvent::noop(false);
+        }
+        let offset = row - area.y;
+        if let MouseEventKind::ScrollUp = kind {
+            if *index != 0 {
+                *index -= 1;
+            }
+        }
 
+        if let MouseEventKind::ScrollDown = kind {
+            if *index < max_items - 1 {
+                *index += 1;
+            }
+        }
+
+        if let MouseEventKind::Down(_) = kind {
+            app.mode = mode;
+            if let Some(index) = app.selected_index(mode) {
+                if offset == 0 {
+                    return PostEvent::noop(false);
+                }
+                if *index > area.height as usize - 2 {
+                    let new_index = *index - (area.height as usize - 2) + offset as usize;
+                    *index = new_index;
+                } else {
+                    if offset as usize > max_items {
+                        *index = max_items - 1;
+                        return PostEvent::noop(false);
+                    }
+                    *index = offset as usize - 1;
+                }
+            }
+        }
+    }
+    PostEvent::noop(false)
+}
+
+pub fn handle_mouse_movement(
+    index: &mut usize,
+    app_mode: &mut Mode,
+    area: Rect,
+    mode: Mode,
+    max_items: usize,
+    MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
+) -> PostEvent {
     if max_items == 0 {
-        return EventResult::Consumed;
+        return PostEvent::noop(false);
     }
     let offset = row - area.y;
     if let MouseEventKind::ScrollUp = kind {
@@ -120,24 +161,22 @@ pub fn handle_mouse_movement(
     }
 
     if let MouseEventKind::Down(_) = kind {
-        app.mode = mode;
+        *app_mode = mode;
         if offset == 0 {
-            return EventResult::Consumed;
+            return PostEvent::noop(false);
         }
-        if let Some(index) = app.selected_index(mode) {
-            if *index > area.height as usize - 2 {
-                let new_index = *index - (area.height as usize - 2) + offset as usize;
-                *index = new_index;
-            } else {
-                if offset as usize > max_items {
-                    *index = max_items - 1;
-                    return EventResult::Consumed;
-                }
-                *index = offset as usize - 1;
+        if *index > area.height as usize - 2 {
+            let new_index = *index - (area.height as usize - 2) + offset as usize;
+            *index = new_index;
+        } else {
+            if offset as usize > max_items {
+                *index = max_items - 1;
+                return PostEvent::noop(false);
             }
+            *index = offset as usize - 1;
         }
     }
-    EventResult::Consumed
+    PostEvent::noop(false)
 }
 
 pub(crate) mod ui {
@@ -277,23 +316,36 @@ mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
-    use crate::{app::App, input, task::TaskStore};
+    use crate::{
+        app::{App, MainApp},
+        input,
+        task::TaskStore,
+    };
 
-    pub fn input_char(character: char, app: &mut App) {
-        let _result = input::key_event(
-            app,
+    pub fn input_char(character: char, main_app: &mut MainApp) {
+        let result = input::key_event(
+            main_app,
             crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE),
         );
+        if let Ok(post_event) = result {
+            main_app.handle_post_event(post_event);
+        }
     }
 
-    pub fn input_code(key: KeyCode, app: &mut App) {
-        let _result = input::key_event(
-            app,
+    pub fn input_code(key: KeyCode, main_app: &mut MainApp) {
+        let result = input::key_event(
+            main_app,
             crossterm::event::KeyEvent::new(key, KeyModifiers::NONE),
         );
+        if let Ok(post_event) = result {
+            main_app.handle_post_event(post_event);
+        }
     }
 
-    pub fn setup(task_store: TaskStore) -> App {
-        App::new(crate::config::Config::default(), task_store)
+    pub fn setup(task_store: TaskStore) -> MainApp {
+        MainApp {
+            overlays: vec![],
+            app: App::new(crate::config::Config::default(), task_store),
+        }
     }
 }

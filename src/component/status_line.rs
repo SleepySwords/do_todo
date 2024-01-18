@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::App,
-    draw::{Component, Drawer, EventResult},
+    draw::{Action, Component, Drawer, PostEvent},
 };
 
 // TODO: Proper impl with actual colours
@@ -54,8 +54,11 @@ impl Component for StatusLine {
         drawer.draw_widget(paragraph, self.draw_area);
     }
 
-    fn key_event(&mut self, _: &mut App, _: KeyEvent) -> EventResult {
-        EventResult::Ignored
+    fn key_event(&mut self, _: &mut App, _: KeyEvent) -> PostEvent {
+        PostEvent {
+            propegate_further: true,
+            action: Action::Noop,
+        }
     }
 
     fn update_layout(&mut self, draw_area: Rect) {

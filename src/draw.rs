@@ -4,12 +4,45 @@ use tui::{
     Frame,
 };
 
-use crate::app::App;
+use crate::{app::App, component::overlay::Overlay};
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum EventResult {
-    Consumed,
-    Ignored,
+type PopOverlayCallback = dyn FnOnce(&mut App, Overlay) -> PostEvent;
+
+pub enum Action {
+    PopOverlay(Box<PopOverlayCallback>),
+    PushLayer(Overlay<'static>),
+    Noop,
+}
+
+pub struct PostEvent {
+    pub propegate_further: bool,
+    pub action: Action,
+}
+
+impl PostEvent {
+    pub fn noop(propegate_further: bool) -> PostEvent {
+        PostEvent {
+            propegate_further,
+            action: Action::Noop,
+        }
+    }
+
+    pub fn pop_overlay<F: 'static>(propegate_further: bool, function: F) -> PostEvent
+    where
+        F: FnOnce(&mut App, Overlay) -> PostEvent,
+    {
+        PostEvent {
+            propegate_further,
+            action: Action::PopOverlay(Box::new(function)),
+        }
+    }
+
+    pub fn push_layer(propegate_further: bool, overlay: Overlay<'static>) -> PostEvent {
+        PostEvent {
+            propegate_further,
+            action: Action::PushLayer(overlay),
+        }
+    }
 }
 
 /// A component that is able to be drawn on the screen.
@@ -17,16 +50,22 @@ pub trait Component {
     /// Draws the component onto the [[Drawer]]
     fn draw(&self, app: &App, drawer: &mut Drawer);
 
-    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> EventResult {
-        EventResult::Ignored
+    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> PostEvent {
+        PostEvent {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
     fn mouse_event(
         &mut self,
         _app: &mut App,
         _mouse_event: crossterm::event::MouseEvent,
-    ) -> EventResult {
-        EventResult::Ignored
+    ) -> PostEvent {
+        PostEvent {
+            propegate_further: false,
+            action: Action::Noop,
+        }
     }
 
     fn update_layout(&mut self, draw_area: Rect);

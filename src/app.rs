@@ -6,6 +6,7 @@ use crate::{
         completed_list::CompletedListContext, overlay::Overlay, task_list::TaskListContext,
     },
     config::Config,
+    draw::{Action, PostEvent},
     task::TaskStore,
 };
 
@@ -22,9 +23,37 @@ pub struct App {
 
     pub task_list: TaskListContext,
     pub completed_list: CompletedListContext,
-    pub overlays: Vec<Overlay<'static>>,
 
     should_shutdown: bool,
+}
+
+// Above should be data, this should be map.
+pub struct MainApp {
+    pub app: App,
+    pub overlays: Vec<Overlay<'static>>,
+}
+
+impl MainApp {
+    pub fn push_layer(&mut self, component: Overlay<'static>) {
+        self.overlays.push(component);
+    }
+
+    pub fn pop_layer(&mut self) -> Option<Overlay<'static>> {
+        self.overlays.pop()
+    }
+
+    pub(crate) fn handle_post_event(&mut self, post_event: PostEvent) {
+        match post_event.action {
+            Action::PopOverlay(fun) => {
+                if let Some(overlay) = self.pop_layer() {
+                    let result = (fun)(&mut self.app, overlay);
+                    self.handle_post_event(result);
+                }
+            }
+            Action::PushLayer(overlay) => self.push_layer(overlay),
+            Action::Noop => {}
+        }
+    }
 }
 
 impl App {
@@ -37,15 +66,13 @@ impl App {
         }
     }
 
+    /// Returns the selected index only for the current tasks and completed tasks
+    /// This returns None for Overlays.
     pub fn selected_index(&mut self, mode: Mode) -> Option<&mut usize> {
         match mode {
             Mode::CurrentTasks => Some(&mut self.task_list.selected_index),
             Mode::CompletedTasks => Some(&mut self.completed_list.selected_index),
-            Mode::Overlay => match self.overlays.last_mut() {
-                Some(Overlay::Dialog(dialog)) => Some(&mut dialog.index),
-                Some(Overlay::Fuzzy(fuzzy)) => Some(&mut fuzzy.index),
-                _ => None,
-            },
+            Mode::Overlay => None,
         }
     }
 
@@ -53,17 +80,13 @@ impl App {
         self.should_shutdown = true
     }
 
-    pub fn should_shutdown(&mut self) -> bool {
+    pub fn should_shutdown(&self) -> bool {
         self.should_shutdown
     }
 
     // Perhaps should use a static variable.
     pub fn println(&mut self, line: String) {
         self.logs.push((line, Local::now().time()));
-    }
-
-    pub fn push_layer(&mut self, component: Overlay<'static>) {
-        self.overlays.push(component);
     }
 }
 
