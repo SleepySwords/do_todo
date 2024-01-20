@@ -14,6 +14,7 @@ use crate::{
     input,
     key::Key,
     task::CompletedTask,
+    utils::str_to_colour,
 };
 
 // Action class maybe?!!
@@ -178,8 +179,7 @@ impl App {
         if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
             // Loops through the tags and adds them to the menu.
             for (i, tag) in self.task_store.tags.iter() {
-                let moved: u32 = *i;
-                // TODO: Allow for DialogBox to support colours.
+                let moved: usize = *i;
                 tag_options.push(DialogAction::styled(
                     String::from(&tag.name),
                     Style::default().fg(tag.colour),
@@ -216,6 +216,9 @@ impl App {
             ));
         }
 
+        tag_options.push(DialogAction::new(String::from("Edit a tag"), move |app| {
+            app.create_edit_tag_menu()
+        }));
         tag_options.push(DialogAction::new(
             String::from("Delete a tag (permanently)"),
             move |app| app.create_delete_tag_menu(),
@@ -231,9 +234,8 @@ impl App {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         for (i, tag) in self.task_store.tags.iter() {
-            let moved: u32 = *i;
+            let moved: usize = *i;
             let moved_name = tag.name.clone();
-            // TODO: Allow for DialogBox to support colours.
             tag_options.push(DialogAction::styled(
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
@@ -268,24 +270,7 @@ impl App {
         let colour_menu = InputBoxBuilder::default()
             .title(String::from("Tag colour"))
             .callback(move |app, tag_colour| {
-                let colour = if tag_colour.starts_with('#') {
-                    let red = u8::from_str_radix(&tag_colour[1..3], 16)?;
-                    let green = u8::from_str_radix(&tag_colour[3..5], 16)?;
-                    let blue = u8::from_str_radix(&tag_colour[5..7], 16)?;
-                    Color::Rgb(red, green, blue)
-                } else if let Ok(colour) = tag_colour.parse() {
-                    Color::Indexed(colour)
-                } else {
-                    match tag_colour
-                        .to_lowercase()
-                        .replace([' ', '_', '-'], "")
-                        .as_str()
-                        .parse::<Color>()
-                    {
-                        Ok(colour) => colour,
-                        Err(_) => return Err(AppError::InvalidColour),
-                    }
-                };
+                let colour = str_to_colour(&tag_colour)?;
 
                 let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
                 app.task_store.tags.insert(
@@ -317,5 +302,52 @@ impl App {
             .save_mode(self)
             .build_overlay();
         PostEvent::push_layer(false, colour_menu)
+    }
+
+    pub fn create_edit_tag_menu(&mut self) -> PostEvent {
+        let mut tag_options: Vec<DialogAction> = Vec::new();
+
+        for (i, tag) in self.task_store.tags.iter() {
+            let moved: usize = *i;
+            let moved_name = tag.name.clone();
+            let moved_colour = tag.colour.clone();
+            tag_options.push(DialogAction::styled(
+                String::from(&tag.name),
+                Style::default().fg(tag.colour),
+                move |app| {
+                    // FIXME: add an error callback
+                    let edit_name = InputBoxBuilder::default()
+                        .title("Edit tag name".to_string())
+                        .fill(&moved_name)
+                        .callback(move |app, tag_name| {
+                            let tag_colour = InputBoxBuilder::default()
+                                .title(String::from("Tag colour"))
+                                .fill(&moved_colour.to_string())
+                                .callback(move |app, tag_colour| {
+                                    let colour = str_to_colour(&tag_colour)?;
+
+                                    app.task_store.tags.insert(
+                                        moved,
+                                        crate::task::Tag {
+                                            name: tag_name,
+                                            colour,
+                                        },
+                                    );
+                                    Ok(PostEvent::noop(false))
+                                })
+                                .save_mode(app);
+
+                            Ok(PostEvent::push_layer(false, tag_colour.build_overlay()))
+                        })
+                        .save_mode(app);
+                    PostEvent::push_layer(false, edit_name.build_overlay())
+                },
+            ));
+        }
+        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
+            PostEvent::noop(false)
+        }));
+
+        self.create_dialog_or_fuzzy("Edit a tag", tag_options)
     }
 }

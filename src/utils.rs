@@ -1,11 +1,13 @@
 use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
+use tui::style::Color;
 
 use std::usize;
 
 use crate::app::{App, Mode};
 use crate::config::{Config, KeyBindings};
 use crate::draw::PostEvent;
+use crate::error::AppError;
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -177,6 +179,27 @@ pub fn handle_mouse_movement(
         }
     }
     PostEvent::noop(false)
+}
+
+pub fn str_to_colour(colour: &str) -> Result<Color, AppError> {
+    if colour.starts_with('#') {
+        let red = u8::from_str_radix(&colour[1..3], 16)?;
+        let green = u8::from_str_radix(&colour[3..5], 16)?;
+        let blue = u8::from_str_radix(&colour[5..7], 16)?;
+        Ok(Color::Rgb(red, green, blue))
+    } else if let Ok(colour) = colour.parse() {
+        Ok(Color::Indexed(colour))
+    } else {
+        match colour
+            .to_lowercase()
+            .replace([' ', '_', '-'], "")
+            .as_str()
+            .parse::<Color>()
+        {
+            Ok(colour) => Ok(colour),
+            Err(_) => return Err(AppError::InvalidColour),
+        }
+    }
 }
 
 pub(crate) mod ui {

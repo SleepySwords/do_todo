@@ -18,7 +18,7 @@ pub struct Task {
     pub progress: bool,
     pub title: String,
     pub priority: Priority,
-    pub tags: Vec<u32>,
+    pub tags: Vec<usize>,
 
     // Ignored if sub_tasks is empty
     pub opened: bool,
@@ -47,7 +47,7 @@ impl Task {
             .filter_map(|tag_index| return app.task_store.tags.get(tag_index))
     }
 
-    pub fn flip_tag(&mut self, tag: u32) {
+    pub fn flip_tag(&mut self, tag: usize) {
         if !self.tags.contains(&tag) {
             self.tags.push(tag)
         } else {
@@ -66,7 +66,7 @@ impl Task {
         }
     }
 
-    pub fn delete_tag(&mut self, tag_id: u32) {
+    pub fn delete_tag(&mut self, tag_id: usize) {
         self.sub_tasks.sort_by_key(|t| cmp::Reverse(t.priority));
         self.tags.retain(|f| f != &tag_id);
         for task in &mut self.sub_tasks {
@@ -179,7 +179,7 @@ impl Priority {
 #[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct TaskStore {
-    pub tags: BTreeMap<u32, Tag>,
+    pub tags: BTreeMap<usize, Tag>,
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
     pub auto_sort: bool,
@@ -356,7 +356,7 @@ impl TaskStore {
             .find_map(|sub_task| Self::internal_task_pos(to_find, sub_task, index))
     }
 
-    pub fn delete_tag(&mut self, tag_id: u32) {
+    pub fn delete_tag(&mut self, tag_id: usize) {
         self.tags.remove(&tag_id);
         for task in &mut self.tasks {
             task.delete_tag(tag_id);
