@@ -307,6 +307,45 @@ impl App {
     pub fn create_edit_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
+        fn create_select_tag_colour(
+            app: &mut App,
+            tag_id: usize,
+            moved_colour: Color,
+            tag_name: String,
+        ) -> PostEvent {
+            let name = tag_name.clone();
+            let tag_colour = InputBoxBuilder::default()
+                .title(String::from("Tag colour"))
+                .fill(&moved_colour.to_string())
+                .callback(move |app, tag_colour| {
+                    let colour = str_to_colour(&tag_colour)?;
+
+                    app.task_store.tags.insert(
+                        tag_id,
+                        crate::task::Tag {
+                            name: tag_name,
+                            colour,
+                        },
+                    );
+                    Ok(PostEvent::noop(false))
+                })
+                .error_callback(move |app, err| {
+                    let tag_name = name.clone();
+                    let message_box = MessageBox::new(
+                        String::from("Error"),
+                        move |app| create_select_tag_colour(app, tag_id, moved_colour, tag_name),
+                        err.to_string(),
+                        tui::style::Color::Red,
+                        0,
+                    )
+                    .save_mode(app);
+                    return PostEvent::push_layer(false, Overlay::Message(message_box));
+                })
+                .save_mode(app);
+
+            PostEvent::push_layer(false, tag_colour.build_overlay())
+        }
+
         for (i, tag) in self.task_store.tags.iter() {
             let moved: usize = *i;
             let moved_name = tag.name.clone();
@@ -315,29 +354,11 @@ impl App {
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
                 move |app| {
-                    // FIXME: add an error callback
                     let edit_name = InputBoxBuilder::default()
                         .title("Edit tag name".to_string())
                         .fill(&moved_name)
                         .callback(move |app, tag_name| {
-                            let tag_colour = InputBoxBuilder::default()
-                                .title(String::from("Tag colour"))
-                                .fill(&moved_colour.to_string())
-                                .callback(move |app, tag_colour| {
-                                    let colour = str_to_colour(&tag_colour)?;
-
-                                    app.task_store.tags.insert(
-                                        moved,
-                                        crate::task::Tag {
-                                            name: tag_name,
-                                            colour,
-                                        },
-                                    );
-                                    Ok(PostEvent::noop(false))
-                                })
-                                .save_mode(app);
-
-                            Ok(PostEvent::push_layer(false, tag_colour.build_overlay()))
+                            Ok(create_select_tag_colour(app, moved, moved_colour, tag_name))
                         })
                         .save_mode(app);
                     PostEvent::push_layer(false, edit_name.build_overlay())
