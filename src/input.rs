@@ -222,9 +222,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
 
             // FIXME: refactor this to ideally not clone
             if app.task_store.auto_sort {
-                // FIXME: should be an error.
                 let Some(task) = app.task_store.task(*selected_index).cloned() else {
-                    return Ok(PostEvent::noop(true));
+                    return Err(AppError::InvalidState(
+                        "There is no task selected.".to_string(),
+                    ));
                 };
                 app.task_store.sort();
                 if let Some(task_pos) = app.task_store.task_position(&task) {
@@ -281,9 +282,10 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
             );
             // FIXME: refactor this to ideally not clone
             if app.task_store.auto_sort {
-                // FIXME: should be an error.
                 let Some(task) = app.task_store.task(*selected_index).cloned() else {
-                    return Ok(PostEvent::noop(true));
+                    return Err(AppError::InvalidState(
+                        "Invalid selected index for this task.".to_string(),
+                    ));
                 };
                 app.task_store.sort();
                 if let Some(task_pos) = app.task_store.task_position(&task) {

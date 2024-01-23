@@ -96,7 +96,9 @@ impl App {
             actions.push(DialogAction::new(
                 format!("{: <15}{}", ac.short_hand, ac.description),
                 move |app| {
-                    // FIXME: oh well
+                    // HACK: This technically does not consider overlay,
+                    // Should be fine, since they don't show up in Help
+                    // Menus anyway
                     let result = input::help_input(
                         app,
                         KeyEvent::new(ac.character.code, ac.character.modifiers),

@@ -109,7 +109,6 @@ impl FuzzyBox<'_> {
                 self.active.clear();
                 self.index = 0;
                 for (i, ele) in self.options.iter().enumerate() {
-                    // FIXME: Might be better to store as a seperate variable for this.
                     let name = ele
                         .name
                         .spans
@@ -131,11 +130,12 @@ impl FuzzyBox<'_> {
         let mut list = List::new(
             self.active
                 .iter()
-                .map(|&id| ListItem::new(self.options[id].name.clone())) // NOTE: This should
+                // NOTE: This clone should
                 // probably be fine, as
                 // there would have to be
                 // a construction of a
                 // Line every call anyway.
+                .map(|&id| ListItem::new(self.options[id].name.clone())) 
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_symbol(&app.config.selected_cursor)
