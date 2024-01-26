@@ -274,7 +274,7 @@ impl InputBoxBuilder {
             self.input_mode = InputMode::Vim(Vim {
                 mode: VimMode::Normal,
                 operator: Operator::None,
-                pending: ' ',
+                pending: None,
             })
         } else {
             self.input_mode = InputMode::Normal
