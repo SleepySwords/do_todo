@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use tui::prelude::Rect;
 
 use crate::{
-    app::{ScreenManager, Mode},
+    app::{Mode, ScreenManager},
     draw::{Action, Drawer, PostEvent},
     error::AppError,
 };
@@ -23,7 +23,10 @@ pub enum Overlay<'a> {
 }
 
 impl Overlay<'_> {
-    pub fn key_event(screen_manager: &mut ScreenManager, key_event: KeyEvent) -> Result<PostEvent, AppError> {
+    pub fn key_event(
+        screen_manager: &mut ScreenManager,
+        key_event: KeyEvent,
+    ) -> Result<PostEvent, AppError> {
         if let Some(overlay) = screen_manager.overlays.last_mut() {
             return match overlay {
                 Overlay::Fuzzy(fuzzy) => Ok(fuzzy.key_event(&mut screen_manager.app, key_event)),
@@ -44,7 +47,9 @@ impl Overlay<'_> {
                 Overlay::Fuzzy(fuzzy) => fuzzy.mouse_event(&mut screen_manager.app, mouse_event),
                 Overlay::Input(input) => input.mouse_event(&mut screen_manager.app, mouse_event),
                 Overlay::Dialog(dialog) => dialog.mouse_event(&mut screen_manager.app, mouse_event),
-                Overlay::Message(message) => message.mouse_event(&mut screen_manager.app, mouse_event),
+                Overlay::Message(message) => {
+                    message.mouse_event(&mut screen_manager.app, mouse_event)
+                }
             };
         }
 

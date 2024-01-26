@@ -15,12 +15,15 @@ fn add_tag(screen_manager: &mut ScreenManager, name: &str, colour: &str) {
     input_code(KeyCode::Up, screen_manager);
     input_code(KeyCode::Up, screen_manager);
     input_code(KeyCode::Up, screen_manager);
+    input_code(KeyCode::Up, screen_manager);
     input_code(KeyCode::Enter, screen_manager);
 
     name.chars().for_each(|chr| input_char(chr, screen_manager));
     input_code(KeyCode::Enter, screen_manager);
 
-    colour.chars().for_each(|chr| input_char(chr, screen_manager));
+    colour
+        .chars()
+        .for_each(|chr| input_char(chr, screen_manager));
     input_code(KeyCode::Enter, screen_manager);
 }
 
@@ -128,7 +131,8 @@ fn test_tag_cancel_and_enter() {
 
     assert_eq!(screen_manager.app.task_store.tags.len(), 0);
 
-    "12".chars().for_each(|chr| input_char(chr, &mut screen_manager));
+    "12".chars()
+        .for_each(|chr| input_char(chr, &mut screen_manager));
     input_code(KeyCode::Enter, &mut screen_manager);
 
     assert_eq!(screen_manager.app.task_store.tags.len(), 1);

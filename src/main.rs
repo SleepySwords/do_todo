@@ -112,7 +112,10 @@ pub fn start_app(
             }
 
             screen_manager.app.status_line.update_layout(chunk[1]);
-            screen_manager.app.status_line.draw(&main_app.app, &mut drawer);
+            screen_manager
+                .app
+                .status_line
+                .draw(&screen_manager.app, &mut drawer);
 
             logger.update_layout(draw_size);
             logger.draw(&screen_manager.app, &mut drawer);

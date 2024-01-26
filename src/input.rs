@@ -2,7 +2,7 @@ use crossterm::event::KeyEvent;
 
 use crate::{
     actions::HelpEntry,
-    app::{App, ScreenManager, Mode},
+    app::{App, Mode, ScreenManager},
     component::{
         completed_list::CompletedList,
         overlay::{input_box::InputBoxBuilder, Overlay},
@@ -14,7 +14,10 @@ use crate::{
     utils,
 };
 
-pub fn key_event(screen_manager: &mut ScreenManager, key_event: KeyEvent) -> Result<PostEvent, AppError> {
+pub fn key_event(
+    screen_manager: &mut ScreenManager,
+    key_event: KeyEvent,
+) -> Result<PostEvent, AppError> {
     let event = match screen_manager.app.mode {
         Mode::Overlay => Overlay::key_event(screen_manager, key_event),
         Mode::CurrentTasks => task_list_input(&mut screen_manager.app, key_event),
