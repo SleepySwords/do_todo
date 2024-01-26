@@ -135,7 +135,7 @@ impl FuzzyBox<'_> {
                 // there would have to be
                 // a construction of a
                 // Line every call anyway.
-                .map(|&id| ListItem::new(self.options[id].name.clone())) 
+                .map(|&id| ListItem::new(self.options[id].name.clone()))
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_symbol(&app.config.selected_cursor)

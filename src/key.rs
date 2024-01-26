@@ -20,7 +20,6 @@ impl Key {
 
     pub fn new(code: KeyCode, modifiers: KeyModifiers) -> Key {
         Key { code, modifiers }
-
     }
     pub fn from_event(event: KeyEvent) -> Key {
         Key {

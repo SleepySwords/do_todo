@@ -351,7 +351,7 @@ impl App {
         for (i, tag) in self.task_store.tags.iter() {
             let moved: usize = *i;
             let moved_name = tag.name.clone();
-            let moved_colour = tag.colour.clone();
+            let moved_colour = tag.colour;
             tag_options.push(DialogAction::styled(
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),

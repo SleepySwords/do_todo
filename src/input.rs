@@ -10,7 +10,7 @@ use crate::{
     config::{Config, KeyBindings},
     draw::PostEvent,
     error::AppError,
-    task::{Task, TaskStore},
+    task::{FindParentResult, Task, TaskStore},
     utils,
 };
 
@@ -80,15 +80,18 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
         KeyBindings::MoveTaskDown => {
             let autosort = app.task_store.auto_sort;
 
-            let Some((parent_tasks, parent_index, local_index, is_global)) =
-                app.task_store.find_parent(*selected_index)
+            let Some(FindParentResult {
+                tasks: parent_tasks,
+                parent_index,
+                task_local_offset: local_index,
+            }) = app.task_store.find_parent(*selected_index)
             else {
                 return Ok(PostEvent::noop(true));
             };
 
             let new_index = (local_index + 1) % parent_tasks.len();
 
-            let Some(parent_subtasks) = app.task_store.subtasks(parent_index, is_global) else {
+            let Some(parent_subtasks) = app.task_store.subtasks(parent_index) else {
                 return Ok(PostEvent::noop(true));
             };
 
@@ -100,19 +103,18 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
 
                 parent_subtasks.insert(new_index, task);
 
-                *selected_index = TaskStore::local_index_to_global(
-                    new_index,
-                    parent_subtasks,
-                    parent_index,
-                    is_global,
-                );
+                *selected_index =
+                    TaskStore::local_index_to_global(new_index, parent_subtasks, parent_index);
             }
         }
         KeyBindings::MoveTaskUp => {
             let autosort = app.task_store.auto_sort;
 
-            let Some((parent_subtasks, parent_index, local_index, is_global)) =
-                app.task_store.find_parent(*selected_index)
+            let Some(FindParentResult {
+                tasks: parent_subtasks,
+                parent_index,
+                task_local_offset: local_index,
+            }) = app.task_store.find_parent(*selected_index)
             else {
                 return Ok(PostEvent::noop(true));
             };
@@ -124,7 +126,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
             let new_index =
                 (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
 
-            let Some(mut_parent_subtasks) = app.task_store.subtasks(parent_index, is_global) else {
+            let Some(mut_parent_subtasks) = app.task_store.subtasks(parent_index) else {
                 return Ok(PostEvent::noop(true));
             };
 
@@ -136,12 +138,8 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
 
                 mut_parent_subtasks.insert(new_index, task);
 
-                *selected_index = TaskStore::local_index_to_global(
-                    new_index,
-                    mut_parent_subtasks,
-                    parent_index,
-                    is_global,
-                )
+                *selected_index =
+                    TaskStore::local_index_to_global(new_index, mut_parent_subtasks, parent_index)
             }
         }
         KeyBindings::DeleteKey => {
@@ -187,8 +185,11 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
             task.opened = !task.opened;
         }
         KeyBindings::MoveSubtaskLevelUp => {
-            let Some((parent_tasks, parent_index, local_index, is_task_global)) =
-                app.task_store.find_parent(*selected_index)
+            let Some(FindParentResult {
+                tasks: parent_tasks,
+                parent_index,
+                task_local_offset: local_index,
+            }) = app.task_store.find_parent(*selected_index)
             else {
                 return Ok(PostEvent::noop(true));
             };
@@ -202,12 +203,8 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
             }
 
             let prev_local_index = local_index - 1;
-            let prev_global_index = TaskStore::local_index_to_global(
-                prev_local_index,
-                parent_tasks,
-                parent_index,
-                is_task_global,
-            );
+            let prev_global_index =
+                TaskStore::local_index_to_global(prev_local_index, parent_tasks, parent_index);
 
             let Some(task) = app.task_store.delete_task(*selected_index) else {
                 return Ok(PostEvent::noop(true));
@@ -234,22 +231,25 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
             }
         }
         KeyBindings::MoveSubtaskLevelDown => {
-            let Some((_, parent_index, _, is_task_global)) =
+            let Some(FindParentResult { parent_index, .. }) =
                 app.task_store.find_parent(*selected_index)
             else {
                 return Ok(PostEvent::noop(true));
             };
 
-            if is_task_global {
+            let Some(parent_index) = parent_index else {
                 return Ok(PostEvent::noop(true));
-            }
+            };
 
             let Some(task) = app.task_store.delete_task(*selected_index) else {
                 return Ok(PostEvent::noop(true));
             };
 
-            let Some((grandparent_subtasks, grandparent_index, _, is_parent_global)) =
-                app.task_store.find_parent(parent_index)
+            let Some(FindParentResult {
+                tasks: grandparent_subtasks,
+                parent_index: grandparent_index,
+                ..
+            }) = app.task_store.find_parent(parent_index)
             else {
                 return Ok(PostEvent::noop(true));
             };
@@ -266,9 +266,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                     AppError::InvalidState("Cannot find the parent tasks index.".to_string())
                 })?;
 
-            let Some(grandparent_subtasks) =
-                app.task_store.subtasks(grandparent_index, is_parent_global)
-            else {
+            let Some(grandparent_subtasks) = app.task_store.subtasks(grandparent_index) else {
                 return Ok(PostEvent::noop(true));
             };
 
@@ -278,7 +276,6 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                 new_index,
                 grandparent_subtasks,
                 grandparent_index,
-                is_parent_global,
             );
             // FIXME: refactor this to ideally not clone
             if app.task_store.auto_sort {
