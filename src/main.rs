@@ -13,7 +13,7 @@ mod task;
 mod tests;
 mod utils;
 
-use app::MainApp;
+use app::ScreenManager;
 use component::{message_box::MessageBox, overlay::Overlay};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
@@ -53,12 +53,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let app = App::new(theme, tasks);
-    let mut main_app = MainApp {
+    let mut screen_manager = ScreenManager {
         app,
         overlays: vec![],
     };
 
-    let result = start_app(&mut main_app, &mut terminal);
+    let result = start_app(&mut screen_manager, &mut terminal);
 
     // Shutting down application
 
@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    let app = main_app.app;
+    let app = screen_manager.app;
     data_io::save_data(&app.config, &app.task_store);
 
     if let Err(err) = result {
@@ -83,14 +83,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn start_app(
-    main_app: &mut MainApp,
+    screen_manager: &mut ScreenManager,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
 ) -> io::Result<()> {
     let mut main_screen = MainScreen::new();
 
     let mut logger = Logger::default();
 
-    while !main_app.app.should_shutdown() {
+    while !screen_manager.app.should_shutdown() {
         terminal.draw(|f| {
             let draw_size = f.size();
 
@@ -102,20 +102,20 @@ pub fn start_app(
                 .split(draw_size);
 
             main_screen.update_layout(chunk[0]);
-            main_screen.draw(&main_app.app, &mut drawer);
+            main_screen.draw(&screen_manager.app, &mut drawer);
 
-            for overlay in main_app.overlays.iter_mut() {
+            for overlay in screen_manager.overlays.iter_mut() {
                 overlay.update_layout(chunk[0])
             }
-            for overlay in main_app.overlays.iter() {
-                overlay.draw(main_app, &mut drawer)
+            for overlay in screen_manager.overlays.iter() {
+                overlay.draw(screen_manager, &mut drawer)
             }
 
-            main_app.app.status_line.update_layout(chunk[1]);
-            main_app.app.status_line.draw(&main_app.app, &mut drawer);
+            screen_manager.app.status_line.update_layout(chunk[1]);
+            screen_manager.app.status_line.draw(&main_app.app, &mut drawer);
 
             logger.update_layout(draw_size);
-            logger.draw(&main_app.app, &mut drawer);
+            logger.draw(&screen_manager.app, &mut drawer);
         })?;
 
         // This function blocks
@@ -128,17 +128,17 @@ pub fn start_app(
                     {
                         return Ok(());
                     }
-                    if !main_app.app.config.debug
+                    if !screen_manager.app.config.debug
                         || logger
-                            .key_event(&mut main_app.app, key_event)
+                            .key_event(&mut screen_manager.app, key_event)
                             .propegate_further
                     {
-                        let result = input::key_event(main_app, key_event);
+                        let result = input::key_event(screen_manager, key_event);
                         match result {
-                            Ok(post_event) => main_app.handle_post_event(post_event),
+                            Ok(post_event) => screen_manager.handle_post_event(post_event),
                             Err(AppError::InvalidState(msg)) => {
-                                let prev_mode = main_app.app.mode;
-                                main_app.push_layer(Overlay::Message(MessageBox::new(
+                                let prev_mode = screen_manager.app.mode;
+                                screen_manager.push_layer(Overlay::Message(MessageBox::new(
                                     "An error occured".to_string(),
                                     move |app| {
                                         app.mode = prev_mode;
@@ -154,15 +154,15 @@ pub fn start_app(
                     }
                 }
                 Event::Mouse(mouse_event) => {
-                    let post_event = Overlay::mouse_event(main_app, mouse_event);
+                    let post_event = Overlay::mouse_event(screen_manager, mouse_event);
                     let propegate = post_event.propegate_further;
-                    main_app.handle_post_event(post_event);
+                    screen_manager.handle_post_event(post_event);
                     if propegate {
-                        main_screen.mouse_event(&mut main_app.app, mouse_event);
+                        main_screen.mouse_event(&mut screen_manager.app, mouse_event);
                     }
                 }
                 Event::Resize(x, y) => {
-                    main_app.app.println(format!("{} {}", x, y));
+                    screen_manager.app.println(format!("{} {}", x, y));
                 }
                 _ => {}
             }

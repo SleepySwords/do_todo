@@ -340,33 +340,33 @@ pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
     use crate::{
-        app::{App, MainApp},
+        app::{App, ScreenManager},
         input,
         task::TaskStore,
     };
 
-    pub fn input_char(character: char, main_app: &mut MainApp) {
+    pub fn input_char(character: char, screen_manager: &mut ScreenManager) {
         let result = input::key_event(
-            main_app,
+            screen_manager,
             crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE),
         );
         if let Ok(post_event) = result {
-            main_app.handle_post_event(post_event);
+            screen_manager.handle_post_event(post_event);
         }
     }
 
-    pub fn input_code(key: KeyCode, main_app: &mut MainApp) {
+    pub fn input_code(key: KeyCode, screen_manager: &mut ScreenManager) {
         let result = input::key_event(
-            main_app,
+            screen_manager,
             crossterm::event::KeyEvent::new(key, KeyModifiers::NONE),
         );
         if let Ok(post_event) = result {
-            main_app.handle_post_event(post_event);
+            screen_manager.handle_post_event(post_event);
         }
     }
 
-    pub fn setup(task_store: TaskStore) -> MainApp {
-        MainApp {
+    pub fn setup(task_store: TaskStore) -> ScreenManager {
+        ScreenManager {
             overlays: vec![],
             app: App::new(crate::config::Config::default(), task_store),
         }

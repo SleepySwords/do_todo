@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    app::{App, MainApp},
+    app::{App, ScreenManager},
     config::Config,
     task::{Task, TaskStore},
     tests::assert_task_eq,
@@ -22,25 +22,25 @@ fn test_rollover() {
             auto_sort: false,
         },
     );
-    let mut main_app = MainApp {
+    let mut screen_manager = ScreenManager {
         app,
         overlays: vec![],
     };
 
-    input_char('j', &mut main_app);
-    let current_index = main_app.app.task_list.selected_index;
+    input_char('j', &mut screen_manager);
+    let current_index = screen_manager.app.task_list.selected_index;
     assert_eq!(current_index, 1);
 
-    input_char('j', &mut main_app);
-    let current_index = main_app.app.task_list.selected_index;
+    input_char('j', &mut screen_manager);
+    let current_index = screen_manager.app.task_list.selected_index;
     assert_eq!(current_index, 0);
 
-    input_char('k', &mut main_app);
-    let current_index = main_app.app.task_list.selected_index;
+    input_char('k', &mut screen_manager);
+    let current_index = screen_manager.app.task_list.selected_index;
     assert_eq!(current_index, 1);
 
-    input_char('k', &mut main_app);
-    let current_index = main_app.app.task_list.selected_index;
+    input_char('k', &mut screen_manager);
+    let current_index = screen_manager.app.task_list.selected_index;
     assert_eq!(current_index, 0);
 }
 
@@ -58,26 +58,26 @@ fn test_shifting_tasks() {
             auto_sort: false,
         },
     );
-    let mut main_app = MainApp {
+    let mut screen_manager = ScreenManager {
         app,
         overlays: vec![],
     };
 
-    input_char('J', &mut main_app);
-    assert_eq!(main_app.app.task_list.selected_index, 1);
-    assert_task_eq(&main_app.app, vec!["based", "meme"]);
+    input_char('J', &mut screen_manager);
+    assert_eq!(screen_manager.app.task_list.selected_index, 1);
+    assert_task_eq(&screen_manager.app, vec!["based", "meme"]);
 
-    input_char('J', &mut main_app);
-    assert_eq!(main_app.app.task_list.selected_index, 0);
-    assert_task_eq(&main_app.app, vec!["meme", "based"]);
+    input_char('J', &mut screen_manager);
+    assert_eq!(screen_manager.app.task_list.selected_index, 0);
+    assert_task_eq(&screen_manager.app, vec!["meme", "based"]);
 
-    input_char('j', &mut main_app);
+    input_char('j', &mut screen_manager);
 
-    input_char('K', &mut main_app);
-    assert_eq!(main_app.app.task_list.selected_index, 0);
-    assert_task_eq(&main_app.app, vec!["based", "meme"]);
+    input_char('K', &mut screen_manager);
+    assert_eq!(screen_manager.app.task_list.selected_index, 0);
+    assert_task_eq(&screen_manager.app, vec!["based", "meme"]);
 
-    input_char('K', &mut main_app);
-    assert_eq!(main_app.app.task_list.selected_index, 1);
-    assert_task_eq(&main_app.app, vec!["meme", "based"]);
+    input_char('K', &mut screen_manager);
+    assert_eq!(screen_manager.app.task_list.selected_index, 1);
+    assert_task_eq(&screen_manager.app, vec!["meme", "based"]);
 }
