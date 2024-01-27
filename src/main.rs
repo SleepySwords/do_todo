@@ -122,7 +122,6 @@ pub fn start_app(
         })?;
 
         // This function blocks
-        // TODO: We are probably going to have to implement a Tick system eventually, using mspc
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key_event) => {

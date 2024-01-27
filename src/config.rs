@@ -221,83 +221,83 @@ pub enum KeyBindings {
 }
 
 impl KeyBindings {
-    pub fn from_event(theme: &Config, event: KeyEvent) -> KeyBindings {
-        if theme.up_keys.iter().any(|f| f.is_pressed(event)) {
+    pub fn from_event(config: &Config, event: KeyEvent) -> KeyBindings {
+        if config.up_keys.iter().any(|f| f.is_pressed(event)) {
             return KeyBindings::UpKeys;
         }
-        if theme.down_keys.iter().any(|f| f.is_pressed(event)) {
+        if config.down_keys.iter().any(|f| f.is_pressed(event)) {
             return KeyBindings::DownKeys;
         }
-        if theme.move_task_up.is_pressed(event) {
+        if config.move_task_up.is_pressed(event) {
             return KeyBindings::MoveTaskUp;
         }
-        if theme.move_task_down.is_pressed(event) {
+        if config.move_task_down.is_pressed(event) {
             return KeyBindings::MoveTaskDown;
         }
-        if theme.move_up_fuzzy.is_pressed(event) {
+        if config.move_up_fuzzy.is_pressed(event) {
             return KeyBindings::MoveUpFuzzy;
         }
-        if theme.move_down_fuzzy.is_pressed(event) {
+        if config.move_down_fuzzy.is_pressed(event) {
             return KeyBindings::MoveDownFuzzy;
         }
-        if theme.move_top.is_pressed(event) {
+        if config.move_top.is_pressed(event) {
             return KeyBindings::MoveTop;
         }
-        if theme.move_bottom.is_pressed(event) {
+        if config.move_bottom.is_pressed(event) {
             return KeyBindings::MoveBottom;
         }
 
-        if theme.complete_key.is_pressed(event) {
+        if config.complete_key.is_pressed(event) {
             return KeyBindings::CompleteKey;
         }
-        if theme.flip_progress_key.is_pressed(event) {
+        if config.flip_progress_key.is_pressed(event) {
             return KeyBindings::FlipProgressKey;
         }
-        if theme.edit_key.is_pressed(event) {
+        if config.edit_key.is_pressed(event) {
             return KeyBindings::EditKey;
         }
-        if theme.delete_key.is_pressed(event) {
+        if config.delete_key.is_pressed(event) {
             return KeyBindings::DeleteKey;
         }
-        if theme.add_key.is_pressed(event) {
+        if config.add_key.is_pressed(event) {
             return KeyBindings::AddKey;
         }
-        if theme.change_priority_key.is_pressed(event) {
+        if config.change_priority_key.is_pressed(event) {
             return KeyBindings::ChangePriorityKey;
         }
-        if theme.restore_key.is_pressed(event) {
+        if config.restore_key.is_pressed(event) {
             return KeyBindings::RestoreKey;
         }
 
-        if theme.tasks_menu_key.is_pressed(event) {
+        if config.tasks_menu_key.is_pressed(event) {
             return KeyBindings::TasksMenuKey;
         }
-        if theme.completed_tasks_menu_key.is_pressed(event) {
+        if config.completed_tasks_menu_key.is_pressed(event) {
             return KeyBindings::CompletedTasksMenuKey;
         }
-        if theme.tag_menu.is_pressed(event) {
+        if config.tag_menu.is_pressed(event) {
             return KeyBindings::TagMenu;
         }
-        if theme.open_help_key.is_pressed(event) {
+        if config.open_help_key.is_pressed(event) {
             return KeyBindings::OpenHelpKey;
         }
-        if theme.quit_key.is_pressed(event) {
+        if config.quit_key.is_pressed(event) {
             return KeyBindings::QuitKey;
         }
 
-        if theme.enable_autosort_key.is_pressed(event) {
+        if config.enable_autosort_key.is_pressed(event) {
             return KeyBindings::EnableAutosortKey;
         }
-        if theme.sort_key.is_pressed(event) {
+        if config.sort_key.is_pressed(event) {
             return KeyBindings::SortKey;
         }
-        if theme.flip_subtask_key.is_pressed(event) {
+        if config.flip_subtask_key.is_pressed(event) {
             return KeyBindings::OpenSubtasksKey;
         }
-        if theme.move_subtask_level_up.is_pressed(event) {
+        if config.move_subtask_level_up.is_pressed(event) {
             return KeyBindings::MoveSubtaskLevelUp;
         }
-        if theme.move_subtask_level_down.is_pressed(event) {
+        if config.move_subtask_level_down.is_pressed(event) {
             return KeyBindings::MoveSubtaskLevelDown;
         }
 

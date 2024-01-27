@@ -130,11 +130,8 @@ impl FuzzyBox<'_> {
         let mut list = List::new(
             self.active
                 .iter()
-                // NOTE: This clone should
-                // probably be fine, as
-                // there would have to be
-                // a construction of a
-                // Line every call anyway.
+                // NOTE: The Line would have to be constructed every draw,
+                // so clone is fine.
                 .map(|&id| ListItem::new(self.options[id].name.clone()))
                 .collect::<Vec<ListItem>>(),
         )

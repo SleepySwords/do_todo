@@ -122,6 +122,7 @@ pub fn handle_mouse_movement_app(
                 if offset == 0 {
                     return PostEvent::noop(false);
                 }
+                // FIXME: probably should use Block::inner for these.
                 if *index > area.height as usize - 2 {
                     let new_index = *index - (area.height as usize - 2) + offset as usize;
                     *index = new_index;

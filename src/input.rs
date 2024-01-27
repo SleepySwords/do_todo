@@ -217,7 +217,11 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                 return Ok(PostEvent::noop(true));
             };
 
-            prev_task.opened = true;
+            if !prev_task.opened {
+                prev_task.opened = true;
+                // Have to remove the task when adding
+                *selected_index += prev_task.find_task_draw_size() - 1;
+            }
             prev_task.sub_tasks.push(task);
 
             // FIXME: refactor this to ideally not clone

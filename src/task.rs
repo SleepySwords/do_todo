@@ -74,7 +74,7 @@ impl Task {
         }
     }
 
-    // Includes this current task
+    /// Also includes the current task in draw size.
     pub fn find_task_draw_size(&self) -> usize {
         (if self.opened {
             self.sub_tasks

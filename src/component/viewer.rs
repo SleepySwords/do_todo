@@ -49,11 +49,12 @@ impl Viewer {
             (Span::raw("Tags"), tag_names(app, task)),
         ];
 
-        // NOTE: I have no idea why the width must be three less, should probably investigate.
-        let table =
-            utils::ui::generate_table(items, constraints[1].apply(self.area.width) as usize - 3)
-                .block(block)
-                .widths(constraints);
+        let table = utils::ui::generate_table(
+            items,
+            constraints[1].apply(block.inner(self.area).width) as usize,
+        )
+        .block(block)
+        .widths(constraints);
 
         drawer.draw_widget(table, self.area)
     }
@@ -98,10 +99,12 @@ impl Viewer {
             (Span::raw("Tags"), tag_names(app, &completed_task.task)),
         ];
 
-        let table =
-            utils::ui::generate_table(items, constraints[1].apply(draw_area.width) as usize - 2)
-                .block(block)
-                .widths(constraints);
+        let table = utils::ui::generate_table(
+            items,
+            constraints[1].apply(block.inner(draw_area).width) as usize,
+        )
+        .block(block)
+        .widths(constraints);
 
         drawer.draw_widget(table, draw_area)
     }
