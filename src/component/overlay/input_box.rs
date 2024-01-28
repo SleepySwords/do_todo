@@ -269,10 +269,11 @@ impl InputBoxBuilder {
         self
     }
 
-    pub fn enable_vim(mut self, vim: bool) -> Self {
-        if vim {
+    /// Pass in None to disable vim, or pass in Some with the starting mode
+    pub fn enable_vim(mut self, vim: Option<VimMode>) -> Self {
+        if let Some(mode) = vim {
             self.input_mode = InputMode::Vim(Vim {
-                mode: VimMode::Normal,
+                mode,
                 operator: Operator::None,
                 pending: None,
             })

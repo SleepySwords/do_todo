@@ -62,10 +62,25 @@ impl InputBox {
                     })
                 }
                 KeyCode::Char('c') => {
-                    vim.operator = Operator::Change;
+                    if vim.operator == Operator::Change {
+                        self.text_area.move_cursor(CursorMove::Head);
+                        self.text_area.delete_line_by_end();
+                        vim.operator = Operator::None;
+                        vim.mode = VimMode::Insert;
+                    } else {
+                        vim.operator = Operator::Change;
+                    }
                 }
                 KeyCode::Char('d') => {
-                    vim.operator = Operator::Delete;
+                    if vim.operator == Operator::Delete {
+                        self.text_area.move_cursor(CursorMove::Head);
+                        self.text_area.start_selection();
+                        self.text_area.move_cursor(CursorMove::Down);
+                        self.text_area.delete_line_by_end();
+                        vim.operator = Operator::None;
+                    } else {
+                        vim.operator = Operator::Delete;
+                    }
                 }
                 KeyCode::Char('x') => {
                     self.text_area.delete_next_char();
@@ -131,6 +146,12 @@ impl InputBox {
                 KeyCode::Char('o') => {
                     self.text_area.move_cursor(CursorMove::End);
                     self.text_area.insert_newline();
+                    vim.mode = VimMode::Insert;
+                }
+                KeyCode::Char('O') => {
+                    self.text_area.move_cursor(CursorMove::Head);
+                    self.text_area.insert_newline();
+                    self.text_area.move_cursor(CursorMove::Up);
                     vim.mode = VimMode::Insert;
                 }
                 _ => {}
