@@ -25,6 +25,7 @@ pub struct Config {
     pub low_priority_colour: Color,
 
     pub use_fuzzy: bool,
+    pub vim_mode: bool,
     pub up_keys: [Key; 2],
     pub down_keys: [Key; 2],
     pub move_up_fuzzy: Key,
@@ -76,6 +77,7 @@ impl Default for Config {
             normal_priority_colour: Color::LightYellow,
             low_priority_colour: Color::Green,
             use_fuzzy: true,
+            vim_mode: false,
             up_keys: [
                 Key::new(KeyCode::Char('k'), KeyModifiers::NONE),
                 Key::new(KeyCode::Up, KeyModifiers::NONE),

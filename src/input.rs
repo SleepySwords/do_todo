@@ -5,7 +5,7 @@ use crate::{
     app::{App, MainApp, Mode},
     component::{
         completed_list::CompletedList,
-        overlay::{input_box::InputBoxBuilder, Overlay, vim::VimMode},
+        overlay::{input_box::InputBoxBuilder, vim::VimMode, Overlay},
     },
     config::{Config, KeyBindings},
     draw::PostEvent,
@@ -162,7 +162,11 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                     task.title = word.trim().to_string();
                     Ok(PostEvent::noop(false))
                 })
-                .enable_vim(Some(VimMode::Normal))
+                .enable_vim(if app.config.vim_mode {
+                    Some(VimMode::Normal)
+                } else {
+                    None
+                })
                 .save_mode(app)
                 .build_overlay();
             return Ok(PostEvent::push_layer(false, edit_box));
@@ -375,10 +379,13 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> PostEvent {
                 .callback(move |app, word| {
                     app.task_store
                         .add_task(Task::from_string(word.trim().to_string()));
-
                     Ok(PostEvent::noop(false))
                 })
-                .enable_vim(Some(VimMode::Insert))
+                .enable_vim(if app.config.vim_mode {
+                    Some(VimMode::Insert)
+                } else {
+                    None
+                })
                 .save_mode(app)
                 .build_overlay();
             return PostEvent::push_layer(false, add_input_dialog);
