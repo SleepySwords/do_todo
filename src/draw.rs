@@ -20,26 +20,26 @@ pub struct PostEvent {
 }
 
 impl PostEvent {
-    pub fn noop(propegate_further: bool) -> PostEvent {
+    pub fn noop(propagate_further: bool) -> PostEvent {
         PostEvent {
-            propegate_further,
+            propegate_further: propagate_further,
             action: Action::Noop,
         }
     }
 
-    pub fn pop_overlay<F: 'static>(propegate_further: bool, function: F) -> PostEvent
+    pub fn pop_overlay<F: 'static>(function: F) -> PostEvent
     where
         F: FnOnce(&mut App, Overlay) -> PostEvent,
     {
         PostEvent {
-            propegate_further,
+            propegate_further: false,
             action: Action::PopOverlay(Box::new(function)),
         }
     }
 
-    pub fn push_layer(propegate_further: bool, overlay: Overlay<'static>) -> PostEvent {
+    pub fn push_overlay(overlay: Overlay<'static>) -> PostEvent {
         PostEvent {
-            propegate_further,
+            propegate_further: false,
             action: Action::PushLayer(overlay),
         }
     }

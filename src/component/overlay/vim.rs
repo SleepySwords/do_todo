@@ -50,7 +50,7 @@ impl InputBox {
                     return self.submit();
                 }
                 KeyCode::Esc => {
-                    return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                    return PostEvent::pop_overlay(|app: &mut App, overlay| {
                         if let Overlay::Input(InputBox {
                             prev_mode: Some(mode),
                             ..

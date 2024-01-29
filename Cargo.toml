@@ -1,9 +1,12 @@
 [package]
 name = "dotodo"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 description = "Do your todos!"
+repository = "https://github.com/SleepySwords/do_todo/"
 license = "MIT"
+keywords = ["todo", "organisation", "tasks"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }

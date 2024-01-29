@@ -28,12 +28,12 @@ pub struct App {
 }
 
 // Above should be data, this should be map.
-pub struct MainApp {
+pub struct ScreenManager {
     pub app: App,
     pub overlays: Vec<Overlay<'static>>,
 }
 
-impl MainApp {
+impl ScreenManager {
     pub fn push_layer(&mut self, component: Overlay<'static>) {
         self.overlays.push(component);
     }

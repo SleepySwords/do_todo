@@ -19,8 +19,8 @@ use super::{
     Overlay,
 };
 
-type InputBoxCallback = Option<Box<dyn FnOnce(&mut App, String) -> Result<PostEvent, AppError>>>;
-type ErrorCallback = Box<dyn Fn(&mut App, AppError) -> PostEvent>;
+type InputBoxCallback = Option<Box<dyn Fn(&mut App, String) -> Result<PostEvent, AppError>>>;
+type ErrorCallback = Box<dyn FnOnce(&mut App, AppError, InputBoxCallback) -> PostEvent>;
 
 pub enum InputMode {
     Normal,
@@ -74,7 +74,7 @@ impl InputBox {
                 self.text_area.insert_newline();
             }
             KeyCode::Esc => {
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                return PostEvent::pop_overlay(|app: &mut App, overlay| {
                     if let Overlay::Input(InputBox {
                         prev_mode: Some(mode),
                         ..
@@ -99,7 +99,7 @@ impl InputBox {
 
         // When popping the layer, probably should do the callback, rather than have an
         // option.
-        return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+        return PostEvent::pop_overlay(|app: &mut App, overlay| {
             if let Overlay::Input(InputBox {
                 mut callback,
                 prev_mode,
@@ -116,7 +116,7 @@ impl InputBox {
                     let err = (callback)(app, text_area.lines().join("\n"));
                     match err {
                         Ok(post_event) => post_event,
-                        Err(err) => (error_callback)(app, err),
+                        Err(err) => (error_callback)(app, err, Some(callback)),
                     }
                 } else {
                     PostEvent::noop(false)
@@ -152,7 +152,7 @@ impl InputBox {
         let draw_area = self.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+            return PostEvent::pop_overlay(|app: &mut App, overlay| {
                 if let Some(mode) = overlay.prev_mode() {
                     app.mode = mode;
                 }
@@ -199,7 +199,7 @@ impl Default for InputBoxBuilder {
             input_mode: InputMode::Normal,
             text_area: TextArea::default(),
             callback: Some(Box::new(|_app, _task| Ok(PostEvent::noop(false)))),
-            error_callback: Box::new(|_app, _err| PostEvent::noop(false)),
+            error_callback: Box::new(|_app, _err, _call| PostEvent::noop(false)),
             draw_area: Rect::default(),
             prev_mode: None,
             full_width: false,
@@ -249,7 +249,7 @@ impl InputBoxBuilder {
 
     pub fn callback<T: 'static>(mut self, callback: T) -> Self
     where
-        T: FnOnce(&mut App, String) -> Result<PostEvent, AppError>,
+        T: Fn(&mut App, String) -> Result<PostEvent, AppError>,
     {
         self.callback = Some(Box::new(callback));
         self
@@ -257,7 +257,7 @@ impl InputBoxBuilder {
 
     pub fn error_callback<T: 'static>(mut self, error_callback: T) -> Self
     where
-        T: Fn(&mut App, AppError) -> PostEvent,
+        T: FnOnce(&mut App, AppError, InputBoxCallback) -> PostEvent,
     {
         self.error_callback = Box::new(error_callback);
         self

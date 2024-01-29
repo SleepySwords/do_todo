@@ -23,7 +23,7 @@ fn should_overwrite(message: String) -> std::io::Result<bool> {
     stdout().flush()?;
 
     let mut answer = String::new();
-    stdin().read_line(&mut answer)?; // TODO: Handle Result
+    stdin().read_line(&mut answer)?;
 
     let answer = answer.trim();
     let answer_check_len = answer.len().clamp(0, 2);
