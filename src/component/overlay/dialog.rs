@@ -99,7 +99,7 @@ impl DialogBox<'_> {
         utils::handle_key_movement(&app.config, key_event, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => {
-                return PostEvent::pop_overlay(false, |app, overlay| {
+                return PostEvent::pop_overlay(|app, overlay| {
                     if let Overlay::Dialog(DialogBox {
                         index,
                         mut options,
@@ -120,7 +120,7 @@ impl DialogBox<'_> {
                 })
             }
             KeyCode::Esc => {
-                return PostEvent::pop_overlay(false, |app, overlay| {
+                return PostEvent::pop_overlay(|app, overlay| {
                     if let Some(mode) = overlay.prev_mode() {
                         app.mode = mode;
                     }
@@ -154,7 +154,7 @@ impl DialogBox<'_> {
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
-            return PostEvent::pop_overlay(false, |app, overlay| {
+            return PostEvent::pop_overlay(|app, overlay| {
                 if let Some(mode) = overlay.prev_mode() {
                     app.mode = mode;
                 }

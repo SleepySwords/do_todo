@@ -72,7 +72,7 @@ impl FuzzyBox<'_> {
                 PostEvent::noop(false)
             }
             KeyCode::Enter => {
-                return PostEvent::pop_overlay(false, |app, overlay| {
+                return PostEvent::pop_overlay(|app, overlay| {
                     if let Overlay::Fuzzy(FuzzyBox {
                         active,
                         index,
@@ -93,7 +93,7 @@ impl FuzzyBox<'_> {
                     PostEvent::noop(false)
                 });
             }
-            KeyCode::Esc => PostEvent::pop_overlay(false, |app, overlay| {
+            KeyCode::Esc => PostEvent::pop_overlay(|app, overlay| {
                 if let Overlay::Fuzzy(FuzzyBox {
                     prev_mode: Some(mode),
                     ..
@@ -109,7 +109,6 @@ impl FuzzyBox<'_> {
                 self.active.clear();
                 self.index = 0;
                 for (i, ele) in self.options.iter().enumerate() {
-                    // FIXME: Might be better to store as a seperate variable for this.
                     let name = ele
                         .name
                         .spans
@@ -131,11 +130,9 @@ impl FuzzyBox<'_> {
         let mut list = List::new(
             self.active
                 .iter()
-                .map(|&id| ListItem::new(self.options[id].name.clone())) // NOTE: This should
-                // probably be fine, as
-                // there would have to be
-                // a construction of a
-                // Line every call anyway.
+                // NOTE: The Line would have to be constructed every draw,
+                // so clone is fine.
+                .map(|&id| ListItem::new(self.options[id].name.clone()))
                 .collect::<Vec<ListItem>>(),
         )
         .highlight_symbol(&app.config.selected_cursor)
@@ -189,7 +186,7 @@ impl FuzzyBox<'_> {
             );
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                return PostEvent::pop_overlay(|app: &mut App, overlay| {
                     if let Overlay::Fuzzy(FuzzyBox {
                         prev_mode: Some(mode),
                         ..

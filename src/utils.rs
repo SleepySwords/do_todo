@@ -1,11 +1,13 @@
 use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
+use tui::style::Color;
 
 use std::usize;
 
 use crate::app::{App, Mode};
 use crate::config::{Config, KeyBindings};
 use crate::draw::PostEvent;
+use crate::error::AppError;
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -120,6 +122,7 @@ pub fn handle_mouse_movement_app(
                 if offset == 0 {
                     return PostEvent::noop(false);
                 }
+                // FIXME: probably should use Block::inner for these.
                 if *index > area.height as usize - 2 {
                     let new_index = *index - (area.height as usize - 2) + offset as usize;
                     *index = new_index;
@@ -177,6 +180,27 @@ pub fn handle_mouse_movement(
         }
     }
     PostEvent::noop(false)
+}
+
+pub fn str_to_colour(colour: &str) -> Result<Color, AppError> {
+    if colour.starts_with('#') {
+        let red = u8::from_str_radix(&colour[1..3], 16)?;
+        let green = u8::from_str_radix(&colour[3..5], 16)?;
+        let blue = u8::from_str_radix(&colour[5..7], 16)?;
+        Ok(Color::Rgb(red, green, blue))
+    } else if let Ok(colour) = colour.parse() {
+        Ok(Color::Indexed(colour))
+    } else {
+        match colour
+            .to_lowercase()
+            .replace([' ', '_', '-'], "")
+            .as_str()
+            .parse::<Color>()
+        {
+            Ok(colour) => Ok(colour),
+            Err(_) => return Err(AppError::InvalidColour),
+        }
+    }
 }
 
 pub(crate) mod ui {
@@ -317,33 +341,33 @@ pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
     use crate::{
-        app::{App, MainApp},
+        app::{App, ScreenManager},
         input,
         task::TaskStore,
     };
 
-    pub fn input_char(character: char, main_app: &mut MainApp) {
+    pub fn input_char(character: char, screen_manager: &mut ScreenManager) {
         let result = input::key_event(
-            main_app,
+            screen_manager,
             crossterm::event::KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE),
         );
         if let Ok(post_event) = result {
-            main_app.handle_post_event(post_event);
+            screen_manager.handle_post_event(post_event);
         }
     }
 
-    pub fn input_code(key: KeyCode, main_app: &mut MainApp) {
+    pub fn input_code(key: KeyCode, screen_manager: &mut ScreenManager) {
         let result = input::key_event(
-            main_app,
+            screen_manager,
             crossterm::event::KeyEvent::new(key, KeyModifiers::NONE),
         );
         if let Ok(post_event) = result {
-            main_app.handle_post_event(post_event);
+            screen_manager.handle_post_event(post_event);
         }
     }
 
-    pub fn setup(task_store: TaskStore) -> MainApp {
-        MainApp {
+    pub fn setup(task_store: TaskStore) -> ScreenManager {
+        ScreenManager {
             overlays: vec![],
             app: App::new(crate::config::Config::default(), task_store),
         }

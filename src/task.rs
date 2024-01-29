@@ -18,7 +18,7 @@ pub struct Task {
     pub progress: bool,
     pub title: String,
     pub priority: Priority,
-    pub tags: Vec<u32>,
+    pub tags: Vec<usize>,
 
     // Ignored if sub_tasks is empty
     pub opened: bool,
@@ -47,7 +47,7 @@ impl Task {
             .filter_map(|tag_index| return app.task_store.tags.get(tag_index))
     }
 
-    pub fn flip_tag(&mut self, tag: u32) {
+    pub fn flip_tag(&mut self, tag: usize) {
         if !self.tags.contains(&tag) {
             self.tags.push(tag)
         } else {
@@ -66,7 +66,7 @@ impl Task {
         }
     }
 
-    pub fn delete_tag(&mut self, tag_id: u32) {
+    pub fn delete_tag(&mut self, tag_id: usize) {
         self.sub_tasks.sort_by_key(|t| cmp::Reverse(t.priority));
         self.tags.retain(|f| f != &tag_id);
         for task in &mut self.sub_tasks {
@@ -74,7 +74,7 @@ impl Task {
         }
     }
 
-    // Includes this current task
+    /// Also includes the current task in draw size.
     pub fn find_task_draw_size(&self) -> usize {
         (if self.opened {
             self.sub_tasks
@@ -179,10 +179,16 @@ impl Priority {
 #[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct TaskStore {
-    pub tags: BTreeMap<u32, Tag>,
+    pub tags: BTreeMap<usize, Tag>,
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
     pub auto_sort: bool,
+}
+
+pub struct FindParentResult<'a> {
+    pub tasks: &'a Vec<Task>,
+    pub parent_index: Option<usize>,
+    pub task_local_offset: usize,
 }
 
 impl TaskStore {
@@ -271,18 +277,25 @@ impl TaskStore {
     pub fn local_index_to_global(
         index: usize,
         parent_list: &[Task],
-        parent_global_index: usize,
-        is_global: bool,
+        parent_global_index: Option<usize>,
     ) -> usize {
-        parent_global_index
+        if let Some(parent_index) = parent_global_index {
+            parent_index
                 + parent_list
-                    .iter()
-                    .take(index)
-                    .map(|tsk| tsk.find_task_draw_size())
-                    .sum::<usize>()
-                    // Need to add one to focus the element, otherwise it won't
-                    // this is only for tasks within tasks.
-                + if is_global { 0 } else { 1 }
+                .iter()
+                .take(index)
+                .map(|tsk| tsk.find_task_draw_size())
+                .sum::<usize>()
+                // Need to add one to focus the element, otherwise it won't
+                // this is only for tasks within tasks.
+                + 1
+        } else {
+            parent_list
+                .iter()
+                .take(index)
+                .map(|tsk| tsk.find_task_draw_size())
+                .sum::<usize>()
+        }
     }
 
     /// Returns an option tuple
@@ -290,7 +303,7 @@ impl TaskStore {
     /// Second is the parent_index
     /// Third is the tasks local offset
     /// Fourth is if it is a boolean
-    pub fn find_parent(&self, to_find: usize) -> Option<(&Vec<Task>, usize, usize, bool)> {
+    pub fn find_parent(&self, to_find: usize) -> Option<FindParentResult> {
         Self::internal_find_parent(&self.tasks, &mut 0, to_find, 0, true)
     }
 
@@ -300,10 +313,15 @@ impl TaskStore {
         to_find: usize,
         index: usize,
         is_global: bool,
-    ) -> Option<(&'a Vec<Task>, usize, usize, bool)> {
+    ) -> Option<FindParentResult<'a>> {
         for task_index in 0..tasks.len() {
             if *current_index == to_find {
-                return Some((tasks, index, task_index, is_global));
+                // return Some((tasks, index, task_index, is_global));
+                return Some(FindParentResult {
+                    tasks,
+                    parent_index: if is_global { None } else { Some(index) },
+                    task_local_offset: task_index,
+                });
             }
 
             let index = *current_index;
@@ -327,11 +345,11 @@ impl TaskStore {
 
     /// Returns the subtasks of a task if `is_global` is true
     /// Otherwise returns the global tasks.
-    pub fn subtasks(&mut self, index: usize, is_global: bool) -> Option<&mut Vec<Task>> {
-        if is_global {
-            Some(&mut self.tasks)
-        } else {
+    pub fn subtasks(&mut self, index: Option<usize>) -> Option<&mut Vec<Task>> {
+        if let Some(index) = index {
             Some(&mut self.task_mut(index)?.sub_tasks)
+        } else {
+            Some(&mut self.tasks)
         }
     }
 
@@ -356,7 +374,7 @@ impl TaskStore {
             .find_map(|sub_task| Self::internal_task_pos(to_find, sub_task, index))
     }
 
-    pub fn delete_tag(&mut self, tag_id: u32) {
+    pub fn delete_tag(&mut self, tag_id: usize) {
         self.tags.remove(&tag_id);
         for task in &mut self.tasks {
             task.delete_tag(tag_id);

@@ -1,4 +1,3 @@
-// FIXME: Refactor
 use std::fmt::Display;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -21,13 +20,6 @@ impl Key {
 
     pub fn new(code: KeyCode, modifiers: KeyModifiers) -> Key {
         Key { code, modifiers }
-    }
-
-    pub fn from_event(event: KeyEvent) -> Key {
-        Key {
-            code: event.code,
-            modifiers: event.modifiers,
-        }
     }
 }
 

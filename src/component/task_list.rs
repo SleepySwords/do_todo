@@ -82,7 +82,6 @@ impl TaskList {
             spans.push(sub_tasks);
         }
 
-        // TODO: Rewrite to store as an array in the task
         let content = Span::styled(
             task.title.split('\n').next().unwrap(),
             style.fg(if Self::is_task_selected(app, task_index) {
