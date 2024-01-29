@@ -57,14 +57,14 @@ impl App {
                 .options(options)
                 .save_mode(self)
                 .build();
-            PostEvent::push_layer(false, fuzzy)
+            PostEvent::push_overlay(fuzzy)
         } else {
             let dialog = DialogBoxBuilder::default()
                 .title(title.to_string())
                 .options(options)
                 .save_mode(self)
                 .build();
-            PostEvent::push_layer(false, dialog)
+            PostEvent::push_overlay(dialog)
         }
     }
 
@@ -106,19 +106,16 @@ impl App {
                     if let Err(AppError::InvalidState(msg)) = result {
                         let prev_mode = app.mode;
                         app.mode = Mode::Overlay;
-                        return PostEvent::push_layer(
-                            false,
-                            Overlay::Message(MessageBox::new(
-                                "An error occured".to_string(),
-                                move |app| {
-                                    app.mode = prev_mode;
-                                    PostEvent::noop(false)
-                                },
-                                msg,
-                                Color::Red,
-                                0,
-                            )),
-                        );
+                        return PostEvent::push_overlay(Overlay::Message(MessageBox::new(
+                            "An error occured".to_string(),
+                            move |app| {
+                                app.mode = prev_mode;
+                                PostEvent::noop(false)
+                            },
+                            msg,
+                            Color::Red,
+                            0,
+                        )));
                     } else {
                         PostEvent::noop(false)
                     }
@@ -138,6 +135,7 @@ impl App {
             .add_option(DialogAction::new(String::from("Delete"), move |app| {
                 let selected_index = &mut app.task_list.selected_index;
                 app.task_store.delete_task(*selected_index);
+
                 if *selected_index == app.task_store.find_tasks_draw_size()
                     && !app.task_store.tasks.is_empty()
                 {
@@ -150,7 +148,7 @@ impl App {
             }))
             .save_mode(self)
             .build();
-        PostEvent::push_layer(false, delete_dialog)
+        PostEvent::push_overlay(delete_dialog)
     }
 
     pub fn complete_selected_task(&mut self) {
@@ -222,7 +220,7 @@ impl App {
                 })
                 .save_mode(app)
                 .build_overlay();
-            PostEvent::push_layer(false, tag_menu)
+            PostEvent::push_overlay(tag_menu)
         }));
 
         if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
@@ -251,31 +249,38 @@ impl App {
         self.create_dialog_or_fuzzy("Add or remove a tag", tag_options)
     }
 
-    pub fn create_delete_tag_menu(&mut self) -> PostEvent {
+    pub fn create_edit_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         for (i, tag) in self.task_store.tags.iter() {
-            let moved: usize = *i;
-            let moved_name = tag.name.clone();
+            let tag_id: usize = *i;
+            let tag_name = tag.name.clone();
+            let tag_colour = tag.colour;
             tag_options.push(DialogAction::styled(
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
                 move |app| {
-                    let tag_dialog = DialogBoxBuilder::default()
-                        .title(format!(
-                            "Do you want to permenatly delete the tag {}",
-                            moved_name
-                        ))
-                        .add_option(DialogAction::new(String::from("Delete"), move |app| {
-                            app.task_store.delete_tag(moved);
-                            PostEvent::noop(false)
-                        }))
-                        .add_option(DialogAction::new(String::from("Cancel"), move |_| {
-                            PostEvent::noop(false)
-                        }))
-                        .save_mode(app)
-                        .build();
-                    PostEvent::push_layer(false, tag_dialog)
+                    let edit_name = InputBoxBuilder::default()
+                        .title("Edit tag name".to_string())
+                        .fill(&tag_name)
+                        .callback(move |app, tag_name| {
+                            Ok(app.create_select_tag_colour(
+                                tag_colour.to_string(),
+                                move |app, tag_colour| {
+                                    let colour = utils::str_to_colour(&tag_colour)?;
+                                    app.task_store.tags.insert(
+                                        tag_id,
+                                        crate::task::Tag {
+                                            name: tag_name.clone(),
+                                            colour,
+                                        },
+                                    );
+                                    Ok(PostEvent::noop(false))
+                                },
+                            ))
+                        })
+                        .save_mode(app);
+                    PostEvent::push_overlay(edit_name.build_overlay())
                 },
             ));
         }
@@ -283,7 +288,7 @@ impl App {
             PostEvent::noop(false)
         }));
 
-        self.create_dialog_or_fuzzy("Delete a tag", tag_options)
+        self.create_dialog_or_fuzzy("Edit a tag", tag_options)
     }
 
     fn create_select_tag_colour<T: 'static>(
@@ -313,45 +318,38 @@ impl App {
                     0,
                 )
                 .save_mode(app);
-                return PostEvent::push_layer(false, Overlay::Message(message_box));
+                return PostEvent::push_overlay(Overlay::Message(message_box));
             })
             .save_mode(self);
 
-        PostEvent::push_layer(false, tag_colour.build_overlay())
+        PostEvent::push_overlay(tag_colour.build_overlay())
     }
 
-    pub fn create_edit_tag_menu(&mut self) -> PostEvent {
+    pub fn create_delete_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         for (i, tag) in self.task_store.tags.iter() {
-            let moved: usize = *i;
-            let moved_name = tag.name.clone();
-            let moved_colour = tag.colour;
+            let tag_id: usize = *i;
+            let tag_name = tag.name.clone();
             tag_options.push(DialogAction::styled(
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
                 move |app| {
-                    let edit_name = InputBoxBuilder::default()
-                        .title("Edit tag name".to_string())
-                        .fill(&moved_name)
-                        .callback(move |app, tag_name| {
-                            Ok(app.create_select_tag_colour(
-                                moved_colour.to_string(),
-                                move |app, tag_colour| {
-                                    let colour = utils::str_to_colour(&tag_colour)?;
-                                    app.task_store.tags.insert(
-                                        moved,
-                                        crate::task::Tag {
-                                            name: tag_name.clone(),
-                                            colour,
-                                        },
-                                    );
-                                    Ok(PostEvent::noop(false))
-                                },
-                            ))
-                        })
-                        .save_mode(app);
-                    PostEvent::push_layer(false, edit_name.build_overlay())
+                    let tag_dialog = DialogBoxBuilder::default()
+                        .title(format!(
+                            "Do you want to permenatly delete the tag {}",
+                            tag_name
+                        ))
+                        .add_option(DialogAction::new(String::from("Delete"), move |app| {
+                            app.task_store.delete_tag(tag_id);
+                            PostEvent::noop(false)
+                        }))
+                        .add_option(DialogAction::new(String::from("Cancel"), move |_| {
+                            PostEvent::noop(false)
+                        }))
+                        .save_mode(app)
+                        .build();
+                    PostEvent::push_overlay(tag_dialog)
                 },
             ));
         }
@@ -359,6 +357,6 @@ impl App {
             PostEvent::noop(false)
         }));
 
-        self.create_dialog_or_fuzzy("Edit a tag", tag_options)
+        self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
 }

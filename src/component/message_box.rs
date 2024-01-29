@@ -103,15 +103,15 @@ impl MessageBox {
         }
         if let Some(callback) = self.callback.take() {
             let result = (callback)(app);
-            return PostEvent::pop_overlay(false, |_, _| result);
+            return PostEvent::pop_overlay(|_, _| result);
         }
-        PostEvent::pop_overlay(false, |_, _| PostEvent::noop(false))
+        PostEvent::pop_overlay(|_, _| PostEvent::noop(false))
     }
 
     pub fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                return PostEvent::pop_overlay(|app: &mut App, overlay| {
                     if let Overlay::Message(mut message) = overlay {
                         if let Some(mode) = message.mode_to_restore {
                             app.mode = mode;

@@ -165,7 +165,7 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                 })
                 .save_mode(app)
                 .build_overlay();
-            return Ok(PostEvent::push_layer(false, edit_box));
+            return Ok(PostEvent::push_overlay(edit_box));
         }
         KeyBindings::TagMenu => return Ok(app.create_tag_menu()),
         KeyBindings::FlipProgressKey => {
@@ -385,7 +385,7 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> PostEvent {
                 })
                 .save_mode(app)
                 .build_overlay();
-            return PostEvent::push_layer(false, add_input_dialog);
+            return PostEvent::push_overlay(add_input_dialog);
         }
         KeyBindings::TasksMenuKey => {
             app.mode = Mode::CurrentTasks;

@@ -138,54 +138,6 @@ impl Config {
     }
 }
 
-mod color_parser {
-    use serde::{Deserialize, Deserializer, Serializer};
-    use tui::style::Color;
-
-    pub fn serialize<S>(colour: &Color, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&colour.to_string())
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Color, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        s.parse::<Color>().map_err(serde::de::Error::custom)
-    }
-}
-
-mod border_parser {
-    use serde::{Deserialize, Deserializer, Serializer};
-    use tui::widgets::BorderType;
-
-    pub fn serialize<S>(border: &BorderType, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&border.to_string())
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<BorderType, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.to_lowercase().as_str() {
-            "plain" => Ok(BorderType::Plain),
-            "rounded" => Ok(BorderType::Rounded),
-            "double" => Ok(BorderType::Double),
-            "thick" => Ok(BorderType::Thick),
-            "quadrantinside" => Ok(BorderType::QuadrantInside),
-            "quadrantoutside" => Ok(BorderType::QuadrantOutside),
-            _ => Err(serde::de::Error::custom("Test")),
-        }
-    }
-}
-
 pub enum KeyBindings {
     UpKeys,
     DownKeys,
@@ -304,3 +256,52 @@ impl KeyBindings {
         KeyBindings::None
     }
 }
+
+mod color_parser {
+    use serde::{Deserialize, Deserializer, Serializer};
+    use tui::style::Color;
+
+    pub fn serialize<S>(colour: &Color, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&colour.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Color, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse::<Color>().map_err(serde::de::Error::custom)
+    }
+}
+
+mod border_parser {
+    use serde::{Deserialize, Deserializer, Serializer};
+    use tui::widgets::BorderType;
+
+    pub fn serialize<S>(border: &BorderType, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&border.to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<BorderType, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.to_lowercase().as_str() {
+            "plain" => Ok(BorderType::Plain),
+            "rounded" => Ok(BorderType::Rounded),
+            "double" => Ok(BorderType::Double),
+            "thick" => Ok(BorderType::Thick),
+            "quadrantinside" => Ok(BorderType::QuadrantInside),
+            "quadrantoutside" => Ok(BorderType::QuadrantOutside),
+            _ => Err(serde::de::Error::custom("Test")),
+        }
+    }
+}
+

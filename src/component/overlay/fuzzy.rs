@@ -72,7 +72,7 @@ impl FuzzyBox<'_> {
                 PostEvent::noop(false)
             }
             KeyCode::Enter => {
-                return PostEvent::pop_overlay(false, |app, overlay| {
+                return PostEvent::pop_overlay(|app, overlay| {
                     if let Overlay::Fuzzy(FuzzyBox {
                         active,
                         index,
@@ -93,7 +93,7 @@ impl FuzzyBox<'_> {
                     PostEvent::noop(false)
                 });
             }
-            KeyCode::Esc => PostEvent::pop_overlay(false, |app, overlay| {
+            KeyCode::Esc => PostEvent::pop_overlay(|app, overlay| {
                 if let Overlay::Fuzzy(FuzzyBox {
                     prev_mode: Some(mode),
                     ..
@@ -186,7 +186,7 @@ impl FuzzyBox<'_> {
             );
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                return PostEvent::pop_overlay(|app: &mut App, overlay| {
                     if let Overlay::Fuzzy(FuzzyBox {
                         prev_mode: Some(mode),
                         ..

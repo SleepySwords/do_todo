@@ -57,7 +57,7 @@ impl InputBox {
 
                 // When popping the layer, probably should do the callback, rather than have an
                 // option.
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                return PostEvent::pop_overlay(|app: &mut App, overlay| {
                     if let Overlay::Input(InputBox {
                         mut callback,
                         prev_mode,
@@ -87,7 +87,7 @@ impl InputBox {
                 self.text_area.insert_newline();
             }
             KeyCode::Esc => {
-                return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+                return PostEvent::pop_overlay(|app: &mut App, overlay| {
                     if let Overlay::Input(InputBox {
                         prev_mode: Some(mode),
                         ..
@@ -131,7 +131,7 @@ impl InputBox {
         let draw_area = self.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            return PostEvent::pop_overlay(false, |app: &mut App, overlay| {
+            return PostEvent::pop_overlay(|app: &mut App, overlay| {
                 if let Some(mode) = overlay.prev_mode() {
                     app.mode = mode;
                 }
