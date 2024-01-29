@@ -14,7 +14,7 @@ use crate::{
     input,
     key::Key,
     task::CompletedTask,
-    utils::str_to_colour,
+    utils::{self, str_to_colour},
 };
 
 // Action class maybe?!!
@@ -199,7 +199,26 @@ impl App {
             let tag_menu = InputBoxBuilder::default()
                 .title(String::from("Tag name"))
                 .callback(move |app, tag_name| {
-                    Ok(app.create_select_tag_colour(selected_index, tag_name))
+                    Ok(
+                        app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
+                            let colour = str_to_colour(&tag_colour)?;
+
+                            let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
+                            app.task_store.tags.insert(
+                                tag_id,
+                                crate::task::Tag {
+                                    name: tag_name.clone(),
+                                    colour,
+                                },
+                            );
+                            if app.task_store.find_tasks_draw_size() > selected_index {
+                                if let Some(task) = app.task_store.task_mut(selected_index) {
+                                    task.flip_tag(tag_id);
+                                }
+                            }
+                            Ok(PostEvent::noop(false))
+                        }),
+                    )
                 })
                 .save_mode(app)
                 .build_overlay();
@@ -267,33 +286,28 @@ impl App {
         self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
 
-    fn create_select_tag_colour(&mut self, selected_index: usize, tag_name: String) -> PostEvent {
-        let tag = tag_name.clone();
-        let colour_menu = InputBoxBuilder::default()
+    fn create_select_tag_colour<T: 'static>(
+        &mut self,
+        default_string: String,
+        callback: T,
+    ) -> PostEvent
+    where
+        T: Fn(&mut App, String) -> Result<PostEvent, AppError>,
+    {
+        let tag_colour = InputBoxBuilder::default()
             .title(String::from("Tag colour"))
-            .callback(move |app, tag_colour| {
-                let colour = str_to_colour(&tag_colour)?;
-
-                let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
-                app.task_store.tags.insert(
-                    tag_id,
-                    crate::task::Tag {
-                        name: tag_name,
-                        colour,
-                    },
-                );
-                if app.task_store.find_tasks_draw_size() > selected_index {
-                    if let Some(task) = app.task_store.task_mut(selected_index) {
-                        task.flip_tag(tag_id);
-                    }
-                }
-                Ok(PostEvent::noop(false))
-            })
-            .error_callback(move |app, err| {
-                let tag_name = tag.clone();
+            .fill(&default_string)
+            .callback(callback)
+            .error_callback(move |app, err, callback| {
                 let message_box = MessageBox::new(
                     String::from("Error"),
-                    move |app| app.create_select_tag_colour(selected_index, tag_name),
+                    move |app| {
+                        if let Some(callback) = callback {
+                            app.create_select_tag_colour(default_string, callback)
+                        } else {
+                            PostEvent::noop(false)
+                        }
+                    },
                     err.to_string(),
                     tui::style::Color::Red,
                     0,
@@ -301,52 +315,13 @@ impl App {
                 .save_mode(app);
                 return PostEvent::push_layer(false, Overlay::Message(message_box));
             })
-            .save_mode(self)
-            .build_overlay();
-        PostEvent::push_layer(false, colour_menu)
+            .save_mode(self);
+
+        PostEvent::push_layer(false, tag_colour.build_overlay())
     }
 
     pub fn create_edit_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
-
-        fn create_select_tag_colour(
-            app: &mut App,
-            tag_id: usize,
-            moved_colour: Color,
-            tag_name: String,
-        ) -> PostEvent {
-            let name = tag_name.clone();
-            let tag_colour = InputBoxBuilder::default()
-                .title(String::from("Tag colour"))
-                .fill(&moved_colour.to_string())
-                .callback(move |app, tag_colour| {
-                    let colour = str_to_colour(&tag_colour)?;
-
-                    app.task_store.tags.insert(
-                        tag_id,
-                        crate::task::Tag {
-                            name: tag_name,
-                            colour,
-                        },
-                    );
-                    Ok(PostEvent::noop(false))
-                })
-                .error_callback(move |app, err| {
-                    let tag_name = name.clone();
-                    let message_box = MessageBox::new(
-                        String::from("Error"),
-                        move |app| create_select_tag_colour(app, tag_id, moved_colour, tag_name),
-                        err.to_string(),
-                        tui::style::Color::Red,
-                        0,
-                    )
-                    .save_mode(app);
-                    return PostEvent::push_layer(false, Overlay::Message(message_box));
-                })
-                .save_mode(app);
-
-            PostEvent::push_layer(false, tag_colour.build_overlay())
-        }
 
         for (i, tag) in self.task_store.tags.iter() {
             let moved: usize = *i;
@@ -360,7 +335,20 @@ impl App {
                         .title("Edit tag name".to_string())
                         .fill(&moved_name)
                         .callback(move |app, tag_name| {
-                            Ok(create_select_tag_colour(app, moved, moved_colour, tag_name))
+                            Ok(app.create_select_tag_colour(
+                                moved_colour.to_string(),
+                                move |app, tag_colour| {
+                                    let colour = utils::str_to_colour(&tag_colour)?;
+                                    app.task_store.tags.insert(
+                                        moved,
+                                        crate::task::Tag {
+                                            name: tag_name.clone(),
+                                            colour,
+                                        },
+                                    );
+                                    Ok(PostEvent::noop(false))
+                                },
+                            ))
                         })
                         .save_mode(app);
                     PostEvent::push_layer(false, edit_name.build_overlay())
