@@ -50,7 +50,7 @@ impl InputBox {
             .border_style(Style::default().fg(app.config.selected_border_colour))
             .border_type(app.config.border_type)
             .title(if let InputMode::Vim(_) = &self.input_mode {
-                self.vim_title()
+                self.vim_title(&self.title)
             } else {
                 self.title.to_owned()
             });

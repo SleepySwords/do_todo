@@ -28,7 +28,7 @@ pub struct Vim {
 }
 
 impl InputBox {
-    pub fn vim_title(&self) -> String {
+    pub fn vim_title(&self, title: &str) -> String {
         let mode = match &self.input_mode {
             InputMode::Normal => todo!(),
             InputMode::Vim(vim) => match vim.mode {
@@ -37,7 +37,7 @@ impl InputBox {
                 VimMode::Visual => "Visual",
             },
         };
-        return format!("Vim - {}", mode);
+        return format!("{} - {}", title, mode);
     }
 
     pub fn input_vim(&mut self, key_event: KeyEvent) -> PostEvent {
