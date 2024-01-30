@@ -73,10 +73,18 @@ impl InputBox {
                 }
                 KeyCode::Char('d') => {
                     if vim.operator == Operator::Delete {
-                        self.text_area.move_cursor(CursorMove::Head);
-                        self.text_area.start_selection();
-                        self.text_area.move_cursor(CursorMove::Down);
-                        self.text_area.delete_line_by_end();
+                        if self.text_area.cursor().0 == self.text_area.lines().len() - 1 {
+                            self.text_area.move_cursor(CursorMove::End);
+                            self.text_area.start_selection();
+                            self.text_area.move_cursor(CursorMove::Up);
+                            self.text_area.move_cursor(CursorMove::End);
+                            self.text_area.delete_line_by_head();
+                        } else {
+                            self.text_area.move_cursor(CursorMove::Head);
+                            self.text_area.start_selection();
+                            self.text_area.move_cursor(CursorMove::Down);
+                            self.text_area.delete_line_by_end();
+                        }
                         vim.operator = Operator::None;
                     } else {
                         vim.operator = Operator::Delete;
@@ -84,6 +92,9 @@ impl InputBox {
                 }
                 KeyCode::Char('x') => {
                     self.text_area.delete_next_char();
+                }
+                KeyCode::Char('v') => {
+                    self.text_area.start_selection();
                 }
                 KeyCode::Char('i') => {
                     if vim.operator == Operator::None {
@@ -102,6 +113,7 @@ impl InputBox {
                         if vim.operator == Operator::Change {
                             vim.mode = VimMode::Insert;
                         }
+                        vim.operator = Operator::None;
                     } else {
                         self.text_area.move_cursor(CursorMove::End);
                     }
@@ -112,6 +124,7 @@ impl InputBox {
                         if vim.operator == Operator::Change {
                             vim.mode = VimMode::Insert;
                         }
+                        vim.operator = Operator::None;
                     } else {
                         self.text_area.move_cursor(CursorMove::Head);
                     }
