@@ -18,6 +18,7 @@ pub enum VimMode {
 pub enum Operator {
     Delete,
     Change,
+    Yank,
     None,
 }
 
@@ -44,12 +45,60 @@ impl InputBox {
         let InputMode::Vim(ref mut vim) = self.input_mode else {
             return PostEvent::noop(true);
         };
+        if let VimMode::Normal | VimMode::Visual = vim.mode {
+            match key_event.code {
+                KeyCode::Char('$') => {
+                    if vim.operator == Operator::Change || vim.operator == Operator::Delete {
+                        self.text_area.delete_line_by_end();
+                        if vim.operator == Operator::Change {
+                            vim.mode = VimMode::Insert;
+                        }
+                        vim.operator = Operator::None;
+                    } else {
+                        self.text_area.move_cursor(CursorMove::End);
+                    }
+                }
+                KeyCode::Char('^') => {
+                    if vim.operator == Operator::Change || vim.operator == Operator::Delete {
+                        self.text_area.delete_line_by_head();
+                        if vim.operator == Operator::Change {
+                            vim.mode = VimMode::Insert;
+                        }
+                        vim.operator = Operator::None;
+                    } else {
+                        self.text_area.move_cursor(CursorMove::Head);
+                    }
+                }
+                KeyCode::Char('w') => {
+                    if vim.operator == Operator::Change || vim.operator == Operator::Delete {
+                        if vim.pending == Some('i') {
+                            self.text_area.move_cursor(CursorMove::WordForward);
+                            self.text_area.move_cursor(CursorMove::WordBack);
+                            vim.pending = None;
+                        }
+                        self.text_area.delete_next_word();
+                        if vim.operator == Operator::Change {
+                            vim.mode = VimMode::Insert;
+                        }
+                        vim.operator = Operator::None;
+                    } else {
+                        self.text_area.move_cursor(CursorMove::WordForward)
+                    }
+                }
+                KeyCode::Char('b') => self.text_area.move_cursor(CursorMove::WordBack),
+                KeyCode::Char('h') => self.text_area.move_cursor(CursorMove::Back),
+                KeyCode::Char('l') => self.text_area.move_cursor(CursorMove::Forward),
+                KeyCode::Char('j') => self.text_area.move_cursor(CursorMove::Down),
+                KeyCode::Char('k') => self.text_area.move_cursor(CursorMove::Up),
+                _ => {}
+            }
+        }
         match vim.mode {
             VimMode::Normal => match key_event.code {
                 KeyCode::Enter => {
                     return self.submit();
                 }
-                KeyCode::Esc => {
+                KeyCode::Char('q') => {
                     return PostEvent::pop_overlay(|app: &mut App, overlay| {
                         if let Overlay::Input(InputBox {
                             prev_mode: Some(mode),
@@ -95,6 +144,7 @@ impl InputBox {
                 }
                 KeyCode::Char('v') => {
                     self.text_area.start_selection();
+                    vim.mode = VimMode::Visual;
                 }
                 KeyCode::Char('i') => {
                     if vim.operator == Operator::None {
@@ -107,52 +157,9 @@ impl InputBox {
                     self.text_area.move_cursor(CursorMove::Forward);
                     vim.mode = VimMode::Insert;
                 }
-                KeyCode::Char('$') => {
-                    if vim.operator == Operator::Change || vim.operator == Operator::Delete {
-                        self.text_area.delete_line_by_end();
-                        if vim.operator == Operator::Change {
-                            vim.mode = VimMode::Insert;
-                        }
-                        vim.operator = Operator::None;
-                    } else {
-                        self.text_area.move_cursor(CursorMove::End);
-                    }
-                }
-                KeyCode::Char('^') => {
-                    if vim.operator == Operator::Change || vim.operator == Operator::Delete {
-                        self.text_area.delete_line_by_head();
-                        if vim.operator == Operator::Change {
-                            vim.mode = VimMode::Insert;
-                        }
-                        vim.operator = Operator::None;
-                    } else {
-                        self.text_area.move_cursor(CursorMove::Head);
-                    }
-                }
-                KeyCode::Char('w') => {
-                    if vim.operator == Operator::Change || vim.operator == Operator::Delete {
-                        if vim.pending == Some('i') {
-                            self.text_area.move_cursor(CursorMove::WordForward);
-                            self.text_area.move_cursor(CursorMove::WordBack);
-                            vim.pending = None;
-                        }
-                        self.text_area.delete_next_word();
-                        if vim.operator == Operator::Change {
-                            vim.mode = VimMode::Insert;
-                        }
-                        vim.operator = Operator::None;
-                    } else {
-                        self.text_area.move_cursor(CursorMove::WordForward)
-                    }
-                }
-                KeyCode::Char('b') => self.text_area.move_cursor(CursorMove::WordBack),
-                KeyCode::Char('h') => self.text_area.move_cursor(CursorMove::Back),
-                KeyCode::Char('l') => self.text_area.move_cursor(CursorMove::Forward),
-                KeyCode::Char('j') => self.text_area.move_cursor(CursorMove::Down),
                 KeyCode::Char('u') => {
                     self.text_area.undo();
                 }
-                KeyCode::Char('k') => self.text_area.move_cursor(CursorMove::Up),
                 KeyCode::Char('r') => {
                     self.text_area.redo();
                 }
@@ -167,6 +174,9 @@ impl InputBox {
                     self.text_area.move_cursor(CursorMove::Up);
                     vim.mode = VimMode::Insert;
                 }
+                KeyCode::Char('p') => {
+                    self.text_area.paste();
+                }
                 _ => {}
             },
             VimMode::Insert => {
@@ -178,7 +188,31 @@ impl InputBox {
                     self.text_area.input(Input::from(key_event));
                 }
             }
-            VimMode::Visual => todo!(),
+            VimMode::Visual => match key_event.code {
+                KeyCode::Esc => {
+                    self.text_area.cancel_selection();
+                    vim.mode = VimMode::Normal;
+                }
+                KeyCode::Enter => {
+                    return self.submit();
+                }
+                KeyCode::Char('d') => {
+                    self.text_area.delete_char();
+                    vim.mode = VimMode::Normal;
+                }
+                KeyCode::Char('c') => {
+                    self.text_area.delete_char();
+                    vim.mode = VimMode::Insert;
+                }
+                KeyCode::Char('y') => {
+                    self.text_area.copy();
+                    vim.mode = VimMode::Normal;
+                }
+                KeyCode::Char('p') => {
+                    self.text_area.paste();
+                }
+                _ => {}
+            },
         }
 
         return PostEvent::noop(false);
