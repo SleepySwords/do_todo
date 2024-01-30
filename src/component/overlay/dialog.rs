@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, PostEvent},
+    draw::{Action, PostEvent, Component},
     utils::{self, handle_mouse_movement},
 };
 
@@ -52,8 +52,8 @@ pub struct DialogBox<'a> {
     pub prev_mode: Option<Mode>,
 }
 
-impl DialogBox<'_> {
-    pub fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+impl Component for DialogBox<'_> {
+    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let mut list = List::new(
             self.options
                 .iter()
@@ -86,7 +86,7 @@ impl DialogBox<'_> {
         drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
-    pub fn key_event(&mut self, app: &App, key_event: crossterm::event::KeyEvent) -> PostEvent {
+    fn key_event(&mut self, app: &mut App, key_event: crossterm::event::KeyEvent) -> PostEvent {
         let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
@@ -135,7 +135,7 @@ impl DialogBox<'_> {
         }
     }
 
-    pub fn mouse_event(
+    fn mouse_event(
         &mut self,
         app: &mut App,
         mouse_event: crossterm::event::MouseEvent,
@@ -167,7 +167,7 @@ impl DialogBox<'_> {
         }
     }
 
-    pub fn update_layout(&mut self, area: Rect) {
+    fn update_layout(&mut self, area: Rect) {
         self.draw_area = utils::centre_rect(
             Constraint::Percentage(70),
             Constraint::Length(self.options.len() as u16 + 2),

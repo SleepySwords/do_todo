@@ -61,12 +61,12 @@ impl Component for Logger {
         if key_code == KeyCode::Char('p') {
             self.opened = true;
             return PostEvent {
-                propegate_further: true,
+                propegate_further: false,
                 action: Action::Noop,
             };
         }
         PostEvent {
-            propegate_further: false,
+            propegate_further: true,
             action: Action::Noop,
         }
     }

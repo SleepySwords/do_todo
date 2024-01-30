@@ -9,7 +9,7 @@ use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, Drawer, PostEvent},
+    draw::{Action, Component, Drawer, PostEvent},
     error::AppError,
     utils,
 };
@@ -33,8 +33,10 @@ impl InputBox {
     pub fn text(&self) -> String {
         self.text_area.lines().join("\n")
     }
+}
 
-    pub fn draw(&self, app: &App, drawer: &mut Drawer) {
+impl Component for InputBox {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         let widget = self.text_area.widget();
         let boxes = Block::default()
             .borders(Borders::ALL)
@@ -48,7 +50,7 @@ impl InputBox {
         drawer.draw_widget(widget, box_area);
     }
 
-    pub fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
+    fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
         match key_event.code {
             KeyCode::Enter => {
                 if self.text_area.lines().join("\n").is_empty() {
@@ -105,7 +107,7 @@ impl InputBox {
         PostEvent::noop(false)
     }
 
-    pub fn update_layout(&mut self, draw_area: Rect) {
+    fn update_layout(&mut self, draw_area: Rect) {
         if self.full_width {
             self.draw_area = draw_area
         } else {
@@ -117,7 +119,7 @@ impl InputBox {
         }
     }
 
-    pub fn mouse_event(&mut self, _: &mut App, mouse_event: MouseEvent) -> PostEvent {
+    fn mouse_event(&mut self, _: &mut App, mouse_event: MouseEvent) -> PostEvent {
         match mouse_event.kind {
             MouseEventKind::Down(..) => {}
             _ => {

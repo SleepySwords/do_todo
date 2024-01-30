@@ -105,10 +105,10 @@ pub fn start_app(
             main_screen.draw(&screen_manager.app, &mut drawer);
 
             for overlay in screen_manager.overlays.iter_mut() {
-                overlay.update_layout(chunk[0])
+                overlay.component_mut().update_layout(chunk[0])
             }
             for overlay in screen_manager.overlays.iter() {
-                overlay.draw(screen_manager, &mut drawer)
+                overlay.component().draw(&screen_manager.app, &mut drawer)
             }
 
             screen_manager.app.status_line.update_layout(chunk[1]);

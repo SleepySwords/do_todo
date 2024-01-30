@@ -1,9 +1,8 @@
 use crossterm::event::{KeyEvent, MouseEvent};
-use tui::prelude::Rect;
 
 use crate::{
     app::{Mode, ScreenManager},
-    draw::{Action, Drawer, PostEvent},
+    draw::{Action, PostEvent, Component},
     error::AppError,
 };
 
@@ -23,17 +22,31 @@ pub enum Overlay<'a> {
 }
 
 impl Overlay<'_> {
+    pub fn component(&self) -> &dyn Component {
+        match self {
+            Overlay::Fuzzy(fuzzy) => fuzzy,
+            Overlay::Input(input) => input,
+            Overlay::Dialog(dialog) => dialog,
+            Overlay::Message(message) => message,
+        }
+    }
+
+    pub fn component_mut(&mut self) -> &mut dyn Component {
+        match self {
+            Overlay::Fuzzy(fuzzy) => fuzzy,
+            Overlay::Input(input) => input,
+            Overlay::Dialog(dialog) => dialog,
+            Overlay::Message(message) => message,
+        }
+    }
+
+
     pub fn key_event(
         screen_manager: &mut ScreenManager,
         key_event: KeyEvent,
     ) -> Result<PostEvent, AppError> {
         if let Some(overlay) = screen_manager.overlays.last_mut() {
-            return match overlay {
-                Overlay::Fuzzy(fuzzy) => Ok(fuzzy.key_event(&mut screen_manager.app, key_event)),
-                Overlay::Input(input) => Ok(input.key_event(&mut screen_manager.app, key_event)),
-                Overlay::Dialog(dialog) => Ok(dialog.key_event(&screen_manager.app, key_event)),
-                Overlay::Message(msg) => Ok(msg.key_event(&mut screen_manager.app, key_event)),
-            };
+            return Ok(overlay.component_mut().key_event(&mut screen_manager.app, key_event));
         }
         Ok(PostEvent {
             propegate_further: true,
@@ -43,41 +56,11 @@ impl Overlay<'_> {
 
     pub fn mouse_event(screen_manager: &mut ScreenManager, mouse_event: MouseEvent) -> PostEvent {
         if let Some(overlay) = screen_manager.overlays.last_mut() {
-            return match overlay {
-                Overlay::Fuzzy(fuzzy) => fuzzy.mouse_event(&mut screen_manager.app, mouse_event),
-                Overlay::Input(input) => input.mouse_event(&mut screen_manager.app, mouse_event),
-                Overlay::Dialog(dialog) => dialog.mouse_event(&mut screen_manager.app, mouse_event),
-                Overlay::Message(message) => {
-                    message.mouse_event(&mut screen_manager.app, mouse_event)
-                }
-            };
+            return overlay.component_mut().mouse_event(&mut screen_manager.app, mouse_event);
         }
-
         PostEvent {
             propegate_further: true,
             action: Action::Noop,
-        }
-    }
-
-    pub fn draw(&self, screen_manager: &ScreenManager, drawer: &mut Drawer) {
-        match self {
-            Overlay::Fuzzy(fuzzy) => fuzzy.draw(&screen_manager.app, drawer),
-            Overlay::Input(input) => input.draw(&screen_manager.app, drawer),
-            Overlay::Dialog(dialog) => dialog.draw(&screen_manager.app, drawer),
-            Overlay::Message(msg) => msg.draw(&screen_manager.app, drawer),
-        }
-    }
-
-    pub fn update_layout(&mut self, draw_area: Rect) {
-        match self {
-            Overlay::Input(input) => {
-                input.update_layout(draw_area);
-            }
-            Overlay::Dialog(dialog) => dialog.update_layout(draw_area),
-            Overlay::Fuzzy(fuzzy) => {
-                fuzzy.update_layout(draw_area);
-            }
-            Overlay::Message(message) => message.update_layout(draw_area),
         }
     }
 
@@ -86,7 +69,7 @@ impl Overlay<'_> {
             Overlay::Fuzzy(fuzzy) => fuzzy.prev_mode,
             Overlay::Input(input) => input.prev_mode,
             Overlay::Dialog(dialog) => dialog.prev_mode,
-            Overlay::Message(message) => message.mode_to_restore,
+            Overlay::Message(message) => message.prev_mode,
         }
     }
 }

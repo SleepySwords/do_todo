@@ -8,11 +8,11 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::PostEvent,
+    draw::{Component, PostEvent},
     utils::{self, centre_rect},
 };
 
-use super::overlay::Overlay;
+use super::overlay::{dialog::DialogBox, Overlay};
 
 type MessageCallback = dyn FnOnce(&mut App) -> PostEvent;
 
@@ -22,7 +22,7 @@ pub struct MessageBox {
     message: Vec<String>,
     colour: Color,
     selected_index: usize,
-    pub mode_to_restore: Option<Mode>,
+    pub prev_mode: Option<Mode>,
     draw_area: Rect,
 }
 
@@ -43,7 +43,7 @@ impl MessageBox {
                 .collect::<Vec<String>>(),
             colour,
             selected_index,
-            mode_to_restore: None,
+            prev_mode: None,
             draw_area: Rect::default(),
         }
     }
@@ -62,20 +62,20 @@ impl MessageBox {
             message: words,
             colour,
             selected_index,
-            mode_to_restore: None,
+            prev_mode: None,
             draw_area,
         }
     }
 
     pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.mode_to_restore = Some(app.mode);
+        self.prev_mode = Some(app.mode);
         app.mode = Mode::Overlay;
         self
     }
 }
 
-impl MessageBox {
-    pub fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+impl Component for MessageBox {
+    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
         let style = Style::default().fg(self.colour);
         let text = self
             .message
@@ -97,28 +97,28 @@ impl MessageBox {
         drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
-    pub fn key_event(&mut self, app: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
-        if let Some(mode) = self.mode_to_restore {
+    fn key_event(&mut self, app: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
+        if let Some(mode) = self.prev_mode {
             app.mode = mode;
         }
         if let Some(callback) = self.callback.take() {
-            let result = (callback)(app);
-            return PostEvent::pop_overlay(|_, _| result);
+            return (callback)(app);
         }
         PostEvent::pop_overlay(|_, _| PostEvent::noop(false))
     }
 
-    pub fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {
+    fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
                 return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                    if let Overlay::Message(mut message) = overlay {
-                        if let Some(mode) = message.mode_to_restore {
-                            app.mode = mode;
-                        }
-                        if let Some(callback) = message.callback.take() {
-                            (callback)(app);
-                        }
+                    let Overlay::Message(MessageBox { prev_mode, mut callback, .. }) = overlay else {
+                        return PostEvent::noop(false);
+                    };
+                    if let Some(mode) = prev_mode {
+                        app.mode = mode;
+                    }
+                    if let Some(callback) = callback.take() {
+                        return (callback)(app);
                     }
                     PostEvent::noop(false)
                 });
@@ -127,7 +127,7 @@ impl MessageBox {
         PostEvent::noop(false)
     }
 
-    pub fn update_layout(&mut self, draw_area: Rect) {
+    fn update_layout(&mut self, draw_area: Rect) {
         let height = ((self.message.len() + 2) as u16)
             .min(Constraint::Percentage(70).apply(draw_area.height));
         self.draw_area = centre_rect(

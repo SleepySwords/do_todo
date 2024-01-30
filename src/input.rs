@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use crossterm::event::KeyEvent;
 
 use crate::{
@@ -79,6 +80,17 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
             *selected_index = app.task_store.task_position(&old_task).ok_or_else(|| {
                 AppError::InvalidState("Cannot find the selected tasks index.".to_string())
             })?
+        }
+        KeyBindings::AddDate => {
+            let input = InputBoxBuilder::default()
+                .title("Date".to_string())
+                .save_mode(app)
+                .callback(|app, date| {
+                    app.println(format!("{:?}", NaiveDate::parse_from_str(&date, "%Y")));
+                    Ok(PostEvent::noop(false))
+                })
+                .build_overlay();
+            return Ok(PostEvent::push_overlay(input));
         }
         KeyBindings::MoveTaskDown => {
             let autosort = app.task_store.auto_sort;

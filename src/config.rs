@@ -38,6 +38,7 @@ pub struct Config {
     pub edit_key: Key,
     pub delete_key: Key,
     pub add_key: Key,
+    pub add_date: Key,
     pub flip_progress_key: Key,
     pub change_priority_key: Key,
     pub restore_key: Key,
@@ -96,6 +97,7 @@ impl Default for Config {
             edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
             delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
             add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
+            add_date: Key::new(KeyCode::Char('b'), KeyModifiers::NONE),
             change_priority_key: Key::new(KeyCode::Char('p'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
@@ -153,6 +155,7 @@ pub enum KeyBindings {
     EditKey,
     DeleteKey,
     AddKey,
+    AddDate,
     ChangePriorityKey,
     RestoreKey,
 
@@ -213,6 +216,9 @@ impl KeyBindings {
         }
         if config.add_key.is_pressed(event) {
             return KeyBindings::AddKey;
+        }
+        if config.add_date.is_pressed(event) {
+            return KeyBindings::AddDate;
         }
         if config.change_priority_key.is_pressed(event) {
             return KeyBindings::ChangePriorityKey;

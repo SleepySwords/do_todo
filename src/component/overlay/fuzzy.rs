@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::PostEvent,
+    draw::{PostEvent, Component},
     utils::{self, handle_mouse_movement},
 };
 
@@ -27,14 +27,16 @@ pub struct FuzzyBox<'a> {
     options: Vec<DialogAction<'a>>,
     pub prev_mode: Option<Mode>,
 }
-
 impl FuzzyBox<'_> {
     fn generate_rect(&self, rect: Rect) -> Rect {
         // FIXME: consider using length of options.
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
+}
 
-    pub fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
+
+impl Component for FuzzyBox<'_> {
+    fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
         let code = key_event.code;
         match code {
             _ if app.config.move_down_fuzzy.is_pressed(key_event) => {
@@ -124,7 +126,7 @@ impl FuzzyBox<'_> {
         }
     }
 
-    pub fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
+    fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
         self.input_box.draw(app, drawer);
 
         let mut list = List::new(
@@ -156,7 +158,7 @@ impl FuzzyBox<'_> {
         drawer.draw_stateful_widget(list, &mut list_state, self.list_draw_area);
     }
 
-    pub fn update_layout(&mut self, draw_area: Rect) {
+    fn update_layout(&mut self, draw_area: Rect) {
         self.draw_area = self.generate_rect(draw_area);
         let layout = Layout::default()
             .direction(tui::layout::Direction::Vertical)
@@ -167,7 +169,7 @@ impl FuzzyBox<'_> {
         self.list_draw_area = layout[1];
     }
 
-    pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
+    fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if utils::inside_rect(
             (mouse_event.row, mouse_event.column),
             self.input_box.draw_area,
