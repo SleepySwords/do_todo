@@ -97,7 +97,20 @@ impl InputBox {
                     return self.submit();
                 }
                 KeyCode::Esc => {
-                    vim.operator = Operator::None;
+                    if vim.operator != Operator::None {
+                        vim.operator = Operator::None;
+                    } else {
+                        return PostEvent::pop_overlay(|app: &mut App, overlay| {
+                            if let Overlay::Input(InputBox {
+                                prev_mode: Some(mode),
+                                ..
+                            }) = overlay
+                            {
+                                app.mode = mode;
+                            }
+                            PostEvent::noop(false)
+                        });
+                    }
                 }
                 KeyCode::Char('q') => {
                     return PostEvent::pop_overlay(|app: &mut App, overlay| {
