@@ -29,24 +29,12 @@ pub struct Vim {
 }
 
 impl InputBox {
-    pub fn vim_title(&self, title: &str) -> String {
-        let mode = match &self.input_mode {
-            InputMode::Normal => todo!(),
-            InputMode::Vim(vim) => match vim.mode {
-                VimMode::Normal => "Normal",
-                VimMode::Insert => "Insert",
-                VimMode::Visual => "Visual",
-            },
-        };
-        return format!("{} - {}", title, mode);
-    }
-
     pub fn input_vim(&mut self, key_event: KeyEvent) -> PostEvent {
         let InputMode::Vim(ref mut vim) = self.input_mode else {
             return PostEvent::noop(true);
         };
-        if let VimMode::Normal | VimMode::Visual = vim.mode {
-            match key_event.code {
+        match vim.mode {
+            VimMode::Normal | VimMode::Visual => match key_event.code {
                 KeyCode::Char('$') => {
                     if vim.operator == Operator::Change || vim.operator == Operator::Delete {
                         self.text_area.delete_line_by_end();
@@ -91,12 +79,25 @@ impl InputBox {
                 KeyCode::Char('j') => self.text_area.move_cursor(CursorMove::Down),
                 KeyCode::Char('k') => self.text_area.move_cursor(CursorMove::Up),
                 _ => {}
+            },
+            VimMode::Insert => {
+                if let KeyCode::Esc = key_event.code {
+                    vim.mode = VimMode::Normal;
+                } else if let KeyCode::Enter = key_event.code {
+                    return self.submit();
+                } else {
+                    self.text_area.input(Input::from(key_event));
+                }
             }
         }
+
         match vim.mode {
             VimMode::Normal => match key_event.code {
                 KeyCode::Enter => {
                     return self.submit();
+                }
+                KeyCode::Esc => {
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('q') => {
                     return PostEvent::pop_overlay(|app: &mut App, overlay| {
@@ -146,6 +147,12 @@ impl InputBox {
                     self.text_area.start_selection();
                     vim.mode = VimMode::Visual;
                 }
+                KeyCode::Char('V') => {
+                    self.text_area.move_cursor(CursorMove::Head);
+                    self.text_area.start_selection();
+                    self.text_area.move_cursor(CursorMove::End);
+                    vim.mode = VimMode::Visual;
+                }
                 KeyCode::Char('i') => {
                     if vim.operator == Operator::None {
                         vim.mode = VimMode::Insert;
@@ -179,24 +186,15 @@ impl InputBox {
                 }
                 _ => {}
             },
-            VimMode::Insert => {
-                if let KeyCode::Esc = key_event.code {
-                    vim.mode = VimMode::Normal;
-                } else if let KeyCode::Enter = key_event.code {
-                    return self.submit();
-                } else {
-                    self.text_area.input(Input::from(key_event));
-                }
-            }
             VimMode::Visual => match key_event.code {
-                KeyCode::Esc => {
+                KeyCode::Esc | KeyCode::Char('v') => {
                     self.text_area.cancel_selection();
                     vim.mode = VimMode::Normal;
                 }
                 KeyCode::Enter => {
                     return self.submit();
                 }
-                KeyCode::Char('d') => {
+                KeyCode::Char('d') | KeyCode::Char('x') => {
                     self.text_area.delete_char();
                     vim.mode = VimMode::Normal;
                 }
@@ -213,6 +211,7 @@ impl InputBox {
                 }
                 _ => {}
             },
+            _ => {}
         }
 
         return PostEvent::noop(false);

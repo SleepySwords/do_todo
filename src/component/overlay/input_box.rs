@@ -39,6 +39,26 @@ pub struct InputBox {
 }
 
 impl InputBox {
+    fn formated_title(&self) -> String {
+        match &self.input_mode {
+            InputMode::Normal => self.title.to_string(),
+            InputMode::Vim(vim) => {
+                let mode = match vim.mode {
+                    VimMode::Normal => "Normal",
+                    VimMode::Insert => "Insert",
+                    VimMode::Visual => "Visual",
+                };
+                let operator = match vim.operator {
+                    Operator::Delete => "- Delete",
+                    Operator::Change => "- Change",
+                    Operator::Yank => "- Yank",
+                    Operator::None => "",
+                };
+                return format!("{} - {} {}", self.title, mode, operator);
+            }
+        }
+    }
+
     pub fn text(&self) -> String {
         self.text_area.lines().join("\n")
     }
@@ -49,11 +69,7 @@ impl InputBox {
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.config.selected_border_colour))
             .border_type(app.config.border_type)
-            .title(if let InputMode::Vim(_) = &self.input_mode {
-                self.vim_title(&self.title)
-            } else {
-                self.title.to_owned()
-            });
+            .title(self.formated_title());
         let box_area = boxes.inner(self.draw_area);
 
         drawer.draw_widget(Clear, self.draw_area);
