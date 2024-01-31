@@ -83,6 +83,7 @@ impl InputBox {
             VimMode::Insert => {
                 if let KeyCode::Esc = key_event.code {
                     vim.mode = VimMode::Normal;
+                    return PostEvent::noop(false);
                 } else if let KeyCode::Enter = key_event.code {
                     return self.submit();
                 } else {
