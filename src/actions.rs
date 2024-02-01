@@ -103,21 +103,23 @@ impl App {
                         app,
                         KeyEvent::new(ac.character.code, ac.character.modifiers),
                     );
-                    if let Err(AppError::InvalidState(msg)) = result {
-                        let prev_mode = app.mode;
-                        app.mode = Mode::Overlay;
-                        return PostEvent::push_overlay(Overlay::Message(MessageBox::new(
-                            "An error occured".to_string(),
-                            move |app| {
-                                app.mode = prev_mode;
-                                PostEvent::noop(false)
-                            },
-                            msg,
-                            Color::Red,
-                            0,
-                        )));
-                    } else {
-                        PostEvent::noop(false)
+                    match result {
+                        Ok(result) => result,
+                        Err(AppError::InvalidState(msg)) => {
+                            let prev_mode = app.mode;
+                            app.mode = Mode::Overlay;
+                            return PostEvent::push_overlay(Overlay::Message(MessageBox::new(
+                                "An error occured".to_string(),
+                                move |app| {
+                                    app.mode = prev_mode;
+                                    PostEvent::noop(false)
+                                },
+                                msg,
+                                Color::Red,
+                                0,
+                            )));
+                        }
+                        _ => PostEvent::noop(false),
                     }
                 },
             ));

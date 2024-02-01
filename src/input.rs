@@ -329,7 +329,7 @@ fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
         ),
         HelpEntry::new(config.move_task_up, "Moves the task up on the task list"),
         HelpEntry::new_multiple(config.down_keys, "Moves down one task"),
-        HelpEntry::new_multiple(config.down_keys, "Moves up one task"),
+        HelpEntry::new_multiple(config.up_keys, "Moves up one task"),
         HelpEntry::new(config.sort_key, "Sorts tasks (by priority)"),
         HelpEntry::new(config.enable_autosort_key, "Toggles automatic task sort"),
         HelpEntry::new(config.flip_subtask_key, "Open/closes the subtask"),
