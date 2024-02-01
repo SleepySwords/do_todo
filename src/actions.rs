@@ -1,5 +1,6 @@
 use chrono::Local;
 use crossterm::event::KeyEvent;
+use itertools::Itertools;
 use tui::style::{Color, Style};
 
 use crate::{
@@ -81,58 +82,41 @@ impl App {
 
     pub fn create_help_menu(&mut self) -> Result<PostEvent, AppError> {
         // Actions that are universal, should use a table?
-        let mut actions: Vec<DialogAction> = vec![
-            DialogAction::new(
-                format!(
-                    "{: <15}Change to current task window",
-                    self.config.tasks_menu_key.to_string()
-                ),
-                |app| {
-                    app.mode = Mode::CurrentTasks;
-                    PostEvent::noop(false)
-                },
-            ),
-            DialogAction::new(
-                format!(
-                    "{: <15}Change to completed task window",
-                    self.config.completed_tasks_menu_key.to_string()
-                ),
-                |app| {
-                    app.mode = Mode::CompletedTasks;
-                    PostEvent::noop(false)
-                },
-            ),
-        ];
-        for ac in self.mode.help_entries(&self.config) {
-            actions.push(DialogAction::new(
-                format!("{: <15}{}", ac.short_hand, ac.description),
-                move |app| {
-                    // HACK: This technically does not consider overlay,
-                    // Should be fine, since they don't show up in Help
-                    // Menus anyway
-                    let result = input::help_input(
-                        app,
-                        KeyEvent::new(ac.character.code, ac.character.modifiers),
-                    );
-                    if let Err(AppError::InvalidState(msg)) = result {
-                        let prev_mode = app.mode;
-                        app.mode = Mode::Overlay;
-                        return PostEvent::push_overlay(Overlay::Message(MessageBox::new(
-                            "An error occured".to_string(),
-                            move |app| {
-                                app.mode = prev_mode;
-                                PostEvent::noop(false)
-                            },
-                            msg,
-                            Color::Red,
-                            0,
-                        )));
-                    } else {
-                        PostEvent::noop(false)
-                    }
-                },
-            ));
-        }
+        let mut keys = input::universal_input_keys(&self.config);
+        keys.append(&mut self.mode.help_entries(&self.config));
+        let actions: Vec<DialogAction> = keys
+            .into_iter()
+            .map(|ac| {
+                DialogAction::new(
+                    format!("{: <15}{}", ac.short_hand, ac.description),
+                    move |app| {
+                        // HACK: This technically does not consider overlay,
+                        // Should be fine, since they don't show up in Help
+                        // Menus anyway
+                        let result = input::help_input(
+                            app,
+                            KeyEvent::new(ac.character.code, ac.character.modifiers),
+                        );
+                        if let Err(AppError::InvalidState(msg)) = result {
+                            let prev_mode = app.mode;
+                            app.mode = Mode::Overlay;
+                            return PostEvent::push_overlay(Overlay::Message(MessageBox::new(
+                                "An error occured".to_string(),
+                                move |app| {
+                                    app.mode = prev_mode;
+                                    PostEvent::noop(false)
+                                },
+                                msg,
+                                Color::Red,
+                                0,
+                            )));
+                        } else {
+                            PostEvent::noop(false)
+                        }
+                    },
+                )
+            })
+            .collect_vec();
 
         Ok(self.create_dialog_or_fuzzy("Help menu", actions))
     }
@@ -397,10 +381,13 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn add_subtask(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_add_subtask_dialog(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
+        let Some(task) = self.task_store.task_mut(index) else {
+            return Ok(PostEvent::noop(false));
+        };
         let add_input_dialog = InputBoxBuilder::default()
-            .title(String::from("Add a task"))
+            .title(format!("Add a subtask to {}", task.title))
             .callback(move |app, word| {
                 if let Some(task) = app.task_store.task_mut(index) {
                     task.sub_tasks
@@ -484,7 +471,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn open_edit_selected_task(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_edit_selected_task_dialog(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let Some(task) = self.task_store.task(index) else {
             return Ok(PostEvent::noop(true));
@@ -515,7 +502,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn open_subtasks_key(&mut self) -> Result<PostEvent, AppError> {
+    pub fn open_subtasks(&mut self) -> Result<PostEvent, AppError> {
         let selected_index = &mut self.task_list.selected_index;
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));
