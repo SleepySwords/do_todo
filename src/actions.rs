@@ -47,7 +47,11 @@ impl HelpEntry<'_> {
             function: None,
         }
     }
-    pub fn register_function<T: 'static>(character: Key, description: &str, function: T) -> HelpEntry<'_>
+    pub fn register_function<T: 'static>(
+        character: Key,
+        description: &str,
+        function: T,
+    ) -> HelpEntry<'_>
     where
         T: Fn(&mut App) -> Result<PostEvent, AppError>,
     {
@@ -141,9 +145,9 @@ impl App {
         self.create_dialog_or_fuzzy("Help menu", actions)
     }
 
-    pub fn create_delete_selected_task_menu(&mut self) -> PostEvent {
+    pub fn create_delete_selected_task_menu(&mut self) -> Result<PostEvent, AppError> {
         if self.task_store.tasks.is_empty() {
-            return PostEvent::noop(false);
+            return Ok(PostEvent::noop(false));
         }
         let delete_dialog = DialogBoxBuilder::default()
             .title("Delete selected task".to_string())
@@ -163,18 +167,18 @@ impl App {
             }))
             .save_mode(self)
             .build();
-        PostEvent::push_overlay(delete_dialog)
+        Ok(PostEvent::push_overlay(delete_dialog))
     }
 
-    pub fn complete_selected_task(&mut self) {
+    pub fn complete_selected_task(&mut self) -> Result<PostEvent, AppError> {
         if self.task_store.tasks.is_empty() {
-            return;
+            return Ok(PostEvent::noop(true));
         }
         let selected_index = &mut self.task_list.selected_index;
         let local = Local::now();
         let time_completed = local.naive_local();
         let Some(task) = self.task_store.delete_task(*selected_index) else {
-            return;
+            return Ok(PostEvent::noop(true));
         };
         self.task_store
             .completed_tasks
@@ -184,9 +188,10 @@ impl App {
         {
             *selected_index -= 1;
         }
+        return Ok(PostEvent::noop(false));
     }
 
-    pub fn create_tag_menu(&mut self) -> PostEvent {
+    pub fn create_tag_menu(&mut self) -> Result<PostEvent, AppError> {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         let selected_index = self.task_list.selected_index;
@@ -261,7 +266,7 @@ impl App {
             PostEvent::noop(false)
         }));
 
-        self.create_dialog_or_fuzzy("Add or remove a tag", tag_options)
+        Ok(self.create_dialog_or_fuzzy("Add or remove a tag", tag_options))
     }
 
     pub fn create_edit_tag_menu(&mut self) -> PostEvent {

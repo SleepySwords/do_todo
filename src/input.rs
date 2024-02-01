@@ -1,4 +1,3 @@
-use std::num::IntErrorKind::PosOverflow;
 use crossterm::event::KeyEvent;
 
 use crate::{
@@ -58,39 +57,19 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
     let selected_index = &mut app.task_list.selected_index;
 
     // Move this to the actions class
-    match KeyBindings::from_event(theme, key_event) {
-        KeyBindings::ChangePriorityKey => {
-            change_priority(app)?;
-        }
-        KeyBindings::AddSubtaskKey => {
-            add_subtask(app)?;
-        }
-        KeyBindings::MoveTaskDown => {
-            move_task_down(app)?;
-        }
-        KeyBindings::MoveTaskUp => {
-            move_task_up(app)?;
-        }
-        KeyBindings::DeleteKey => {
-            return Ok(app.create_delete_selected_task_menu());
-        }
-        KeyBindings::EditKey => {
-            edit_selected_task(app)?
-        }
-        KeyBindings::TagMenu => return Ok(app.create_tag_menu()),
-        KeyBindings::FlipProgressKey => {
-            flip_progress_key(app)?;
-        }
+    return match KeyBindings::from_event(theme, key_event) {
+        KeyBindings::ChangePriorityKey => change_priority(app),
+        KeyBindings::AddSubtaskKey => add_subtask(app),
+        KeyBindings::MoveTaskDown => move_task_down(app),
+        KeyBindings::MoveTaskUp => move_task_up(app),
+        KeyBindings::DeleteKey => app.create_delete_selected_task_menu(),
+        KeyBindings::EditKey => edit_selected_task(app),
+        KeyBindings::TagMenu => app.create_tag_menu(),
+        KeyBindings::FlipProgressKey => flip_progress_key(app),
         KeyBindings::CompleteKey => app.complete_selected_task(),
-        KeyBindings::OpenSubtasksKey => {
-            open_subtasks_key(app)?;
-        }
-        KeyBindings::MoveSubtaskLevelUp => {
-            move_subtask_level_up(app)?;
-        }
-        KeyBindings::MoveSubtaskLevelDown => {
-            move_subtask_level_down(app)?;
-        }
+        KeyBindings::OpenSubtasksKey => open_subtasks_key(app),
+        KeyBindings::MoveSubtaskLevelUp => move_subtask_level_up(app),
+        KeyBindings::MoveSubtaskLevelDown => move_subtask_level_down(app),
         _ => {
             return Ok(utils::handle_key_movement(
                 theme,
@@ -100,10 +79,9 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
             ));
         }
     }
-    Ok(PostEvent::noop(false))
 }
 
-fn change_priority(app: &mut App) -> Result<PostEvent, AppError>{
+fn change_priority(app: &mut App) -> Result<PostEvent, AppError> {
     if app.task_store.tasks.is_empty() {
         return Ok(PostEvent::noop(true));
     }
@@ -149,13 +127,13 @@ fn move_task_down(app: &mut App) -> Result<PostEvent, AppError> {
     let autosort = app.task_store.auto_sort;
 
     let Some(FindParentResult {
-                 tasks: parent_tasks,
-                 parent_index,
-                 task_local_offset: local_index,
-             }) = app.task_store.find_parent(app.task_list.selected_index)
-        else {
-            return Ok(PostEvent::noop(true));
-        };
+        tasks: parent_tasks,
+        parent_index,
+        task_local_offset: local_index,
+    }) = app.task_store.find_parent(app.task_list.selected_index)
+    else {
+        return Ok(PostEvent::noop(true));
+    };
 
     let new_index = (local_index + 1) % parent_tasks.len();
 
@@ -181,20 +159,19 @@ fn move_task_up(app: &mut App) -> Result<PostEvent, AppError> {
     let auto_sort = app.task_store.auto_sort;
 
     let Some(FindParentResult {
-                 tasks: parent_subtasks,
-                 parent_index,
-                 task_local_offset: local_index,
-             }) = app.task_store.find_parent(app.task_list.selected_index)
-        else {
-            return Ok(PostEvent::noop(true));
-        };
+        tasks: parent_subtasks,
+        parent_index,
+        task_local_offset: local_index,
+    }) = app.task_store.find_parent(app.task_list.selected_index)
+    else {
+        return Ok(PostEvent::noop(true));
+    };
 
     if parent_subtasks.is_empty() {
         return Ok(PostEvent::noop(true));
     }
 
-    let new_index =
-        (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
+    let new_index = (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
 
     let Some(mut_parent_subtasks) = app.task_store.subtasks(parent_index) else {
         return Ok(PostEvent::noop(true));
@@ -370,9 +347,13 @@ fn move_subtask_level_down(app: &mut App) -> Result<PostEvent, AppError> {
 fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
     vec![
         HelpEntry::new(config.add_key, "Adds a task"),
-        HelpEntry::new(config.complete_key, "Completes the selected task", ),
+        HelpEntry::new(config.complete_key, "Completes the selected task"),
         HelpEntry::new(config.delete_key, "Delete the selected task"),
-        HelpEntry::register_function(config.edit_key, "Edits the selected task", edit_selected_task),
+        HelpEntry::register_function(
+            config.edit_key,
+            "Edits the selected task",
+            edit_selected_task,
+        ),
         HelpEntry::new(
             config.tag_menu,
             "Add or remove the tags from this task or project",
@@ -385,9 +366,13 @@ fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
         HelpEntry::register_function(
             config.move_task_down,
             "Moves the task down on the task list",
-            move_task_down
+            move_task_down,
         ),
-        HelpEntry::register_function(config.move_task_up, "Moves the task up on the task list", move_task_up),
+        HelpEntry::register_function(
+            config.move_task_up,
+            "Moves the task up on the task list",
+            move_task_up,
+        ),
         HelpEntry::new_multiple(config.down_keys, "Moves down one task"),
         HelpEntry::new_multiple(config.down_keys, "Moves up one task"),
         HelpEntry::new(config.sort_key, "Sorts tasks (by priority)"),
