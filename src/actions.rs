@@ -13,16 +13,16 @@ use crate::{
     error::AppError,
     input,
     key::Key,
-    task::{CompletedTask, Task, TaskStore, FindParentResult},
+    task::{CompletedTask, FindParentResult, Task, TaskStore},
     utils::{self, str_to_colour},
 };
 
 // Action class maybe?!!
 pub struct HelpEntry<'a> {
-    character: Key,
+    pub character: Key,
     short_hand: String,
     description: &'a str,
-    function: Option<Box<dyn Fn(&mut App) -> Result<PostEvent, AppError>>>,
+    pub function: Option<Box<dyn Fn(&mut App) -> Result<PostEvent, AppError>>>,
 }
 
 impl HelpEntry<'_> {
@@ -47,7 +47,7 @@ impl HelpEntry<'_> {
             function: None,
         }
     }
-    pub fn register_function<T: 'static>(
+    pub fn register_key<T: 'static>(
         character: Key,
         description: &str,
         function: T,
@@ -61,6 +61,46 @@ impl HelpEntry<'_> {
             description,
             function: Some(Box::new(function)),
         }
+    }
+}
+
+// Universal functions
+impl App {
+    pub fn create_add_task(&mut self) -> Result<PostEvent, AppError> {
+        let add_input_dialog = InputBoxBuilder::default()
+            .title(String::from("Add a task"))
+            .callback(move |app, word| {
+                app.task_store
+                    .add_task(Task::from_string(word.trim().to_string()));
+                if app.mode == Mode::CurrentTasks {
+                    app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
+                }
+                Ok(PostEvent::noop(false))
+            })
+            .save_mode(self)
+            .build_overlay();
+        return Ok(PostEvent::push_overlay(add_input_dialog));
+    }
+
+    pub fn go_to_task_list(&mut self) -> Result<PostEvent, AppError> {
+        self.mode = Mode::CurrentTasks;
+        Ok(PostEvent::noop(false))
+    }
+
+    pub fn go_to_completed_list(&mut self) -> Result<PostEvent, AppError> {
+        self.mode = Mode::CompletedTasks;
+        Ok(PostEvent::noop(false))
+    }
+
+    pub fn sort(&mut self) -> Result<PostEvent, AppError> {
+        self.task_store.sort();
+        Ok(PostEvent::noop(false))
+    }
+
+    pub fn enable_sort(&mut self) -> Result<PostEvent, AppError> {
+        self.task_store.auto_sort = !self.task_store.auto_sort;
+        self.task_store.sort();
+        Ok(PostEvent::noop(false))
     }
 }
 
@@ -492,7 +532,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn edit_selected_task(&mut self) -> Result<PostEvent, AppError> {
+    pub fn open_edit_selected_task(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let Some(task) = self.task_store.task(index) else {
             return Ok(PostEvent::noop(true));
