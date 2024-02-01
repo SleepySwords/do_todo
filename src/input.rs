@@ -103,19 +103,19 @@ pub fn universal_input_keys(config: &Config) -> Vec<KeyBinding<'static>> {
         ),
         KeyBinding::register_key(
             config.completed_tasks_menu_key,
-            "Goes to the task menu",
+            "Goes to the completed task menu",
             App::go_to_completed_list,
         ),
         KeyBinding::register_key(
             config.open_help_key,
-            "Goes to the task menu",
+            "Opens the help menu",
             App::create_help_menu,
         ),
         KeyBinding::register_key(config.quit_key, "Quits the app", App::shutdown),
-        KeyBinding::register_key(config.sort_key, "Goes to the task menu", App::sort),
+        KeyBinding::register_key(config.sort_key, "Sorts tasks (by priority)", App::sort),
         KeyBinding::register_key(
             config.enable_autosort_key,
-            "Goes to the task menu",
+            "Toggles automatic task sort",
             App::enable_auto_sort,
         ),
     ]
