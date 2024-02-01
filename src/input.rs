@@ -53,7 +53,7 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
             App::move_task_up,
         ),
         KeyBinding::new_multiple(config.down_keys, "Moves down one task"),
-        KeyBinding::new_multiple(config.down_keys, "Moves up one task"),
+        KeyBinding::new_multiple(config.up_keys, "Moves up one task"),
         KeyBinding::register_key(
             config.flip_subtask_key,
             "Open/closes the subtask",
