@@ -22,6 +22,7 @@ pub struct HelpEntry<'a> {
     character: Key,
     short_hand: String,
     description: &'a str,
+    function: Option<Box<dyn Fn(&mut App) -> Result<PostEvent, AppError>>>,
 }
 
 impl HelpEntry<'_> {
@@ -30,8 +31,10 @@ impl HelpEntry<'_> {
             character,
             short_hand: character.to_string(),
             description,
+            function: None,
         }
     }
+
     pub fn new_multiple(character: [Key; 2], description: &str) -> HelpEntry<'_> {
         HelpEntry {
             character: character[0],
@@ -41,6 +44,18 @@ impl HelpEntry<'_> {
             )
             .collect::<String>(),
             description,
+            function: None,
+        }
+    }
+    pub fn register_function<T: 'static>(character: Key, description: &str, function: T) -> HelpEntry<'_>
+    where
+        T: Fn(&mut App) -> Result<PostEvent, AppError>,
+    {
+        HelpEntry {
+            character,
+            short_hand: character.to_string(),
+            description,
+            function: Some(Box::new(function)),
         }
     }
 }

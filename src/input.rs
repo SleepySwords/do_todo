@@ -80,6 +80,23 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                 AppError::InvalidState("Cannot find the selected tasks index.".to_string())
             })?
         }
+        KeyBindings::AddSubtaskKey => {
+            let index = *selected_index;
+            let add_input_dialog = InputBoxBuilder::default()
+                .title(String::from("Add a task"))
+                .callback(move |app, word| {
+                    if let Some(task) = app.task_store.task_mut(index) {
+                        task.sub_tasks
+                            .push(Task::from_string(word.trim().to_string()));
+                        task.opened = true;
+                        app.task_list.selected_index += task.sub_tasks.len();
+                    }
+                    Ok(PostEvent::noop(false))
+                })
+                .save_mode(app)
+                .build_overlay();
+            return Ok(PostEvent::push_overlay(add_input_dialog));
+        }
         KeyBindings::MoveTaskDown => {
             let autosort = app.task_store.auto_sort;
 
@@ -169,133 +186,17 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
         }
         KeyBindings::TagMenu => return Ok(app.create_tag_menu()),
         KeyBindings::FlipProgressKey => {
-            if app.task_store.tasks.is_empty() {
-                return Ok(PostEvent::noop(true));
-            }
-            let Some(task) = app.task_store.task_mut(*selected_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-            task.progress = !task.progress;
+            flip_progress_key(app)?;
         }
         KeyBindings::CompleteKey => app.complete_selected_task(),
         KeyBindings::OpenSubtasksKey => {
-            if app.task_store.tasks.is_empty() {
-                return Ok(PostEvent::noop(true));
-            }
-            let Some(task) = app.task_store.task_mut(*selected_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-            task.opened = !task.opened;
+            open_subtasks_key(app)?;
         }
         KeyBindings::MoveSubtaskLevelUp => {
-            let Some(FindParentResult {
-                tasks: parent_tasks,
-                parent_index,
-                task_local_offset: local_index,
-            }) = app.task_store.find_parent(*selected_index)
-            else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            if parent_tasks.is_empty() {
-                return Ok(PostEvent::noop(true));
-            }
-
-            if local_index == 0 {
-                return Ok(PostEvent::noop(true));
-            }
-
-            let prev_local_index = local_index - 1;
-            let prev_global_index =
-                TaskStore::local_index_to_global(prev_local_index, parent_tasks, parent_index);
-
-            let Some(task) = app.task_store.delete_task(*selected_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let Some(prev_task) = app.task_store.task_mut(prev_global_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            if !prev_task.opened {
-                prev_task.opened = true;
-                // Have to remove the task when adding
-                *selected_index += prev_task.find_task_draw_size() - 1;
-            }
-            prev_task.sub_tasks.push(task);
-
-            // FIXME: refactor this to ideally not clone
-            if app.task_store.auto_sort {
-                let Some(task) = app.task_store.task(*selected_index).cloned() else {
-                    return Err(AppError::InvalidState(
-                        "There is no task selected.".to_string(),
-                    ));
-                };
-                app.task_store.sort();
-                if let Some(task_pos) = app.task_store.task_position(&task) {
-                    *selected_index = task_pos;
-                }
-            }
+            move_subtask_level_up(app)?;
         }
         KeyBindings::MoveSubtaskLevelDown => {
-            let Some(FindParentResult { parent_index, .. }) =
-                app.task_store.find_parent(*selected_index)
-            else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let Some(parent_index) = parent_index else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let Some(task) = app.task_store.delete_task(*selected_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let Some(FindParentResult {
-                tasks: grandparent_subtasks,
-                parent_index: grandparent_index,
-                ..
-            }) = app.task_store.find_parent(parent_index)
-            else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let parent_local_index = grandparent_subtasks
-                .iter()
-                .position(|t| {
-                    t == app
-                        .task_store
-                        .task(parent_index)
-                        .expect("This is definately a task")
-                })
-                .ok_or_else(|| {
-                    AppError::InvalidState("Cannot find the parent tasks index.".to_string())
-                })?;
-
-            let Some(grandparent_subtasks) = app.task_store.subtasks(grandparent_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let new_index = parent_local_index + 1;
-            grandparent_subtasks.insert(new_index, task);
-            *selected_index = TaskStore::local_index_to_global(
-                new_index,
-                grandparent_subtasks,
-                grandparent_index,
-            );
-            // FIXME: refactor this to ideally not clone
-            if app.task_store.auto_sort {
-                let Some(task) = app.task_store.task(*selected_index).cloned() else {
-                    return Err(AppError::InvalidState(
-                        "Invalid selected index for this task.".to_string(),
-                    ));
-                };
-                app.task_store.sort();
-                if let Some(task_pos) = app.task_store.task_position(&task) {
-                    *selected_index = task_pos;
-                }
-            }
+            move_subtask_level_down(app)?;
         }
         _ => {
             return Ok(utils::handle_key_movement(
@@ -304,6 +205,139 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
                 selected_index,
                 app.task_store.find_tasks_draw_size(),
             ));
+        }
+    }
+    Ok(PostEvent::noop(false))
+}
+
+fn flip_progress_key(app: &mut App) -> Result<PostEvent, AppError> {
+    if app.task_store.tasks.is_empty() {
+        return Ok(PostEvent::noop(true));
+    }
+    let Some(task) = app.task_store.task_mut(app.task_list.selected_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+    task.progress = !task.progress;
+    Ok(PostEvent::noop(false))
+}
+
+fn open_subtasks_key(app: &mut App) -> Result<PostEvent, AppError> {
+    let selected_index = &mut app.task_list.selected_index;
+    if app.task_store.tasks.is_empty() {
+        return Ok(PostEvent::noop(true));
+    }
+    let Some(task) = app.task_store.task_mut(*selected_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+    task.opened = !task.opened;
+    Ok(PostEvent::noop(false))
+}
+
+fn move_subtask_level_up(app: &mut App) -> Result<PostEvent, AppError> {
+    let selected_index = &mut app.task_list.selected_index;
+    let Some(FindParentResult {
+        tasks: parent_tasks,
+        parent_index,
+        task_local_offset: local_index,
+    }) = app.task_store.find_parent(*selected_index)
+    else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    if parent_tasks.is_empty() {
+        return Ok(PostEvent::noop(true));
+    }
+
+    if local_index == 0 {
+        return Ok(PostEvent::noop(true));
+    }
+
+    let prev_local_index = local_index - 1;
+    let prev_global_index =
+        TaskStore::local_index_to_global(prev_local_index, parent_tasks, parent_index);
+
+    let Some(task) = app.task_store.delete_task(*selected_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let Some(prev_task) = app.task_store.task_mut(prev_global_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    if !prev_task.opened {
+        prev_task.opened = true;
+        // Have to remove the task when adding
+        *selected_index += prev_task.find_task_draw_size() - 1;
+    }
+    prev_task.sub_tasks.push(task);
+
+    // FIXME: refactor this to ideally not clone
+    if app.task_store.auto_sort {
+        let Some(task) = app.task_store.task(*selected_index).cloned() else {
+            return Err(AppError::InvalidState(
+                "There is no task selected.".to_string(),
+            ));
+        };
+        app.task_store.sort();
+        if let Some(task_pos) = app.task_store.task_position(&task) {
+            *selected_index = task_pos;
+        }
+    }
+    Ok(PostEvent::noop(false))
+}
+
+fn move_subtask_level_down(app: &mut App) -> Result<PostEvent, AppError> {
+    let selected_index = &mut app.task_list.selected_index;
+    let Some(FindParentResult { parent_index, .. }) = app.task_store.find_parent(*selected_index)
+    else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let Some(parent_index) = parent_index else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let Some(task) = app.task_store.delete_task(*selected_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let Some(FindParentResult {
+        tasks: grandparent_subtasks,
+        parent_index: grandparent_index,
+        ..
+    }) = app.task_store.find_parent(parent_index)
+    else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let parent_local_index = grandparent_subtasks
+        .iter()
+        .position(|t| {
+            t == app
+                .task_store
+                .task(parent_index)
+                .expect("This is definately a task")
+        })
+        .ok_or_else(|| AppError::InvalidState("Cannot find the parent tasks index.".to_string()))?;
+
+    let Some(grandparent_subtasks) = app.task_store.subtasks(grandparent_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let new_index = parent_local_index + 1;
+    grandparent_subtasks.insert(new_index, task);
+    *selected_index =
+        TaskStore::local_index_to_global(new_index, grandparent_subtasks, grandparent_index);
+    // FIXME: refactor this to ideally not clone
+    if app.task_store.auto_sort {
+        let Some(task) = app.task_store.task(*selected_index).cloned() else {
+            return Err(AppError::InvalidState(
+                "Invalid selected index for this task.".to_string(),
+            ));
+        };
+        app.task_store.sort();
+        if let Some(task_pos) = app.task_store.task_position(&task) {
+            *selected_index = task_pos;
         }
     }
     Ok(PostEvent::noop(false))
@@ -319,9 +353,10 @@ fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
             config.tag_menu,
             "Add or remove the tags from this task or project",
         ),
-        HelpEntry::new(
+        HelpEntry::register_function(
             config.change_priority_key,
             "Gives selected task lower priority",
+            flip_progress_key,
         ),
         HelpEntry::new(
             config.move_task_down,
@@ -332,14 +367,20 @@ fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
         HelpEntry::new_multiple(config.down_keys, "Moves up one task"),
         HelpEntry::new(config.sort_key, "Sorts tasks (by priority)"),
         HelpEntry::new(config.enable_autosort_key, "Toggles automatic task sort"),
-        HelpEntry::new(config.flip_subtask_key, "Open/closes the subtask"),
-        HelpEntry::new(
+        HelpEntry::register_function(
+            config.flip_subtask_key,
+            "Open/closes the subtask",
+            open_subtasks_key,
+        ),
+        HelpEntry::register_function(
             config.move_subtask_level_up,
             "Make the selected task a subtask of above",
+            move_subtask_level_up,
         ),
-        HelpEntry::new(
+        HelpEntry::register_function(
             config.move_subtask_level_down,
             "Make the selected task not a subtask of the parent",
+            move_subtask_level_down,
         ),
     ]
 }
@@ -380,7 +421,9 @@ fn universal_input(app: &mut App, key_event: KeyEvent) -> PostEvent {
                 .callback(move |app, word| {
                     app.task_store
                         .add_task(Task::from_string(word.trim().to_string()));
-
+                    if app.mode == Mode::CurrentTasks {
+                        app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
+                    }
                     Ok(PostEvent::noop(false))
                 })
                 .save_mode(app)
