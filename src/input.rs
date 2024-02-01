@@ -4,7 +4,7 @@ use crate::{
     actions::HelpEntry,
     app::{App, Mode, ScreenManager},
     component::{completed_list::CompletedList, overlay::Overlay},
-    config::{Config, KeyBindings},
+    config::Config,
     draw::PostEvent,
     error::AppError,
     utils,
@@ -155,18 +155,51 @@ fn completed_list_help_entries(config: &Config) -> Vec<HelpEntry<'static>> {
 
 fn universal_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppError> {
     // Global keybindings
-    return match KeyBindings::from_event(&app.config, key_event) {
-        KeyBindings::AddKey => app.create_add_task(),
-        KeyBindings::TasksMenuKey => app.go_to_task_list(),
-        KeyBindings::CompletedTasksMenuKey => app.go_to_completed_list(),
-        KeyBindings::OpenHelpKey => {
-            return Ok(app.create_help_menu());
+    for entry in universal_input_keys(&app.config) {
+        if entry.character.is_pressed(key_event) {
+            if let Some(function) = entry.function {
+                return function(app);
+            }
         }
-        KeyBindings::QuitKey => app.shutdown(),
-        KeyBindings::SortKey => app.sort(),
-        KeyBindings::EnableAutosortKey => app.enable_sort(),
-        _ => Ok(PostEvent::noop(true)),
-    };
+    }
+    return Ok(PostEvent::noop(true));
+}
+
+// Make this lazy static or something
+fn universal_input_keys(config: &Config) -> Vec<HelpEntry<'static>> {
+    vec![
+        HelpEntry::register_key(config.add_key, "Adds a task", App::create_add_task_dialog),
+        HelpEntry::register_key(
+            config.tasks_menu_key,
+            "Goes to the task menu",
+            App::go_to_task_list,
+        ),
+        HelpEntry::register_key(
+            config.completed_tasks_menu_key,
+            "Goes to the task menu",
+            App::go_to_completed_list,
+        ),
+        HelpEntry::register_key(
+            config.open_help_key,
+            "Goes to the task menu",
+            App::create_help_menu,
+        ),
+        HelpEntry::register_key(
+            config.quit_key,
+            "Quits the app",
+            App::shutdown,
+        ),
+        HelpEntry::register_key(
+            config.sort_key,
+            "Goes to the task menu",
+            App::sort,
+        ),
+        HelpEntry::register_key(
+            config.enable_autosort_key,
+            "Goes to the task menu",
+            App::enable_auto_sort,
+        ),
+    ]
 }
 
 impl Mode {

@@ -66,7 +66,7 @@ impl HelpEntry<'_> {
 
 // Universal functions
 impl App {
-    pub fn create_add_task(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_add_task_dialog(&mut self) -> Result<PostEvent, AppError> {
         let add_input_dialog = InputBoxBuilder::default()
             .title(String::from("Add a task"))
             .callback(move |app, word| {
@@ -97,7 +97,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn enable_sort(&mut self) -> Result<PostEvent, AppError> {
+    pub fn enable_auto_sort(&mut self) -> Result<PostEvent, AppError> {
         self.task_store.auto_sort = !self.task_store.auto_sort;
         self.task_store.sort();
         Ok(PostEvent::noop(false))
@@ -127,7 +127,7 @@ impl App {
         }
     }
 
-    pub fn create_help_menu(&mut self) -> PostEvent {
+    pub fn create_help_menu(&mut self) -> Result<PostEvent, AppError> {
         // Actions that are universal, should use a table?
         let mut actions: Vec<DialogAction> = vec![
             DialogAction::new(
@@ -182,7 +182,7 @@ impl App {
             ));
         }
 
-        self.create_dialog_or_fuzzy("Help menu", actions)
+        Ok(self.create_dialog_or_fuzzy("Help menu", actions))
     }
 
     pub fn create_delete_selected_task_menu(&mut self) -> Result<PostEvent, AppError> {
