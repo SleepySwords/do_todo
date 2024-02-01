@@ -1,3 +1,4 @@
+use std::num::IntErrorKind::PosOverflow;
 use crossterm::event::KeyEvent;
 
 use crate::{
@@ -59,130 +60,22 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
     // Move this to the actions class
     match KeyBindings::from_event(theme, key_event) {
         KeyBindings::ChangePriorityKey => {
-            if app.task_store.tasks.is_empty() {
-                return Ok(PostEvent::noop(true));
-            }
-
-            let old_task = {
-                let Some(task) = app.task_store.task_mut(*selected_index) else {
-                    return Ok(PostEvent::noop(true));
-                };
-                task.priority = task.priority.next_priority();
-
-                task.clone()
-            };
-
-            if app.task_store.auto_sort {
-                app.task_store.sort();
-            }
-
-            *selected_index = app.task_store.task_position(&old_task).ok_or_else(|| {
-                AppError::InvalidState("Cannot find the selected tasks index.".to_string())
-            })?
+            change_priority(app)?;
         }
         KeyBindings::AddSubtaskKey => {
-            let index = *selected_index;
-            let add_input_dialog = InputBoxBuilder::default()
-                .title(String::from("Add a task"))
-                .callback(move |app, word| {
-                    if let Some(task) = app.task_store.task_mut(index) {
-                        task.sub_tasks
-                            .push(Task::from_string(word.trim().to_string()));
-                        task.opened = true;
-                        app.task_list.selected_index += task.sub_tasks.len();
-                    }
-                    Ok(PostEvent::noop(false))
-                })
-                .save_mode(app)
-                .build_overlay();
-            return Ok(PostEvent::push_overlay(add_input_dialog));
+            add_subtask(app)?;
         }
         KeyBindings::MoveTaskDown => {
-            let autosort = app.task_store.auto_sort;
-
-            let Some(FindParentResult {
-                tasks: parent_tasks,
-                parent_index,
-                task_local_offset: local_index,
-            }) = app.task_store.find_parent(*selected_index)
-            else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let new_index = (local_index + 1) % parent_tasks.len();
-
-            let Some(parent_subtasks) = app.task_store.subtasks(parent_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let task = &parent_subtasks[local_index];
-            let task_above = &parent_subtasks[new_index];
-
-            if task.priority == task_above.priority || !autosort {
-                let task = parent_subtasks.remove(local_index);
-
-                parent_subtasks.insert(new_index, task);
-
-                *selected_index =
-                    TaskStore::local_index_to_global(new_index, parent_subtasks, parent_index);
-            }
+            move_task_down(app)?;
         }
         KeyBindings::MoveTaskUp => {
-            let autosort = app.task_store.auto_sort;
-
-            let Some(FindParentResult {
-                tasks: parent_subtasks,
-                parent_index,
-                task_local_offset: local_index,
-            }) = app.task_store.find_parent(*selected_index)
-            else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            if parent_subtasks.is_empty() {
-                return Ok(PostEvent::noop(true));
-            }
-
-            let new_index =
-                (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
-
-            let Some(mut_parent_subtasks) = app.task_store.subtasks(parent_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-
-            let task = &mut_parent_subtasks[local_index];
-            let task_above = &mut_parent_subtasks[new_index];
-
-            if task.priority == task_above.priority || !autosort {
-                let task = mut_parent_subtasks.remove(local_index);
-
-                mut_parent_subtasks.insert(new_index, task);
-
-                *selected_index =
-                    TaskStore::local_index_to_global(new_index, mut_parent_subtasks, parent_index)
-            }
+            move_task_up(app)?;
         }
         KeyBindings::DeleteKey => {
             return Ok(app.create_delete_selected_task_menu());
         }
         KeyBindings::EditKey => {
-            let index = *selected_index;
-            let Some(task) = app.task_store.task(index) else {
-                return Ok(PostEvent::noop(true));
-            };
-            let edit_box = InputBoxBuilder::default()
-                .title(String::from("Edit the selected task"))
-                .fill(task.title.as_str())
-                .callback(move |app, word| {
-                    let Some(task) = app.task_store.task_mut(index) else {
-                        return Ok(PostEvent::noop(false));
-                    };
-                    task.title = word.trim().to_string();
-                    Ok(PostEvent::noop(false))
-                })
-                .save_mode(app)
-                .build_overlay();
-            return Ok(PostEvent::push_overlay(edit_box));
+            edit_selected_task(app)?
         }
         KeyBindings::TagMenu => return Ok(app.create_tag_menu()),
         KeyBindings::FlipProgressKey => {
@@ -208,6 +101,137 @@ fn task_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent, AppE
         }
     }
     Ok(PostEvent::noop(false))
+}
+
+fn change_priority(app: &mut App) -> Result<PostEvent, AppError>{
+    if app.task_store.tasks.is_empty() {
+        return Ok(PostEvent::noop(true));
+    }
+
+    let old_task = {
+        let Some(task) = app.task_store.task_mut(app.task_list.selected_index) else {
+            return Ok(PostEvent::noop(true));
+        };
+        task.priority = task.priority.next_priority();
+
+        task.clone()
+    };
+
+    if app.task_store.auto_sort {
+        app.task_store.sort();
+    }
+
+    app.task_list.selected_index = app.task_store.task_position(&old_task).ok_or_else(|| {
+        AppError::InvalidState("Cannot find the selected tasks index.".to_string())
+    })?;
+    return Ok(PostEvent::noop(false));
+}
+
+fn add_subtask(app: &mut App) -> Result<PostEvent, AppError> {
+    let index = app.task_list.selected_index;
+    let add_input_dialog = InputBoxBuilder::default()
+        .title(String::from("Add a task"))
+        .callback(move |app, word| {
+            if let Some(task) = app.task_store.task_mut(index) {
+                task.sub_tasks
+                    .push(Task::from_string(word.trim().to_string()));
+                task.opened = true;
+                app.task_list.selected_index += task.sub_tasks.len();
+            }
+            Ok(PostEvent::noop(false))
+        })
+        .save_mode(app)
+        .build_overlay();
+    return Ok(PostEvent::push_overlay(add_input_dialog));
+}
+
+fn move_task_down(app: &mut App) -> Result<PostEvent, AppError> {
+    let autosort = app.task_store.auto_sort;
+
+    let Some(FindParentResult {
+                 tasks: parent_tasks,
+                 parent_index,
+                 task_local_offset: local_index,
+             }) = app.task_store.find_parent(app.task_list.selected_index)
+        else {
+            return Ok(PostEvent::noop(true));
+        };
+
+    let new_index = (local_index + 1) % parent_tasks.len();
+
+    let Some(parent_subtasks) = app.task_store.subtasks(parent_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let task = &parent_subtasks[local_index];
+    let task_above = &parent_subtasks[new_index];
+
+    if task.priority == task_above.priority || !autosort {
+        let task = parent_subtasks.remove(local_index);
+
+        parent_subtasks.insert(new_index, task);
+
+        app.task_list.selected_index =
+            TaskStore::local_index_to_global(new_index, parent_subtasks, parent_index);
+    }
+    Ok(PostEvent::noop(false))
+}
+
+fn move_task_up(app: &mut App) -> Result<PostEvent, AppError> {
+    let auto_sort = app.task_store.auto_sort;
+
+    let Some(FindParentResult {
+                 tasks: parent_subtasks,
+                 parent_index,
+                 task_local_offset: local_index,
+             }) = app.task_store.find_parent(app.task_list.selected_index)
+        else {
+            return Ok(PostEvent::noop(true));
+        };
+
+    if parent_subtasks.is_empty() {
+        return Ok(PostEvent::noop(true));
+    }
+
+    let new_index =
+        (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
+
+    let Some(mut_parent_subtasks) = app.task_store.subtasks(parent_index) else {
+        return Ok(PostEvent::noop(true));
+    };
+
+    let task = &mut_parent_subtasks[local_index];
+    let task_above = &mut_parent_subtasks[new_index];
+
+    if task.priority == task_above.priority || !auto_sort {
+        let task = mut_parent_subtasks.remove(local_index);
+
+        mut_parent_subtasks.insert(new_index, task);
+
+        app.task_list.selected_index =
+            TaskStore::local_index_to_global(new_index, mut_parent_subtasks, parent_index);
+    }
+    Ok(PostEvent::noop(false))
+}
+
+fn edit_selected_task(app: &mut App) -> Result<PostEvent, AppError> {
+    let index = app.task_list.selected_index;
+    let Some(task) = app.task_store.task(index) else {
+        return Ok(PostEvent::noop(true));
+    };
+    let edit_box = InputBoxBuilder::default()
+        .title(String::from("Edit the selected task"))
+        .fill(task.title.as_str())
+        .callback(move |app, word| {
+            let Some(task) = app.task_store.task_mut(index) else {
+                return Ok(PostEvent::noop(false));
+            };
+            task.title = word.trim().to_string();
+            Ok(PostEvent::noop(false))
+        })
+        .save_mode(app)
+        .build_overlay();
+    return Ok(PostEvent::push_overlay(edit_box));
 }
 
 fn flip_progress_key(app: &mut App) -> Result<PostEvent, AppError> {
@@ -346,9 +370,9 @@ fn move_subtask_level_down(app: &mut App) -> Result<PostEvent, AppError> {
 fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
     vec![
         HelpEntry::new(config.add_key, "Adds a task"),
-        HelpEntry::new(config.complete_key, "Completes the selected task"),
+        HelpEntry::new(config.complete_key, "Completes the selected task", ),
         HelpEntry::new(config.delete_key, "Delete the selected task"),
-        HelpEntry::new(config.edit_key, "Edits the selected task"),
+        HelpEntry::register_function(config.edit_key, "Edits the selected task", edit_selected_task),
         HelpEntry::new(
             config.tag_menu,
             "Add or remove the tags from this task or project",
@@ -356,13 +380,14 @@ fn task_list_help_entry(config: &Config) -> Vec<HelpEntry<'static>> {
         HelpEntry::register_function(
             config.change_priority_key,
             "Gives selected task lower priority",
-            flip_progress_key,
+            change_priority,
         ),
-        HelpEntry::new(
+        HelpEntry::register_function(
             config.move_task_down,
             "Moves the task down on the task list",
+            move_task_down
         ),
-        HelpEntry::new(config.move_task_up, "Moves the task up on the task list"),
+        HelpEntry::register_function(config.move_task_up, "Moves the task up on the task list", move_task_up),
         HelpEntry::new_multiple(config.down_keys, "Moves down one task"),
         HelpEntry::new_multiple(config.down_keys, "Moves up one task"),
         HelpEntry::new(config.sort_key, "Sorts tasks (by priority)"),
