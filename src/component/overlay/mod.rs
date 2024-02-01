@@ -7,6 +7,7 @@ use crate::{
 };
 
 use self::{dialog::DialogBox, fuzzy::FuzzyBox, input_box::InputBox};
+use super::super::screens::date_screen::DateScreen;
 
 use super::message_box::MessageBox;
 
@@ -19,6 +20,7 @@ pub enum Overlay<'a> {
     Input(InputBox),
     Dialog(DialogBox<'a>),
     Message(MessageBox),
+    DateScreen(DateScreen),
 }
 
 impl Overlay<'_> {
@@ -28,6 +30,7 @@ impl Overlay<'_> {
             Overlay::Input(input) => input,
             Overlay::Dialog(dialog) => dialog,
             Overlay::Message(message) => message,
+            Overlay::DateScreen(date) => date,
         }
     }
 
@@ -37,6 +40,7 @@ impl Overlay<'_> {
             Overlay::Input(input) => input,
             Overlay::Dialog(dialog) => dialog,
             Overlay::Message(message) => message,
+            Overlay::DateScreen(date) => date,
         }
     }
 
@@ -70,6 +74,7 @@ impl Overlay<'_> {
             Overlay::Input(input) => input.prev_mode,
             Overlay::Dialog(dialog) => dialog.prev_mode,
             Overlay::Message(message) => message.prev_mode,
+            Overlay::DateScreen(date) => None,
         }
     }
 }

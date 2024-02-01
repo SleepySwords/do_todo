@@ -1,4 +1,4 @@
-use chrono::Local;
+use chrono::{format::ParseErrorKind, Local, NaiveDate};
 use crossterm::event::KeyEvent;
 use itertools::Itertools;
 use tui::style::{Color, Style};
@@ -628,5 +628,30 @@ impl App {
             }
         }
         Ok(PostEvent::noop(false))
+    }
+
+    pub fn create_selected_task_date_dialog(&mut self) -> Result<PostEvent, AppError> {
+        let index = self.task_list.selected_index;
+        let date_dialog = InputBoxBuilder::default()
+            .title("Add date".to_string())
+            .callback(move |app, date_str| {
+                let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y");
+                let date = if let Err(parser_error) = date {
+                    if ParseErrorKind::TooLong == parser_error.kind() {
+                        NaiveDate::parse_from_str(&date_str, "%d/%m/%Y")
+                    } else {
+                        date
+                    }
+                } else {
+                    date
+                };
+                if let Some(task) = app.task_store.task_mut(index) {
+                    task.date_to_complete = date.ok();
+                }
+                return Ok(PostEvent::noop(false));
+            })
+            .save_mode(self)
+            .build_overlay();
+        return Ok(PostEvent::push_overlay(date_dialog));
     }
 }

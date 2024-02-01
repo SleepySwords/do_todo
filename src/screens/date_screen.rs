@@ -1,11 +1,11 @@
 use tui::prelude::{Constraint, Direction, Layout, Rect};
 
-use crate::{app::App, component::overlay::input_box::InputBox, draw::Component, utils};
+use crate::{app::{App, Mode}, component::overlay::input_box::InputBox, draw::{Component, PostEvent}};
 
-struct DateScreen {
-    date: InputBox,
-    month: InputBox,
-    year: InputBox,
+pub struct DateScreen {
+    pub date: InputBox,
+    pub month: InputBox,
+    pub year: InputBox,
 }
 
 impl Component for DateScreen {
@@ -15,9 +15,14 @@ impl Component for DateScreen {
         self.year.draw(app, drawer);
     }
 
+    fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> crate::draw::PostEvent {
+        return PostEvent::pop_overlay(move |app, _| {
+            app.mode = Mode::CurrentTasks;
+            return PostEvent::noop(false);
+        })
+    }
+
     fn update_layout(&mut self, draw_area: Rect) {
-        let centre =
-            utils::centre_rect(Constraint::Percentage(70), Constraint::Length(3), draw_area);
         let draw = Layout::default()
             .constraints(&[
                 Constraint::Percentage(30),

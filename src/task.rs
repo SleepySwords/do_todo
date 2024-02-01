@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use tui::style::Color;
 
@@ -19,6 +19,7 @@ pub struct Task {
     pub title: String,
     pub priority: Priority,
     pub tags: Vec<usize>,
+    pub date_to_complete: Option<NaiveDate>,
 
     // Ignored if sub_tasks is empty
     pub opened: bool,
@@ -32,6 +33,7 @@ impl Task {
             title: content,
             priority: Priority::None,
             tags: Vec::new(),
+            date_to_complete: None,
             opened: true,
             sub_tasks: vec![],
         }
@@ -107,6 +109,7 @@ impl CompletedTask {
                 progress: false,
                 title: content,
                 priority: Priority::None,
+                date_to_complete: None,
                 tags: Vec::new(),
                 opened: true,
                 sub_tasks: vec![],
