@@ -5,6 +5,8 @@ use itertools::Itertools;
 use serde::de::{Deserializer, Error};
 use serde::{Deserialize, Serializer};
 
+use crate::app::App;
+use crate::draw::PostEvent;
 use crate::error::AppError;
 
 #[derive(Debug, Clone, Copy)]
@@ -152,5 +154,53 @@ impl Key {
             })
             .fold_ok(KeyModifiers::NONE, |f, acc| f.union(acc))?;
         Ok(Key { code, modifiers })
+    }
+}
+
+type Action = dyn Fn(&mut App) -> Result<PostEvent, AppError>;
+
+pub struct KeyBinding<'a> {
+    pub character: Key,
+    pub short_hand: String,
+    pub description: &'a str,
+    pub function: Option<Box<Action>>,
+}
+
+impl KeyBinding<'_> {
+    pub fn new(character: Key, description: &str) -> KeyBinding<'_> {
+        KeyBinding {
+            character,
+            short_hand: character.to_string(),
+            description,
+            function: None,
+        }
+    }
+
+    pub fn new_multiple(character: [Key; 2], description: &str) -> KeyBinding<'_> {
+        KeyBinding {
+            character: character[0],
+            short_hand: itertools::intersperse(
+                character.iter().map(|f| f.to_string()),
+                " ".to_string(),
+            )
+            .collect::<String>(),
+            description,
+            function: None,
+        }
+    }
+    pub fn register_key<T: 'static>(
+        character: Key,
+        description: &str,
+        function: T,
+    ) -> KeyBinding<'_>
+    where
+        T: Fn(&mut App) -> Result<PostEvent, AppError>,
+    {
+        KeyBinding {
+            character,
+            short_hand: character.to_string(),
+            description,
+            function: Some(Box::new(function)),
+        }
     }
 }
