@@ -12,58 +12,10 @@ use crate::{
     draw::PostEvent,
     error::AppError,
     input,
-    key::Key,
     task::{CompletedTask, FindParentResult, Task, TaskStore},
     utils::{self, str_to_colour},
 };
-
-// Action class maybe?!!
-pub struct HelpEntry<'a> {
-    pub character: Key,
-    short_hand: String,
-    description: &'a str,
-    pub function: Option<Box<dyn Fn(&mut App) -> Result<PostEvent, AppError>>>,
-}
-
-impl HelpEntry<'_> {
-    pub fn new(character: Key, description: &str) -> HelpEntry<'_> {
-        HelpEntry {
-            character,
-            short_hand: character.to_string(),
-            description,
-            function: None,
-        }
-    }
-
-    pub fn new_multiple(character: [Key; 2], description: &str) -> HelpEntry<'_> {
-        HelpEntry {
-            character: character[0],
-            short_hand: itertools::intersperse(
-                character.iter().map(|f| f.to_string()),
-                " ".to_string(),
-            )
-            .collect::<String>(),
-            description,
-            function: None,
-        }
-    }
-    pub fn register_key<T: 'static>(
-        character: Key,
-        description: &str,
-        function: T,
-    ) -> HelpEntry<'_>
-    where
-        T: Fn(&mut App) -> Result<PostEvent, AppError>,
-    {
-        HelpEntry {
-            character,
-            short_hand: character.to_string(),
-            description,
-            function: Some(Box::new(function)),
-        }
-    }
-}
-
+//
 // Universal functions
 impl App {
     pub fn create_add_task_dialog(&mut self) -> Result<PostEvent, AppError> {
@@ -79,7 +31,7 @@ impl App {
             })
             .save_mode(self)
             .build_overlay();
-        return Ok(PostEvent::push_overlay(add_input_dialog));
+        Ok(PostEvent::push_overlay(add_input_dialog))
     }
 
     pub fn go_to_task_list(&mut self) -> Result<PostEvent, AppError> {
@@ -228,7 +180,7 @@ impl App {
         {
             *selected_index -= 1;
         }
-        return Ok(PostEvent::noop(false));
+        Ok(PostEvent::noop(false))
     }
 
     pub fn create_tag_menu(&mut self) -> Result<PostEvent, AppError> {
@@ -442,7 +394,7 @@ impl App {
             self.task_store.task_position(&old_task).ok_or_else(|| {
                 AppError::InvalidState("Cannot find the selected tasks index.".to_string())
             })?;
-        return Ok(PostEvent::noop(false));
+        Ok(PostEvent::noop(false))
     }
 
     pub fn add_subtask(&mut self) -> Result<PostEvent, AppError> {
@@ -460,7 +412,7 @@ impl App {
             })
             .save_mode(self)
             .build_overlay();
-        return Ok(PostEvent::push_overlay(add_input_dialog));
+        Ok(PostEvent::push_overlay(add_input_dialog))
     }
 
     pub fn move_task_down(&mut self) -> Result<PostEvent, AppError> {
@@ -549,7 +501,7 @@ impl App {
             })
             .save_mode(self)
             .build_overlay();
-        return Ok(PostEvent::push_overlay(edit_box));
+        Ok(PostEvent::push_overlay(edit_box))
     }
 
     pub fn flip_progress_key(&mut self) -> Result<PostEvent, AppError> {

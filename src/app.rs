@@ -7,7 +7,8 @@ use crate::{
     },
     config::Config,
     draw::{Action, PostEvent},
-    task::TaskStore, error::AppError,
+    error::AppError,
+    task::TaskStore,
 };
 
 #[derive(Default)]
@@ -76,7 +77,7 @@ impl App {
         }
     }
 
-    pub fn shutdown(&mut self)-> Result<PostEvent, AppError> {
+    pub fn shutdown(&mut self) -> Result<PostEvent, AppError> {
         self.should_shutdown = true;
         Ok(PostEvent::noop(false))
     }
