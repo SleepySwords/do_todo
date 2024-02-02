@@ -67,6 +67,7 @@ This allows customisation of things, such as the cursor within the fuzzy finder.
 ### Task list default binds
 | Key     | Action                                             |
 |---------|----------------------------------------------------|
+| `A`     | Adds a subtask to the selected task                |
 | `c`     | Completes the selected task                        |
 | `d`     | Delete the selected task                           |
 | `e`     | Edits the selected task                            |

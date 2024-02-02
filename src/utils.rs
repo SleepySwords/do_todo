@@ -5,7 +5,7 @@ use tui::style::Color;
 use std::usize;
 
 use crate::app::{App, Mode};
-use crate::config::{Config, KeyBindings};
+use crate::config::Config;
 use crate::draw::PostEvent;
 use crate::error::AppError;
 
@@ -62,23 +62,23 @@ pub fn handle_key_movement(
     index: &mut usize,
     max_items: usize,
 ) -> PostEvent {
-    match KeyBindings::from_event(theme, key_event) {
-        KeyBindings::MoveTop => {
+    match () {
+        _ if theme.move_top.is_pressed(key_event) => {
             *index = 0;
             PostEvent::noop(false)
         }
-        KeyBindings::MoveBottom => {
+        _ if theme.move_bottom.is_pressed(key_event) => {
             *index = max_items - 1;
             PostEvent::noop(false)
         }
-        KeyBindings::DownKeys => {
+        _ if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) => {
             if max_items == 0 {
                 return PostEvent::noop(true);
             }
             *index = (*index + 1).rem_euclid(max_items);
             PostEvent::noop(false)
         }
-        KeyBindings::UpKeys => {
+        _ if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) => {
             if max_items == 0 {
                 return PostEvent::noop(true);
             }
