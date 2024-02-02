@@ -19,7 +19,7 @@ use crate::{
 //
 // Universal functions
 impl App {
-    pub fn create_add_task_dialog(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_add_task_menu(&mut self) -> Result<PostEvent, AppError> {
         let add_input_dialog = InputBoxBuilder::default()
             .title(String::from("Add a task"))
             .callback(move |app, word| {
@@ -359,7 +359,7 @@ impl App {
         self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
 
-    pub fn change_priority(&mut self) -> Result<PostEvent, AppError> {
+    pub fn cycle_priority(&mut self) -> Result<PostEvent, AppError> {
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));
         }
@@ -384,7 +384,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn create_add_subtask_dialog(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_add_subtask_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let Some(task) = self.task_store.task_mut(index) else {
             return Ok(PostEvent::noop(false));
@@ -474,7 +474,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn create_edit_selected_task_dialog(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_edit_selected_task_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let Some(task) = self.task_store.task(index) else {
             return Ok(PostEvent::noop(true));
@@ -505,7 +505,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn open_subtasks(&mut self) -> Result<PostEvent, AppError> {
+    pub fn flip_subtasks(&mut self) -> Result<PostEvent, AppError> {
         let selected_index = &mut self.task_list.selected_index;
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));

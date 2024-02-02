@@ -25,12 +25,12 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
         KeyBinding::register_key(
             config.edit_key,
             "Edits the selected task",
-            App::create_edit_selected_task_dialog,
+            App::create_edit_selected_task_menu,
         ),
         KeyBinding::register_key(
             config.add_subtask_key,
             "Adds a subtask to the selected task",
-            App::create_add_subtask_dialog,
+            App::create_add_subtask_menu,
         ),
         KeyBinding::register_key(
             config.tag_menu,
@@ -40,7 +40,7 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
         KeyBinding::register_key(
             config.change_priority_key,
             "Gives selected task lower priority",
-            App::change_priority,
+            App::cycle_priority,
         ),
         KeyBinding::register_key(
             config.move_task_down,
@@ -57,7 +57,7 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
         KeyBinding::register_key(
             config.flip_subtask_key,
             "Open/closes the subtask",
-            App::open_subtasks,
+            App::flip_subtasks,
         ),
         KeyBinding::register_key(
             config.move_subtask_level_up,
@@ -95,7 +95,7 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent,
 // Global keybinds
 pub fn universal_input_keys(config: &Config) -> Vec<KeyBinding<'static>> {
     vec![
-        KeyBinding::register_key(config.add_key, "Adds a task", App::create_add_task_dialog),
+        KeyBinding::register_key(config.add_key, "Adds a task", App::create_add_task_menu),
         KeyBinding::register_key(
             config.tasks_menu_key,
             "Goes to the task menu",
