@@ -45,12 +45,12 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
         KeyBinding::register_key(
             config.move_task_down,
             "Moves the task down on the task list",
-            App::move_task_down,
+            App::move_selected_task_down,
         ),
         KeyBinding::register_key(
             config.move_task_up,
             "Moves the task up on the task list",
-            App::move_task_up,
+            App::move_selected_task_up,
         ),
         KeyBinding::new_multiple(config.down_keys, "Moves down one task"),
         KeyBinding::new_multiple(config.up_keys, "Moves up one task"),

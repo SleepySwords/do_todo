@@ -405,7 +405,7 @@ impl App {
         Ok(PostEvent::push_overlay(add_input_dialog))
     }
 
-    pub fn move_task_down(&mut self) -> Result<PostEvent, AppError> {
+    pub fn move_selected_task_down(&mut self) -> Result<PostEvent, AppError> {
         let autosort = self.task_store.auto_sort;
 
         let Some(FindParentResult {
@@ -437,7 +437,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn move_task_up(&mut self) -> Result<PostEvent, AppError> {
+    pub fn move_selected_task_up(&mut self) -> Result<PostEvent, AppError> {
         let auto_sort = self.task_store.auto_sort;
 
         let Some(FindParentResult {
