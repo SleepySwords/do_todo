@@ -494,7 +494,7 @@ impl App {
         Ok(PostEvent::push_overlay(edit_box))
     }
 
-    pub fn flip_progress_key(&mut self) -> Result<PostEvent, AppError> {
+    pub fn flip_selected_task_progress(&mut self) -> Result<PostEvent, AppError> {
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));
         }
