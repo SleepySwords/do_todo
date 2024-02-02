@@ -648,10 +648,10 @@ impl App {
                 if let Some(task) = app.task_store.task_mut(index) {
                     task.date_to_complete = date.ok();
                 }
-                return Ok(PostEvent::noop(false));
+                Ok(PostEvent::noop(false))
             })
             .save_mode(self)
             .build_overlay();
-        return Ok(PostEvent::push_overlay(date_dialog));
+        Ok(PostEvent::push_overlay(date_dialog))
     }
 }

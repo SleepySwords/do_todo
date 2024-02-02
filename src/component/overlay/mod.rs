@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEvent};
 
 use crate::{
     app::{Mode, ScreenManager},
-    draw::{Action, PostEvent, Component},
+    draw::{Action, Component, PostEvent},
     error::AppError,
 };
 
@@ -45,7 +45,9 @@ impl Overlay<'_> {
         key_event: KeyEvent,
     ) -> Result<PostEvent, AppError> {
         if let Some(overlay) = screen_manager.overlays.last_mut() {
-            return Ok(overlay.component_mut().key_event(&mut screen_manager.app, key_event));
+            return Ok(overlay
+                .component_mut()
+                .key_event(&mut screen_manager.app, key_event));
         }
         Ok(PostEvent {
             propegate_further: true,
@@ -55,7 +57,9 @@ impl Overlay<'_> {
 
     pub fn mouse_event(screen_manager: &mut ScreenManager, mouse_event: MouseEvent) -> PostEvent {
         if let Some(overlay) = screen_manager.overlays.last_mut() {
-            return overlay.component_mut().mouse_event(&mut screen_manager.app, mouse_event);
+            return overlay
+                .component_mut()
+                .mouse_event(&mut screen_manager.app, mouse_event);
         }
         PostEvent {
             propegate_further: true,

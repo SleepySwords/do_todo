@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{PostEvent, Component},
+    draw::{Component, PostEvent},
     utils::{self, handle_mouse_movement},
 };
 
@@ -33,7 +33,6 @@ impl FuzzyBox<'_> {
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
 }
-
 
 impl Component for FuzzyBox<'_> {
     fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {

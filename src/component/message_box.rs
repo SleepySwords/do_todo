@@ -12,7 +12,7 @@ use crate::{
     utils::{self, centre_rect},
 };
 
-use super::overlay::{dialog::DialogBox, Overlay};
+use super::overlay::Overlay;
 
 type MessageCallback = dyn FnOnce(&mut App) -> PostEvent;
 
@@ -111,7 +111,12 @@ impl Component for MessageBox {
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
                 return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                    let Overlay::Message(MessageBox { prev_mode, mut callback, .. }) = overlay else {
+                    let Overlay::Message(MessageBox {
+                        prev_mode,
+                        mut callback,
+                        ..
+                    }) = overlay
+                    else {
                         return PostEvent::noop(false);
                     };
                     if let Some(mode) = prev_mode {

@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, PostEvent, Component},
+    draw::{Action, Component, PostEvent},
     utils::{self, handle_mouse_movement},
 };
 

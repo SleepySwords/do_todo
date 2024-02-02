@@ -1,7 +1,7 @@
 use chrono::Local;
 use tui::{
     layout::{Constraint, Rect},
-    style::Style,
+    style::{Color, Style},
     text::{Line, Span},
     widgets::Block,
 };
@@ -59,13 +59,20 @@ impl Viewer {
                 Line::from(vec![
                     Span::raw(format!("{}", date_to_complete)),
                     Span::styled(
-                    format!(" ({} days away)", num_days),
-                    if num_days <= 7 {
-                        Style::default().fg(tui::style::Color::Red)
-                    } else {
-                        Style::default()
-                    },
-                )]),
+                        format!(" ({} days away)", num_days),
+                        match num_days {
+                            0..=3 => Style::default().fg(Color::Yellow),
+                            4..=7 => Style::default().fg(Color::Green),
+                            _ if num_days < 0 => Style::default().fg(Color::Red),
+                            _ => Style::default(),
+                        },
+                        // if num_days < 0 {
+                        //     Style::default().fg(tui::style::Color::Red)
+                        // } else {
+                        //     Style::default()
+                        // },
+                    ),
+                ]),
             ));
         }
 
