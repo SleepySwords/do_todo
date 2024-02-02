@@ -1,3 +1,4 @@
+use chrono::Local;
 use tui::{
     layout::{Constraint, Rect},
     style::Style,
@@ -34,7 +35,7 @@ impl Viewer {
 
         let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
 
-        let items = vec![
+        let mut items = vec![
             (
                 Span::raw("Title"),
                 Line::from(Span::from(task.title.as_str())),
@@ -48,6 +49,25 @@ impl Viewer {
             ),
             (Span::raw("Tags"), tag_names(app, task)),
         ];
+
+        if let Some(date_to_complete) = task.date_to_complete {
+            let num_days = date_to_complete
+                .signed_duration_since(Local::now().date_naive())
+                .num_days();
+            items.push((
+                Span::raw("Date to complete"),
+                Line::from(vec![
+                    Span::raw(format!("{}", date_to_complete)),
+                    Span::styled(
+                    format!(" ({} days away)", num_days),
+                    if num_days <= 7 {
+                        Style::default().fg(tui::style::Color::Red)
+                    } else {
+                        Style::default()
+                    },
+                )]),
+            ));
+        }
 
         let table = utils::ui::generate_table(
             items,
