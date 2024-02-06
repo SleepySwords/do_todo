@@ -2,15 +2,6 @@ use crossterm::event::KeyEvent;
 
 use crate::{
     app::{App, Mode, ScreenManager},
-    component::{
-        completed_list::CompletedList,
-        overlay::{input_box::InputBoxBuilder, vim::VimMode, Overlay},
-    },
-    component::{
-        completed_list::CompletedList,
-        overlay::{input_box::InputBoxBuilder, Overlay},
-    },
-    config::{Config, KeyBindings},
     component::{completed_list::CompletedList, overlay::Overlay},
     config::Config,
     draw::PostEvent,

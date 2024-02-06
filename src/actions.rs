@@ -7,7 +7,7 @@ use crate::{
     app::{App, Mode},
     component::{
         message_box::MessageBox,
-        overlay::{dialog::DialogAction, Overlay},
+        overlay::{dialog::DialogAction, vim::VimMode, Overlay},
         overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
     },
     draw::PostEvent,
@@ -29,6 +29,11 @@ impl App {
                     app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
                 }
                 Ok(PostEvent::noop(false))
+            })
+            .enable_vim(if self.config.vim_mode {
+                Some(VimMode::Insert)
+            } else {
+                None
             })
             .save_mode(self)
             .build_overlay();
@@ -400,6 +405,11 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
+            .enable_vim(if self.config.vim_mode {
+                Some(VimMode::Insert)
+            } else {
+                None
+            })
             .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
@@ -488,6 +498,11 @@ impl App {
                 };
                 task.title = word.trim().to_string();
                 Ok(PostEvent::noop(false))
+            })
+            .enable_vim(if self.config.vim_mode {
+                Some(VimMode::Normal)
+            } else {
+                None
             })
             .save_mode(self)
             .build_overlay();
