@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyModifiers};
 
 use serde::{Deserialize, Serialize};
 use tui::{
@@ -39,6 +39,7 @@ pub struct Config {
     pub edit_key: Key,
     pub delete_key: Key,
     pub add_key: Key,
+    pub add_subtask_key: Key,
     pub flip_progress_key: Key,
     pub change_priority_key: Key,
     pub restore_key: Key,
@@ -98,6 +99,7 @@ impl Default for Config {
             edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
             delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
             add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
+            add_subtask_key: Key::new(KeyCode::Char('A'), KeyModifiers::NONE),
             change_priority_key: Key::new(KeyCode::Char('p'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
@@ -137,125 +139,6 @@ impl Config {
             .border_type(self.border_type)
             .title(title)
             .border_style(Style::default().fg(border_color))
-    }
-}
-
-pub enum KeyBindings {
-    UpKeys,
-    DownKeys,
-    MoveTaskUp,
-    MoveTaskDown,
-    MoveUpFuzzy,
-    MoveDownFuzzy,
-    MoveTop,
-    MoveBottom,
-
-    CompleteKey,
-    FlipProgressKey,
-    EditKey,
-    DeleteKey,
-    AddKey,
-    ChangePriorityKey,
-    RestoreKey,
-
-    TasksMenuKey,
-    CompletedTasksMenuKey,
-    TagMenu,
-    OpenHelpKey,
-    QuitKey,
-
-    EnableAutosortKey,
-    SortKey,
-
-    OpenSubtasksKey,
-    MoveSubtaskLevelUp,
-    MoveSubtaskLevelDown,
-
-    None,
-}
-
-impl KeyBindings {
-    pub fn from_event(config: &Config, event: KeyEvent) -> KeyBindings {
-        if config.up_keys.iter().any(|f| f.is_pressed(event)) {
-            return KeyBindings::UpKeys;
-        }
-        if config.down_keys.iter().any(|f| f.is_pressed(event)) {
-            return KeyBindings::DownKeys;
-        }
-        if config.move_task_up.is_pressed(event) {
-            return KeyBindings::MoveTaskUp;
-        }
-        if config.move_task_down.is_pressed(event) {
-            return KeyBindings::MoveTaskDown;
-        }
-        if config.move_up_fuzzy.is_pressed(event) {
-            return KeyBindings::MoveUpFuzzy;
-        }
-        if config.move_down_fuzzy.is_pressed(event) {
-            return KeyBindings::MoveDownFuzzy;
-        }
-        if config.move_top.is_pressed(event) {
-            return KeyBindings::MoveTop;
-        }
-        if config.move_bottom.is_pressed(event) {
-            return KeyBindings::MoveBottom;
-        }
-
-        if config.complete_key.is_pressed(event) {
-            return KeyBindings::CompleteKey;
-        }
-        if config.flip_progress_key.is_pressed(event) {
-            return KeyBindings::FlipProgressKey;
-        }
-        if config.edit_key.is_pressed(event) {
-            return KeyBindings::EditKey;
-        }
-        if config.delete_key.is_pressed(event) {
-            return KeyBindings::DeleteKey;
-        }
-        if config.add_key.is_pressed(event) {
-            return KeyBindings::AddKey;
-        }
-        if config.change_priority_key.is_pressed(event) {
-            return KeyBindings::ChangePriorityKey;
-        }
-        if config.restore_key.is_pressed(event) {
-            return KeyBindings::RestoreKey;
-        }
-
-        if config.tasks_menu_key.is_pressed(event) {
-            return KeyBindings::TasksMenuKey;
-        }
-        if config.completed_tasks_menu_key.is_pressed(event) {
-            return KeyBindings::CompletedTasksMenuKey;
-        }
-        if config.tag_menu.is_pressed(event) {
-            return KeyBindings::TagMenu;
-        }
-        if config.open_help_key.is_pressed(event) {
-            return KeyBindings::OpenHelpKey;
-        }
-        if config.quit_key.is_pressed(event) {
-            return KeyBindings::QuitKey;
-        }
-
-        if config.enable_autosort_key.is_pressed(event) {
-            return KeyBindings::EnableAutosortKey;
-        }
-        if config.sort_key.is_pressed(event) {
-            return KeyBindings::SortKey;
-        }
-        if config.flip_subtask_key.is_pressed(event) {
-            return KeyBindings::OpenSubtasksKey;
-        }
-        if config.move_subtask_level_up.is_pressed(event) {
-            return KeyBindings::MoveSubtaskLevelUp;
-        }
-        if config.move_subtask_level_down.is_pressed(event) {
-            return KeyBindings::MoveSubtaskLevelDown;
-        }
-
-        KeyBindings::None
     }
 }
 
