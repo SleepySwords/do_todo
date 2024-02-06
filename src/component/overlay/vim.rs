@@ -86,6 +86,8 @@ impl InputBox {
                     return PostEvent::noop(false);
                 } else if let KeyCode::Enter = key_event.code {
                     return self.submit();
+                } else if let KeyCode::Tab = key_event.code {
+                    self.text_area.insert_newline();
                 } else {
                     self.text_area.input(Input::from(key_event));
                 }
