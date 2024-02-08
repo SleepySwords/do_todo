@@ -218,6 +218,7 @@ impl App {
                         }),
                     )
                 })
+                .use_vim(&app.config, VimMode::Insert)
                 .save_mode(app)
                 .build_overlay();
             PostEvent::push_overlay(tag_menu)
@@ -279,6 +280,7 @@ impl App {
                                 },
                             ))
                         })
+                        .use_vim(&app.config, VimMode::Normal)
                         .save_mode(app);
                     PostEvent::push_overlay(edit_name.build_overlay())
                 },
@@ -302,6 +304,14 @@ impl App {
         let tag_colour = InputBoxBuilder::default()
             .title(String::from("Tag colour"))
             .fill(&default_string)
+            .use_vim(
+                &self.config,
+                if default_string == "" {
+                    VimMode::Insert
+                } else {
+                    VimMode::Normal
+                },
+            )
             .callback(callback)
             .error_callback(move |app, err, callback| {
                 let message_box = MessageBox::new(
