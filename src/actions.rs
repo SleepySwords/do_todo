@@ -30,7 +30,6 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
-            .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
     }
@@ -67,14 +66,12 @@ impl App {
             let fuzzy = FuzzyBoxBuilder::default()
                 .title(title.to_string())
                 .options(options)
-                .save_mode(self)
                 .build();
             PostEvent::push_overlay(fuzzy)
         } else {
             let dialog = DialogBoxBuilder::default()
                 .title(title.to_string())
                 .options(options)
-                .save_mode(self)
                 .build();
             PostEvent::push_overlay(dialog)
         }
@@ -144,7 +141,6 @@ impl App {
             .add_option(DialogAction::new(String::from("Cancel"), |_| {
                 PostEvent::noop(false)
             }))
-            .save_mode(self)
             .build();
         Ok(PostEvent::push_overlay(delete_dialog))
     }
@@ -192,7 +188,7 @@ impl App {
             }
         }
 
-        tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
+        tag_options.push(DialogAction::new(String::from("New tag"), move |_| {
             let tag_menu = InputBoxBuilder::default()
                 .title(String::from("Tag name"))
                 .callback(move |app, tag_name| {
@@ -217,7 +213,6 @@ impl App {
                         }),
                     )
                 })
-                .save_mode(app)
                 .build_overlay();
             PostEvent::push_overlay(tag_menu)
         }));
@@ -258,7 +253,7 @@ impl App {
             tag_options.push(DialogAction::styled(
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
-                move |app| {
+                move |_app| {
                     let edit_name = InputBoxBuilder::default()
                         .title("Edit tag name".to_string())
                         .fill(&tag_name)
@@ -277,8 +272,7 @@ impl App {
                                     Ok(PostEvent::noop(false))
                                 },
                             ))
-                        })
-                        .save_mode(app);
+                        });
                     PostEvent::push_overlay(edit_name.build_overlay())
                 },
             ));
@@ -318,8 +312,7 @@ impl App {
                 )
                 .save_mode(app);
                 return PostEvent::push_overlay(Overlay::Message(message_box));
-            })
-            .save_mode(self);
+            });
 
         PostEvent::push_overlay(tag_colour.build_overlay())
     }
@@ -333,7 +326,7 @@ impl App {
             tag_options.push(DialogAction::styled(
                 String::from(&tag.name),
                 Style::default().fg(tag.colour),
-                move |app| {
+                move |_app| {
                     let tag_dialog = DialogBoxBuilder::default()
                         .title(format!(
                             "Do you want to permenatly delete the tag {}",
@@ -346,7 +339,6 @@ impl App {
                         .add_option(DialogAction::new(String::from("Cancel"), move |_| {
                             PostEvent::noop(false)
                         }))
-                        .save_mode(app)
                         .build();
                     PostEvent::push_overlay(tag_dialog)
                 },
@@ -400,7 +392,6 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
-            .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
     }
@@ -489,7 +480,6 @@ impl App {
                 task.title = word.trim().to_string();
                 Ok(PostEvent::noop(false))
             })
-            .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(edit_box))
     }
@@ -650,7 +640,6 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
-            .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(date_dialog))
     }

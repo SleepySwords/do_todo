@@ -62,16 +62,11 @@ impl Component for InputBox {
                 return PostEvent::pop_overlay(|app: &mut App, overlay| {
                     if let Overlay::Input(InputBox {
                         mut callback,
-                        prev_mode,
                         text_area,
                         error_callback,
                         ..
                     }) = overlay
                     {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
-
                         return if let Some(callback) = callback.take() {
                             let err = (callback)(app, text_area.lines().join("\n"));
                             match err {
@@ -88,18 +83,7 @@ impl Component for InputBox {
             KeyCode::Tab => {
                 self.text_area.insert_newline();
             }
-            KeyCode::Esc => {
-                return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                    if let Overlay::Input(InputBox {
-                        prev_mode: Some(mode),
-                        ..
-                    }) = overlay
-                    {
-                        app.mode = mode;
-                    }
-                    PostEvent::noop(false)
-                })
-            }
+            KeyCode::Esc => return PostEvent::pop_overlay(|_: &mut App, _| PostEvent::noop(false)),
             _ => {
                 self.text_area.input(Input::from(key_event));
             }
@@ -133,12 +117,7 @@ impl Component for InputBox {
         let draw_area = self.draw_area;
 
         if !utils::inside_rect((mouse_event.row, mouse_event.column), draw_area) {
-            return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                if let Some(mode) = overlay.prev_mode() {
-                    app.mode = mode;
-                }
-                PostEvent::noop(false)
-            });
+            return PostEvent::pop_overlay(|_: &mut App, _| PostEvent::noop(false));
         }
 
         // Either we use inner on draw_area to exclude border, or this to include it
@@ -160,6 +139,17 @@ impl Component for InputBox {
             action: Action::Noop,
         }
     }
+
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn destroy(&mut self, app: &mut App) {
+        if let Some(mode) = self.prev_mode {
+            app.mode = mode;
+        }
+    }
 }
 
 pub struct InputBoxBuilder {
@@ -168,7 +158,6 @@ pub struct InputBoxBuilder {
     callback: InputBoxCallback,
     error_callback: ErrorCallback,
     draw_area: Rect,
-    prev_mode: Option<Mode>,
     full_width: bool,
 }
 
@@ -180,7 +169,6 @@ impl Default for InputBoxBuilder {
             callback: Some(Box::new(|_app, _task| Ok(PostEvent::noop(false)))),
             error_callback: Box::new(|_app, _err, _call| PostEvent::noop(false)),
             draw_area: Rect::default(),
-            prev_mode: None,
             full_width: false,
         }
     }
@@ -198,7 +186,7 @@ impl InputBoxBuilder {
             callback: self.callback,
             error_callback: self.error_callback,
             draw_area: self.draw_area,
-            prev_mode: self.prev_mode,
+            prev_mode: None,
             full_width: self.full_width,
         }
     }
@@ -238,12 +226,6 @@ impl InputBoxBuilder {
         T: FnOnce(&mut App, AppError, InputBoxCallback) -> PostEvent,
     {
         self.error_callback = Box::new(error_callback);
-        self
-    }
-
-    pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.prev_mode = Some(app.mode);
-        app.mode = Mode::Overlay;
         self
     }
 }

@@ -142,7 +142,7 @@ impl Config {
     }
 }
 
-mod color_parser {
+pub mod color_parser {
     use serde::{Deserialize, Deserializer, Serializer};
     use tui::style::Color;
 

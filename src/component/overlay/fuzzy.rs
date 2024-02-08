@@ -78,13 +78,9 @@ impl Component for FuzzyBox<'_> {
                         active,
                         index,
                         mut options,
-                        prev_mode,
                         ..
                     }) = overlay
                     {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
                         if let Some(Some(opt)) = active.get(index).map(|&id| options.get_mut(id)) {
                             if let Some(callback) = opt.function.take() {
                                 return (callback)(app);
@@ -94,16 +90,7 @@ impl Component for FuzzyBox<'_> {
                     PostEvent::noop(false)
                 });
             }
-            KeyCode::Esc => PostEvent::pop_overlay(|app, overlay| {
-                if let Overlay::Fuzzy(FuzzyBox {
-                    prev_mode: Some(mode),
-                    ..
-                }) = overlay
-                {
-                    app.mode = mode;
-                }
-                PostEvent::noop(false)
-            }),
+            KeyCode::Esc => PostEvent::pop_overlay(|_, _| PostEvent::noop(false)),
             _ => {
                 self.input_box.key_event(app, key_event);
                 let input = self.input_box.text().to_ascii_lowercase();
@@ -187,18 +174,20 @@ impl Component for FuzzyBox<'_> {
             );
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox {
-                        prev_mode: Some(mode),
-                        ..
-                    }) = overlay
-                    {
-                        app.mode = mode;
-                    }
-                    PostEvent::noop(false)
-                });
+                return PostEvent::pop_overlay(|_app: &mut App, _overlay| PostEvent::noop(false));
             }
             PostEvent::noop(false)
+        }
+    }
+
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn destroy(&mut self, app: &mut App) {
+        if let Some(prev_mode) = self.prev_mode {
+            app.mode = prev_mode;
         }
     }
 }
@@ -208,7 +197,6 @@ pub struct FuzzyBoxBuilder<'a> {
     draw_area: Rect,
     title: String,
     options: Vec<DialogAction<'a>>,
-    prev_mode: Option<Mode>,
 }
 
 impl<'a> FuzzyBoxBuilder<'a> {
@@ -220,19 +208,13 @@ impl<'a> FuzzyBoxBuilder<'a> {
             list_draw_area: Rect::default(),
             index: 0,
             options: self.options,
-            prev_mode: self.prev_mode,
+            prev_mode: None,
             active,
         })
     }
 
     pub fn options(mut self, options: Vec<DialogAction<'a>>) -> Self {
         self.options = options;
-        self
-    }
-
-    pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.prev_mode = Some(app.mode);
-        app.mode = Mode::Overlay;
         self
     }
 

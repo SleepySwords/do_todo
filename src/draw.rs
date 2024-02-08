@@ -69,6 +69,11 @@ pub trait Component {
     }
 
     fn update_layout(&mut self, draw_area: Rect);
+
+    fn mount(&mut self, _app: &mut App) {}
+
+    /// This is called before the pop_overlay callback.
+    fn destroy(&mut self, _app: &mut App) {}
 }
 
 // How does this even work, mind blown, wait does it give back ownership when it's done, if so

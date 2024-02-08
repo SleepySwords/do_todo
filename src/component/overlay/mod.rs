@@ -1,7 +1,7 @@
 use crossterm::event::{KeyEvent, MouseEvent};
 
 use crate::{
-    app::{Mode, ScreenManager},
+    app::ScreenManager,
     draw::{Action, Component, PostEvent},
     error::AppError,
 };
@@ -64,15 +64,6 @@ impl Overlay<'_> {
         PostEvent {
             propegate_further: true,
             action: Action::Noop,
-        }
-    }
-
-    pub fn prev_mode(&self) -> Option<Mode> {
-        match self {
-            Overlay::Fuzzy(fuzzy) => fuzzy.prev_mode,
-            Overlay::Input(input) => input.prev_mode,
-            Overlay::Dialog(dialog) => dialog.prev_mode,
-            Overlay::Message(message) => message.prev_mode,
         }
     }
 }

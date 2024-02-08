@@ -1,9 +1,9 @@
 use chrono::{Local, NaiveTime};
 
 use crate::{
-    component::status_line::StatusLine,
     component::{
-        completed_list::CompletedListContext, overlay::Overlay, task_list::TaskListContext,
+        completed_list::CompletedListContext, overlay::Overlay, status_line::StatusLine,
+        task_list::TaskListContext,
     },
     config::Config,
     draw::{Action, PostEvent},
@@ -46,12 +46,16 @@ impl ScreenManager {
     pub(crate) fn handle_post_event(&mut self, post_event: PostEvent) {
         match post_event.action {
             Action::PopOverlay(fun) => {
-                if let Some(overlay) = self.pop_layer() {
+                if let Some(mut overlay) = self.pop_layer() {
+                    overlay.component_mut().destroy(&mut self.app);
                     let result = (fun)(&mut self.app, overlay);
                     self.handle_post_event(result);
                 }
             }
-            Action::PushLayer(overlay) => self.push_layer(overlay),
+            Action::PushLayer(mut overlay) => {
+                overlay.component_mut().mount(&mut self.app);
+                self.push_layer(overlay);
+            }
             Action::Noop => {}
         }
     }

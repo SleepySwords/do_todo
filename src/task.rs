@@ -4,11 +4,15 @@ use tui::style::Color;
 
 use std::{cmp, collections::BTreeMap, fmt::Display, vec};
 
-use crate::{app::App, config::Config};
+use crate::{
+    app::App,
+    config::{color_parser, Config},
+};
 
 #[derive(Deserialize, Serialize)]
 pub struct Tag {
     pub name: String,
+    #[serde(with = "color_parser")]
     pub colour: Color,
 }
 

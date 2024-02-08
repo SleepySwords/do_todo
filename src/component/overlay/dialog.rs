@@ -49,7 +49,7 @@ pub struct DialogBox<'a> {
     title: String,
     pub index: usize,
     options: Vec<DialogAction<'a>>,
-    pub prev_mode: Option<Mode>,
+    prev_mode: Option<Mode>,
 }
 
 impl Component for DialogBox<'_> {
@@ -103,13 +103,10 @@ impl Component for DialogBox<'_> {
                     if let Overlay::Dialog(DialogBox {
                         index,
                         mut options,
-                        prev_mode,
+                        prev_mode: _,
                         ..
                     }) = overlay
                     {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
                         if let Some(opt) = options.get_mut(index) {
                             if let Some(callback) = opt.function.take() {
                                 return (callback)(app);
@@ -119,14 +116,7 @@ impl Component for DialogBox<'_> {
                     PostEvent::noop(false)
                 })
             }
-            KeyCode::Esc => {
-                return PostEvent::pop_overlay(|app, overlay| {
-                    if let Some(mode) = overlay.prev_mode() {
-                        app.mode = mode;
-                    }
-                    PostEvent::noop(false)
-                })
-            }
+            KeyCode::Esc => return PostEvent::pop_overlay(|_app, _overlay| PostEvent::noop(false)),
             _ => {}
         }
         PostEvent {
@@ -154,12 +144,7 @@ impl Component for DialogBox<'_> {
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
-            return PostEvent::pop_overlay(|app, overlay| {
-                if let Some(mode) = overlay.prev_mode() {
-                    app.mode = mode;
-                }
-                PostEvent::noop(false)
-            });
+            return PostEvent::pop_overlay(|_app, _overlay| PostEvent::noop(false));
         }
         PostEvent {
             propegate_further: false,
@@ -173,6 +158,17 @@ impl Component for DialogBox<'_> {
             Constraint::Length(self.options.len() as u16 + 2),
             area,
         )
+    }
+
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn destroy(&mut self, app: &mut App) {
+        if let Some(prev_mode) = self.prev_mode {
+            app.mode = prev_mode;
+        }
     }
 }
 
@@ -208,12 +204,6 @@ impl<'a> DialogBoxBuilder<'a> {
 
     pub fn title(mut self, title: String) -> Self {
         self.title = title;
-        self
-    }
-
-    pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.prev_mode = Some(app.mode);
-        app.mode = Mode::Overlay;
         self
     }
 }
