@@ -8,10 +8,7 @@ use tui::{
 use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
-    app::{App, Mode},
-    draw::{Action, Drawer, PostEvent},
-    error::AppError,
-    utils,
+    app::{App, Mode}, config::Config, draw::{Action, Drawer, PostEvent}, error::AppError, utils
 };
 
 use super::{
@@ -286,10 +283,10 @@ impl InputBoxBuilder {
     }
 
     /// Pass in None to disable vim, or pass in Some with the starting mode
-    pub fn enable_vim(mut self, vim: Option<VimMode>) -> Self {
-        if let Some(mode) = vim {
+    pub fn use_vim(mut self, config: &Config, default_mode: VimMode) -> Self {
+        if config.vim_mode {
             self.input_mode = InputMode::Vim(Vim {
-                mode,
+                mode: default_mode,
                 operator: Operator::None,
                 pending: None,
             })

@@ -30,11 +30,7 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
-            .enable_vim(if self.config.vim_mode {
-                Some(VimMode::Insert)
-            } else {
-                None
-            })
+            .use_vim(&mut self.config, VimMode::Insert)
             .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
@@ -405,11 +401,7 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
-            .enable_vim(if self.config.vim_mode {
-                Some(VimMode::Insert)
-            } else {
-                None
-            })
+            .use_vim(&mut self.config, VimMode::Insert)
             .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
@@ -499,11 +491,7 @@ impl App {
                 task.title = word.trim().to_string();
                 Ok(PostEvent::noop(false))
             })
-            .enable_vim(if self.config.vim_mode {
-                Some(VimMode::Normal)
-            } else {
-                None
-            })
+            .use_vim(&self.config, VimMode::Normal)
             .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(edit_box))

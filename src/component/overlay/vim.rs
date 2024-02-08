@@ -73,7 +73,17 @@ impl InputBox {
                         self.text_area.move_cursor(CursorMove::WordForward)
                     }
                 }
-                KeyCode::Char('b') => self.text_area.move_cursor(CursorMove::WordBack),
+                KeyCode::Char('b') => {
+                    if vim.operator == Operator::Change || vim.operator == Operator::Delete {
+                        self.text_area.delete_word();
+                        if vim.operator == Operator::Change {
+                            vim.mode = VimMode::Insert;
+                        }
+                        vim.operator = Operator::None;
+                    } else {
+                        self.text_area.move_cursor(CursorMove::WordBack)
+                    }
+                }
                 KeyCode::Char('h') => self.text_area.move_cursor(CursorMove::Back),
                 KeyCode::Char('l') => self.text_area.move_cursor(CursorMove::Forward),
                 KeyCode::Char('j') => self.text_area.move_cursor(CursorMove::Down),
@@ -158,20 +168,17 @@ impl InputBox {
                 }
                 KeyCode::Char('x') => {
                     self.text_area.delete_next_char();
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('v') => {
                     self.text_area.start_selection();
                     vim.mode = VimMode::Visual;
-                }
-                KeyCode::Char('V') => {
-                    self.text_area.move_cursor(CursorMove::Head);
-                    self.text_area.start_selection();
-                    self.text_area.move_cursor(CursorMove::End);
-                    vim.mode = VimMode::Visual;
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('i') => {
                     if vim.operator == Operator::None {
                         vim.mode = VimMode::Insert;
+                        vim.operator = Operator::None;
                     } else {
                         vim.pending = Some('i');
                     }
@@ -179,26 +186,32 @@ impl InputBox {
                 KeyCode::Char('a') => {
                     self.text_area.move_cursor(CursorMove::Forward);
                     vim.mode = VimMode::Insert;
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('u') => {
                     self.text_area.undo();
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('r') => {
                     self.text_area.redo();
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('o') => {
                     self.text_area.move_cursor(CursorMove::End);
                     self.text_area.insert_newline();
                     vim.mode = VimMode::Insert;
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('O') => {
                     self.text_area.move_cursor(CursorMove::Head);
                     self.text_area.insert_newline();
                     self.text_area.move_cursor(CursorMove::Up);
                     vim.mode = VimMode::Insert;
+                    vim.operator = Operator::None;
                 }
                 KeyCode::Char('p') => {
                     self.text_area.paste();
+                    vim.operator = Operator::None;
                 }
                 _ => {}
             },
