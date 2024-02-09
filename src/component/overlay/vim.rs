@@ -243,6 +243,6 @@ impl InputBox {
             _ => {}
         }
 
-        return PostEvent::noop(false);
+        PostEvent::noop(false)
     }
 }

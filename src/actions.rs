@@ -30,7 +30,7 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
-            .use_vim(&mut self.config, VimMode::Insert)
+            .use_vim(&self.config, VimMode::Insert)
             .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
@@ -306,7 +306,7 @@ impl App {
             .fill(&default_string)
             .use_vim(
                 &self.config,
-                if default_string == "" {
+                if default_string.is_empty() {
                     VimMode::Insert
                 } else {
                     VimMode::Normal
@@ -411,7 +411,7 @@ impl App {
                 }
                 Ok(PostEvent::noop(false))
             })
-            .use_vim(&mut self.config, VimMode::Insert)
+            .use_vim(&self.config, VimMode::Insert)
             .save_mode(self)
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))

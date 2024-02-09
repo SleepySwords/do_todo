@@ -8,11 +8,15 @@ use tui::{
 use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
-    app::{App, Mode}, config::Config, draw::{Action, Drawer, PostEvent}, error::AppError, utils
+    app::{App, Mode},
+    config::Config,
+    draw::{Action, Drawer, PostEvent},
+    error::AppError,
+    utils,
 };
 
 use super::{
-    vim::{Vim, VimMode, Operator},
+    vim::{Operator, Vim, VimMode},
     Overlay,
 };
 
@@ -51,7 +55,7 @@ impl InputBox {
                     Operator::Yank => "- Yank",
                     Operator::None => "",
                 };
-                return format!("{} - {} {}", self.title, mode, operator);
+                format!("{} - {} {}", self.title, mode, operator)
             }
         }
     }
@@ -293,6 +297,6 @@ impl InputBoxBuilder {
         } else {
             self.input_mode = InputMode::Normal
         }
-        return self;
+        self
     }
 }
