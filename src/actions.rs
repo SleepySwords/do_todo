@@ -16,7 +16,7 @@ use crate::{
     task::{CompletedTask, FindParentResult, Task, TaskStore},
     utils::{self, str_to_colour},
 };
-//
+
 // Universal functions
 impl App {
     pub fn create_add_task_dialog(&mut self) -> Result<PostEvent, AppError> {
@@ -636,7 +636,7 @@ impl App {
                     date
                 };
                 if let Some(task) = app.task_store.task_mut(index) {
-                    task.date_to_complete = date.ok();
+                    task.due = date.ok();
                 }
                 Ok(PostEvent::noop(false))
             })

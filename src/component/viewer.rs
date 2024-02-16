@@ -50,12 +50,12 @@ impl Viewer {
             (Span::raw("Tags"), tag_names(app, task)),
         ];
 
-        if let Some(date_to_complete) = task.date_to_complete {
+        if let Some(date_to_complete) = task.due {
             let num_days = date_to_complete
                 .signed_duration_since(Local::now().date_naive())
                 .num_days();
             items.push((
-                Span::raw("Date to complete"),
+                Span::raw("Due"),
                 Line::from(vec![
                     Span::raw(format!("{}", date_to_complete)),
                     Span::styled(
@@ -66,11 +66,6 @@ impl Viewer {
                             _ if num_days < 0 => Style::default().fg(Color::Red),
                             _ => Style::default(),
                         },
-                        // if num_days < 0 {
-                        //     Style::default().fg(tui::style::Color::Red)
-                        // } else {
-                        //     Style::default()
-                        // },
                     ),
                 ]),
             ));

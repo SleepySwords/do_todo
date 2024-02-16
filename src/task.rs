@@ -1,5 +1,6 @@
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use tui::style::Color;
 
 use std::{cmp, collections::BTreeMap, fmt::Display, vec};
@@ -17,13 +18,14 @@ pub struct Tag {
 }
 
 #[derive(Clone, PartialEq, Default, Deserialize, Serialize)]
+#[skip_serializing_none]
 #[serde(default)]
 pub struct Task {
     pub progress: bool,
     pub title: String,
     pub priority: Priority,
     pub tags: Vec<usize>,
-    pub date_to_complete: Option<NaiveDate>,
+    pub due: Option<NaiveDate>,
 
     // Ignored if sub_tasks is empty
     pub opened: bool,
@@ -37,7 +39,7 @@ impl Task {
             title: content,
             priority: Priority::None,
             tags: Vec::new(),
-            date_to_complete: None,
+            due: None,
             opened: true,
             sub_tasks: vec![],
         }
@@ -113,7 +115,7 @@ impl CompletedTask {
                 progress: false,
                 title: content,
                 priority: Priority::None,
-                date_to_complete: None,
+                due: None,
                 tags: Vec::new(),
                 opened: true,
                 sub_tasks: vec![],
@@ -193,8 +195,11 @@ pub struct TaskStore {
 }
 
 pub struct FindParentResult<'a> {
+    /// The tasks that contains the parent.
     pub tasks: &'a Vec<Task>,
+    /// If there is a parent, the index of the parent within it's task.
     pub parent_index: Option<usize>,
+    /// The index of the task within the top-level tasks or within the subtask.
     pub task_local_offset: usize,
 }
 

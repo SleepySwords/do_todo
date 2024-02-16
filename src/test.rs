@@ -1,44 +1,5 @@
 use tui::backend::Backend;
 
-struct FakeBackend {}
-
-impl Backend for FakeBackend {
-    fn draw<'a, I>(&mut self, _content: I) -> Result<(), std::io::Error>
-    where
-        I: Iterator<Item = (u16, u16, &'a tui::buffer::Cell)>,
-    {
-        todo!()
-    }
-
-    fn hide_cursor(&mut self) -> Result<(), std::io::Error> {
-        todo!()
-    }
-
-    fn show_cursor(&mut self) -> Result<(), std::io::Error> {
-        todo!()
-    }
-
-    fn get_cursor(&mut self) -> Result<(u16, u16), std::io::Error> {
-        todo!()
-    }
-
-    fn set_cursor(&mut self, _x: u16, _y: u16) -> Result<(), std::io::Error> {
-        todo!()
-    }
-
-    fn clear(&mut self) -> Result<(), std::io::Error> {
-        todo!()
-    }
-
-    fn size(&self) -> Result<tui::layout::Rect, std::io::Error> {
-        todo!()
-    }
-
-    fn flush(&mut self) -> Result<(), std::io::Error> {
-        todo!()
-    }
-}
-
 #[cfg(test)]
 mod actions {
     use std::collections::BTreeMap;

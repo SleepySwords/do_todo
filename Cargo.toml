@@ -19,6 +19,7 @@ tui = { package = "ratatui", version = "0.26.0", features = ["serde"]}
 tui-textarea = { version = "0.4.0", features = ["crossterm", "ratatui"], default-features=false }
 itertools = "0.10.5"
 lazy_static = "1.4.0"
+serde_with = "3.6.1"
 
 
 # Using textwrap for now until tui-rs implements more general wrapping for widgets such as Tables.
