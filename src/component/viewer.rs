@@ -1,7 +1,7 @@
 use chrono::Local;
 use tui::{
     layout::{Constraint, Rect},
-    style::{Color, Style},
+    style::Style,
     text::{Line, Span},
     widgets::Block,
 };
@@ -50,17 +50,17 @@ impl Viewer {
             (Span::raw("Tags"), tag_names(app, task)),
         ];
 
-        if let Some(date_to_complete) = task.due {
-            let num_days = date_to_complete
+        if let Some(due_date) = task.due {
+            let num_days = due_date
                 .signed_duration_since(Local::now().date_naive())
                 .num_days();
             items.push((
                 Span::raw("Due"),
                 Line::from(vec![
-                    Span::raw(format!("{}", date_to_complete)),
+                    Span::raw(format!("{}", due_date)),
                     Span::styled(
                         format!(" ({} days away)", num_days),
-                        app.config.date_colour(date_to_complete),
+                        app.config.date_colour(due_date),
                     ),
                 ]),
             ));
@@ -90,7 +90,7 @@ impl Viewer {
             .to_string();
 
         let constraints = [Constraint::Percentage(25), Constraint::Percentage(75)];
-        let items = vec![
+        let mut items = vec![
             (
                 Span::raw("Title"),
                 Line::from(
@@ -115,6 +115,22 @@ impl Viewer {
             ),
             (Span::raw("Tags"), tag_names(app, &completed_task.task)),
         ];
+
+        if let Some(due_date) = completed_task.task.due {
+            let num_days = due_date
+                .signed_duration_since(Local::now().date_naive())
+                .num_days();
+            items.push((
+                Span::raw("Due"),
+                Line::from(vec![
+                    Span::raw(format!("{}", due_date)),
+                    Span::styled(
+                        format!(" ({} days away)", num_days),
+                        app.config.date_colour(due_date),
+                    ),
+                ]),
+            ));
+        }
 
         let table = utils::ui::generate_table(
             items,
