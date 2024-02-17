@@ -133,8 +133,7 @@ impl Component for MessageBox {
     }
 
     fn update_layout(&mut self, draw_area: Rect) {
-        let height = ((self.message.len() + 2) as u16)
-            .min(Constraint::Percentage(70).apply(draw_area.height));
+        let height = ((self.message.len() + 2) as u16).min((draw_area.height) * 70 / 100);
         self.draw_area = centre_rect(
             Constraint::Percentage(70),
             Constraint::Length(height),

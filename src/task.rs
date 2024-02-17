@@ -25,7 +25,7 @@ pub struct Task {
     pub title: String,
     pub priority: Priority,
     pub tags: Vec<usize>,
-    pub due: Option<NaiveDate>,
+    pub due_date: Option<NaiveDate>,
 
     // Ignored if sub_tasks is empty
     pub opened: bool,
@@ -39,7 +39,7 @@ impl Task {
             title: content,
             priority: Priority::None,
             tags: Vec::new(),
-            due: None,
+            due_date: None,
             opened: true,
             sub_tasks: vec![],
         }
@@ -115,7 +115,7 @@ impl CompletedTask {
                 progress: false,
                 title: content,
                 priority: Priority::None,
-                due: None,
+                due_date: None,
                 tags: Vec::new(),
                 opened: true,
                 sub_tasks: vec![],

@@ -98,7 +98,7 @@ impl TaskList {
             spans.push(tag_label);
         }
 
-        if let Some(due_date) = task.due {
+        if let Some(due_date) = task.due_date {
             let due_label = Span::styled(
                 due_date.format(" [%-d %b %C%y]").to_string(),
                 config.date_colour(due_date),

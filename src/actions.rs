@@ -636,7 +636,7 @@ impl App {
                     date
                 };
                 if let Some(task) = app.task_store.task_mut(index) {
-                    task.due = date.ok();
+                    task.due_date = date.ok();
                 }
                 Ok(PostEvent::noop(false))
             })

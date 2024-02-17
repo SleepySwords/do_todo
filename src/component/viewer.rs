@@ -26,6 +26,8 @@ impl Viewer {
         }
     }
 
+    const PERCENT: u16 = 80;
+
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.config;
         let index = app.task_list.selected_index;
@@ -33,7 +35,10 @@ impl Viewer {
             return;
         };
 
-        let constraints = [Constraint::Percentage(20), Constraint::Percentage(80)];
+        let constraints = [
+            Constraint::Percentage(100 - Self::PERCENT),
+            Constraint::Percentage(Self::PERCENT),
+        ];
 
         let mut items = vec![
             (
@@ -50,7 +55,7 @@ impl Viewer {
             (Span::raw("Tags"), tag_names(app, task)),
         ];
 
-        if let Some(due_date) = task.due {
+        if let Some(due_date) = task.due_date {
             let num_days = due_date
                 .signed_duration_since(Local::now().date_naive())
                 .num_days();
@@ -68,7 +73,7 @@ impl Viewer {
 
         let table = utils::ui::generate_table(
             items,
-            constraints[1].apply(block.inner(self.area).width) as usize,
+            block.inner(self.area).width as usize * Self::PERCENT as usize / 100,
         )
         .block(block)
         .widths(constraints);
@@ -89,7 +94,10 @@ impl Viewer {
             .format("%d/%m/%y %-I:%M:%S %p")
             .to_string();
 
-        let constraints = [Constraint::Percentage(25), Constraint::Percentage(75)];
+        let constraints = [
+            Constraint::Percentage(100 - Self::PERCENT),
+            Constraint::Percentage(Self::PERCENT),
+        ];
         let mut items = vec![
             (
                 Span::raw("Title"),
@@ -116,7 +124,7 @@ impl Viewer {
             (Span::raw("Tags"), tag_names(app, &completed_task.task)),
         ];
 
-        if let Some(due_date) = completed_task.task.due {
+        if let Some(due_date) = completed_task.task.due_date {
             let num_days = due_date
                 .signed_duration_since(Local::now().date_naive())
                 .num_days();
@@ -134,7 +142,7 @@ impl Viewer {
 
         let table = utils::ui::generate_table(
             items,
-            constraints[1].apply(block.inner(draw_area).width) as usize,
+            block.inner(draw_area).width as usize * Self::PERCENT as usize / 100,
         )
         .block(block)
         .widths(constraints);
