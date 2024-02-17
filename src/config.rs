@@ -1,3 +1,4 @@
+use chrono::{Local, NaiveDate};
 use crossterm::event::{KeyCode, KeyModifiers};
 
 use serde::{Deserialize, Serialize};
@@ -98,7 +99,7 @@ impl Default for Config {
             edit_key: Key::new(KeyCode::Char('e'), KeyModifiers::NONE),
             delete_key: Key::new(KeyCode::Char('d'), KeyModifiers::NONE),
             add_key: Key::new(KeyCode::Char('a'), KeyModifiers::NONE),
-            add_date: Key::new(KeyCode::Char('b'), KeyModifiers::NONE),
+            add_date: Key::new(KeyCode::Char('D'), KeyModifiers::NONE),
             add_subtask_key: Key::new(KeyCode::Char('A'), KeyModifiers::NONE),
             change_priority_key: Key::new(KeyCode::Char('p'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
@@ -139,6 +140,18 @@ impl Config {
             .border_type(self.border_type)
             .title(title)
             .border_style(Style::default().fg(border_color))
+    }
+
+    pub fn date_colour(&self, due_date: NaiveDate) -> Style {
+        let num_days = due_date
+            .signed_duration_since(Local::now().date_naive())
+            .num_days();
+        match num_days {
+            0..=3 => Style::default().fg(Color::Yellow),
+            4..=7 => Style::default().fg(Color::Green),
+            _ if num_days < 0 => Style::default().fg(Color::Red),
+            _ => Style::default(),
+        }
     }
 }
 

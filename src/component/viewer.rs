@@ -60,12 +60,7 @@ impl Viewer {
                     Span::raw(format!("{}", date_to_complete)),
                     Span::styled(
                         format!(" ({} days away)", num_days),
-                        match num_days {
-                            0..=3 => Style::default().fg(Color::Yellow),
-                            4..=7 => Style::default().fg(Color::Green),
-                            _ if num_days < 0 => Style::default().fg(Color::Red),
-                            _ => Style::default(),
-                        },
+                        app.config.date_colour(date_to_complete),
                     ),
                 ]),
             ));

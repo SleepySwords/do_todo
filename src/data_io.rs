@@ -144,7 +144,7 @@ pub fn save_data(config: &Config, task_store: &TaskStore) {
     save_to_file(
         dirs::data_local_dir(),
         DATA_FILE,
-        || serde_json::to_string(task_store),
+        || serde_json::to_string_pretty(task_store),
         "data",
     );
 
