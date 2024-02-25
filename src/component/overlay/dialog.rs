@@ -9,7 +9,10 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Action, Component, PostEvent},
+    framework::{
+        component::{Component, Drawer},
+        event::{AppEvent, PostEvent},
+    },
     utils::{self, handle_mouse_movement},
 };
 
@@ -53,7 +56,7 @@ pub struct DialogBox<'a> {
 }
 
 impl Component for DialogBox<'_> {
-    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         let mut list = List::new(
             self.options
                 .iter()
@@ -68,16 +71,18 @@ impl Component for DialogBox<'_> {
             Mode::Overlay,
         ));
 
-        if self.options[self.index]
+        let highlight_style = if self.options[self.index]
             .name
             .spans
             .iter()
             .all(|f| f.style.fg.is_none())
         {
-            list = list.highlight_style(app.config.highlight_dropdown_style())
+            app.config.highlight_dropdown_style()
         } else {
-            list = list.highlight_style(Style::default().add_modifier(Modifier::BOLD))
-        }
+            Style::default().add_modifier(Modifier::BOLD)
+        };
+
+        list = list.highlight_style(highlight_style);
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.index));
@@ -90,39 +95,35 @@ impl Component for DialogBox<'_> {
         let key_code = key_event.code;
         if let KeyCode::Char(char) = key_code {
             if char == 'q' {
-                return PostEvent {
-                    propegate_further: false,
-                    action: Action::Noop,
-                };
+                return PostEvent::noop(false);
             }
         }
         utils::handle_key_movement(&app.config, key_event, &mut self.index, self.options.len());
         match key_code {
-            KeyCode::Enter => {
-                return PostEvent::pop_overlay(|app, overlay| {
-                    if let Overlay::Dialog(DialogBox {
-                        index,
-                        mut options,
-                        prev_mode: _,
-                        ..
-                    }) = overlay
-                    {
-                        if let Some(opt) = options.get_mut(index) {
-                            if let Some(callback) = opt.function.take() {
-                                return (callback)(app);
-                            }
-                        }
-                    }
-                    PostEvent::noop(false)
-                })
-            }
-            KeyCode::Esc => return PostEvent::pop_overlay(|_app, _overlay| PostEvent::noop(false)),
+            KeyCode::Enter => return PostEvent::pop_layer(Some(AppEvent::Submit)),
+            KeyCode::Esc => return PostEvent::pop_layer(Some(AppEvent::Cancel)),
             _ => {}
         }
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
+        PostEvent::noop(false)
+    }
+
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn unmount(&mut self, app: &mut App, event: Option<AppEvent>) -> PostEvent {
+        if let Some(prev_mode) = self.prev_mode {
+            app.mode = prev_mode;
         }
+        if let Some(AppEvent::Submit) = event {
+            if let Some(opt) = self.options.get_mut(self.index) {
+                if let Some(callback) = opt.function.take() {
+                    return (callback)(app);
+                }
+            }
+        }
+        return PostEvent::noop(false);
     }
 
     fn mouse_event(
@@ -144,12 +145,9 @@ impl Component for DialogBox<'_> {
         }
 
         if let MouseEventKind::Down(_) = mouse_event.kind {
-            return PostEvent::pop_overlay(|_app, _overlay| PostEvent::noop(false));
+            return PostEvent::pop_layer(Some(AppEvent::Cancel));
         }
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        }
+        return PostEvent::noop(false);
     }
 
     fn update_layout(&mut self, area: Rect) {
@@ -158,17 +156,6 @@ impl Component for DialogBox<'_> {
             Constraint::Length(self.options.len() as u16 + 2),
             area,
         )
-    }
-
-    fn mount(&mut self, app: &mut App) {
-        self.prev_mode = Some(app.mode);
-        app.mode = Mode::Overlay;
-    }
-
-    fn destroy(&mut self, app: &mut App) {
-        if let Some(prev_mode) = self.prev_mode {
-            app.mode = prev_mode;
-        }
     }
 }
 

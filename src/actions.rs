@@ -6,12 +6,16 @@ use tui::style::{Color, Style};
 use crate::{
     app::{App, Mode},
     component::{
-        message_box::MessageBox,
-        overlay::{dialog::DialogAction, Overlay},
-        overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
+        message_box::{MessageBox, MessageBoxBuilder},
+        overlay::{
+            dialog::{DialogAction, DialogBoxBuilder},
+            fuzzy::FuzzyBoxBuilder,
+            input_box::InputBoxBuilder,
+            Overlay,
+        },
     },
-    draw::PostEvent,
     error::AppError,
+    framework::event::PostEvent,
     input,
     task::{CompletedTask, FindParentResult, Task, TaskStore},
     utils::{self, str_to_colour},
@@ -22,13 +26,13 @@ impl App {
     pub fn create_add_task_dialog(&mut self) -> Result<PostEvent, AppError> {
         let add_input_dialog = InputBoxBuilder::default()
             .title(String::from("Add a task"))
-            .callback(move |app, word| {
+            .on_submit(move |app, word| {
                 app.task_store
                     .add_task(Task::from_string(word.trim().to_string()));
                 if app.mode == Mode::CurrentTasks {
                     app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
                 }
-                Ok(PostEvent::noop(false))
+                PostEvent::noop(false)
             })
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
@@ -98,18 +102,17 @@ impl App {
                         match result {
                             Ok(result) => result,
                             Err(AppError::InvalidState(msg)) => {
-                                let prev_mode = app.mode;
+                                let prev_mode = app.mode; // FIXME: why is this here???
                                 app.mode = Mode::Overlay;
-                                return PostEvent::push_overlay(Overlay::Message(MessageBox::new(
-                                    "An error occured".to_string(),
-                                    move |app| {
+                                let message = MessageBoxBuilder::default()
+                                    .title("An error occured".to_string())
+                                    .message(msg)
+                                    .on_close(move |app| {
                                         app.mode = prev_mode;
                                         PostEvent::noop(false)
-                                    },
-                                    msg,
-                                    Color::Red,
-                                    0,
-                                )));
+                                    })
+                                    .colour(Color::Red);
+                                return PostEvent::push_overlay(message.build_overlay());
                             }
                             _ => PostEvent::noop(false),
                         }
@@ -191,27 +194,25 @@ impl App {
         tag_options.push(DialogAction::new(String::from("New tag"), move |_| {
             let tag_menu = InputBoxBuilder::default()
                 .title(String::from("Tag name"))
-                .callback(move |app, tag_name| {
-                    Ok(
-                        app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
-                            let colour = str_to_colour(&tag_colour)?;
+                .on_submit(move |app, tag_name| {
+                    app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
+                        let colour = str_to_colour(&tag_colour)?;
 
-                            let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
-                            app.task_store.tags.insert(
-                                tag_id,
-                                crate::task::Tag {
-                                    name: tag_name.clone(),
-                                    colour,
-                                },
-                            );
-                            if app.task_store.find_tasks_draw_size() > selected_index {
-                                if let Some(task) = app.task_store.task_mut(selected_index) {
-                                    task.flip_tag(tag_id);
-                                }
+                        let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
+                        app.task_store.tags.insert(
+                            tag_id,
+                            crate::task::Tag {
+                                name: tag_name.clone(),
+                                colour,
+                            },
+                        );
+                        if app.task_store.find_tasks_draw_size() > selected_index {
+                            if let Some(task) = app.task_store.task_mut(selected_index) {
+                                task.flip_tag(tag_id);
                             }
-                            Ok(PostEvent::noop(false))
-                        }),
-                    )
+                        }
+                        Ok(PostEvent::noop(false))
+                    })
                 })
                 .build_overlay();
             PostEvent::push_overlay(tag_menu)
@@ -257,8 +258,8 @@ impl App {
                     let edit_name = InputBoxBuilder::default()
                         .title("Edit tag name".to_string())
                         .fill(&tag_name)
-                        .callback(move |app, tag_name| {
-                            Ok(app.create_select_tag_colour(
+                        .on_submit(move |app, tag_name| {
+                            app.create_select_tag_colour(
                                 tag_colour.to_string(),
                                 move |app, tag_colour| {
                                     let colour = utils::str_to_colour(&tag_colour)?;
@@ -271,7 +272,7 @@ impl App {
                                     );
                                     Ok(PostEvent::noop(false))
                                 },
-                            ))
+                            )
                         });
                     PostEvent::push_overlay(edit_name.build_overlay())
                 },
@@ -290,28 +291,29 @@ impl App {
         callback: T,
     ) -> PostEvent
     where
-        T: Fn(&mut App, String) -> Result<PostEvent, AppError>,
+        T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone,
     {
         let tag_colour = InputBoxBuilder::default()
             .title(String::from("Tag colour"))
-            .fill(&default_string)
-            .callback(callback)
-            .error_callback(move |app, err, callback| {
-                let message_box = MessageBox::new(
-                    String::from("Error"),
-                    move |app| {
-                        if let Some(callback) = callback {
-                            app.create_select_tag_colour(default_string, callback)
-                        } else {
-                            PostEvent::noop(false)
-                        }
-                    },
-                    err.to_string(),
-                    tui::style::Color::Red,
-                    0,
-                )
-                .save_mode(app);
-                return PostEvent::push_overlay(Overlay::Message(message_box));
+            .fill(&default_string.clone())
+            .on_submit(move |app, input| {
+                let result = callback(app, input);
+                let str = default_string.clone();
+                let cloned_callback = callback.clone();
+                if let Err(err) = result {
+                    let message_box = MessageBox::new(
+                        String::from("Error"),
+                        move |app| {
+                            app.create_select_tag_colour(str.clone(), cloned_callback.clone())
+                        },
+                        err.to_string(),
+                        tui::style::Color::Red,
+                        0,
+                    );
+                    return PostEvent::push_overlay(Overlay::Message(message_box));
+                } else {
+                    return result.expect("Should use match");
+                }
             });
 
         PostEvent::push_overlay(tag_colour.build_overlay())
@@ -383,14 +385,14 @@ impl App {
         };
         let add_input_dialog = InputBoxBuilder::default()
             .title(format!("Add a subtask to {}", task.title))
-            .callback(move |app, word| {
+            .on_submit(move |app, word| {
                 if let Some(task) = app.task_store.task_mut(index) {
                     task.sub_tasks
                         .push(Task::from_string(word.trim().to_string()));
                     task.opened = true;
                     app.task_list.selected_index += task.sub_tasks.len();
                 }
-                Ok(PostEvent::noop(false))
+                PostEvent::noop(false)
             })
             .build_overlay();
         Ok(PostEvent::push_overlay(add_input_dialog))
@@ -473,12 +475,12 @@ impl App {
         let edit_box = InputBoxBuilder::default()
             .title(String::from("Edit the selected task"))
             .fill(task.title.as_str())
-            .callback(move |app, word| {
+            .on_submit(move |app, word| {
                 let Some(task) = app.task_store.task_mut(index) else {
-                    return Ok(PostEvent::noop(false));
+                    return PostEvent::noop(false);
                 };
                 task.title = word.trim().to_string();
-                Ok(PostEvent::noop(false))
+                PostEvent::noop(false)
             })
             .build_overlay();
         Ok(PostEvent::push_overlay(edit_box))
@@ -620,11 +622,17 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn create_selected_task_date_dialog(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_due_date_dialog(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let date_dialog = InputBoxBuilder::default()
-            .title("Add date".to_string())
-            .callback(move |app, date_str| {
+            .title("Add date or specify \"none\" to remove".to_string())
+            .on_submit(move |app, date_str| {
+                if date_str.to_lowercase() == "none" {
+                    if let Some(task) = app.task_store.task_mut(index) {
+                        task.due_date = None;
+                    }
+                    return PostEvent::noop(false);
+                }
                 let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y");
                 let date = if let Err(parser_error) = date {
                     if ParseErrorKind::TooLong == parser_error.kind() {
@@ -636,9 +644,10 @@ impl App {
                     date
                 };
                 if let Some(task) = app.task_store.task_mut(index) {
-                    task.due_date = date.ok();
+                    // FIXME: error hanlding
+                    task.due_date = Some(date.expect("aef"));
                 }
-                Ok(PostEvent::noop(false))
+                PostEvent::noop(false)
             })
             .build_overlay();
         Ok(PostEvent::push_overlay(date_dialog))

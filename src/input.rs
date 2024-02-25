@@ -1,12 +1,12 @@
 use crossterm::event::KeyEvent;
 
 use crate::{
-    app::{App, Mode, ScreenManager},
+    app::{App, Mode},
     component::{completed_list::CompletedList, overlay::Overlay},
     config::Config,
-    draw::PostEvent,
     error::AppError,
-    key::KeyBinding,
+    framework::key::KeyBinding,
+    framework::{event::PostEvent, screen_manager::ScreenManager},
     utils,
 };
 
@@ -72,7 +72,7 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
         KeyBinding::register_key(
             config.add_date,
             "Adds a date to the selected task",
-            App::create_selected_task_date_dialog,
+            App::create_due_date_dialog,
         ),
     ]
 }

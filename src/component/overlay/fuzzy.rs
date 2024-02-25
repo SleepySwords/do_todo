@@ -8,7 +8,10 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Component, PostEvent},
+    framework::{
+        component::{Component, Drawer},
+        event::{AppEvent, PostEvent},
+    },
     utils::{self, handle_mouse_movement},
 };
 
@@ -73,24 +76,9 @@ impl Component for FuzzyBox<'_> {
                 PostEvent::noop(false)
             }
             KeyCode::Enter => {
-                return PostEvent::pop_overlay(|app, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox {
-                        active,
-                        index,
-                        mut options,
-                        ..
-                    }) = overlay
-                    {
-                        if let Some(Some(opt)) = active.get(index).map(|&id| options.get_mut(id)) {
-                            if let Some(callback) = opt.function.take() {
-                                return (callback)(app);
-                            }
-                        }
-                    }
-                    PostEvent::noop(false)
-                });
+                return PostEvent::pop_layer(Some(AppEvent::Submit));
             }
-            KeyCode::Esc => PostEvent::pop_overlay(|_, _| PostEvent::noop(false)),
+            KeyCode::Esc => PostEvent::pop_layer(Some(AppEvent::Cancel)),
             _ => {
                 self.input_box.key_event(app, key_event);
                 let input = self.input_box.text().to_ascii_lowercase();
@@ -112,7 +100,30 @@ impl Component for FuzzyBox<'_> {
         }
     }
 
-    fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn unmount(&mut self, app: &mut App, event: Option<AppEvent>) -> PostEvent {
+        if let Some(prev_mode) = self.prev_mode {
+            app.mode = prev_mode;
+        }
+        if let Some(AppEvent::Submit) = event {
+            if let Some(Some(opt)) = self
+                .active
+                .get(self.index)
+                .map(|&id| self.options.get_mut(id))
+            {
+                if let Some(callback) = opt.function.take() {
+                    return (callback)(app);
+                }
+            }
+        }
+        PostEvent::noop(false)
+    }
+
+    fn draw(&self, app: &crate::app::App, drawer: &mut Drawer) {
         self.input_box.draw(app, drawer);
 
         let mut list = List::new(
@@ -174,20 +185,9 @@ impl Component for FuzzyBox<'_> {
             );
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                return PostEvent::pop_overlay(|_app: &mut App, _overlay| PostEvent::noop(false));
+                return PostEvent::pop_layer(Some(AppEvent::Cancel));
             }
             PostEvent::noop(false)
-        }
-    }
-
-    fn mount(&mut self, app: &mut App) {
-        self.prev_mode = Some(app.mode);
-        app.mode = Mode::Overlay;
-    }
-
-    fn destroy(&mut self, app: &mut App) {
-        if let Some(prev_mode) = self.prev_mode {
-            app.mode = prev_mode;
         }
     }
 }

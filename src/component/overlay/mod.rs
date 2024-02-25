@@ -1,9 +1,7 @@
 use crossterm::event::{KeyEvent, MouseEvent};
 
 use crate::{
-    app::ScreenManager,
-    draw::{Action, Component, PostEvent},
-    error::AppError,
+    error::AppError, framework::{component::Component, event::PostEvent, screen_manager::ScreenManager},
 };
 
 use self::{dialog::DialogBox, fuzzy::FuzzyBox, input_box::InputBox};
@@ -49,10 +47,7 @@ impl Overlay<'_> {
                 .component_mut()
                 .key_event(&mut screen_manager.app, key_event));
         }
-        Ok(PostEvent {
-            propegate_further: true,
-            action: Action::Noop,
-        })
+        Ok(PostEvent::noop(true))
     }
 
     pub fn mouse_event(screen_manager: &mut ScreenManager, mouse_event: MouseEvent) -> PostEvent {
@@ -61,9 +56,6 @@ impl Overlay<'_> {
                 .component_mut()
                 .mouse_event(&mut screen_manager.app, mouse_event);
         }
-        PostEvent {
-            propegate_further: true,
-            action: Action::Noop,
-        }
+        PostEvent::noop(true)
     }
 }

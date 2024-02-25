@@ -9,7 +9,7 @@ use tui::{
 // A viewer of a task/something
 use crate::{
     app::{App, Mode},
-    draw::{Action, Component, Drawer, PostEvent},
+    framework::{component::{Component, Drawer}, event::{Action, PostEvent}},
     task::Task,
     utils,
 };

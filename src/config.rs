@@ -7,7 +7,7 @@ use tui::{
     widgets::{Block, BorderType, Borders},
 };
 
-use crate::key::Key;
+use crate::framework::key::Key;
 
 #[derive(Deserialize, Serialize)]
 #[serde(default)]

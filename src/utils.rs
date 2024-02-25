@@ -6,8 +6,8 @@ use std::usize;
 
 use crate::app::{App, Mode};
 use crate::config::Config;
-use crate::draw::PostEvent;
 use crate::error::AppError;
+use crate::framework::event::PostEvent;
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -340,11 +340,8 @@ mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
-    use crate::{
-        app::{App, ScreenManager},
-        input,
-        task::TaskStore,
-    };
+    use crate::framework::screen_manager::ScreenManager;
+    use crate::{app::App, input, task::TaskStore};
 
     pub fn input_char(character: char, screen_manager: &mut ScreenManager) {
         let result = input::key_event(

@@ -4,3 +4,4 @@ pub mod overlay;
 pub mod status_line;
 pub mod task_list;
 pub mod viewer;
+pub mod logger;
