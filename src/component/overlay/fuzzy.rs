@@ -18,7 +18,6 @@ use crate::{
 use super::{
     dialog::DialogAction,
     input_box::{InputBox, InputBoxBuilder},
-    Overlay,
 };
 
 pub struct FuzzyBox<'a> {
@@ -75,9 +74,7 @@ impl Component for FuzzyBox<'_> {
                 }
                 PostEvent::noop(false)
             }
-            KeyCode::Enter => {
-                return PostEvent::pop_layer(Some(AppEvent::Submit));
-            }
+            KeyCode::Enter => PostEvent::pop_layer(Some(AppEvent::Submit)),
             KeyCode::Esc => PostEvent::pop_layer(Some(AppEvent::Cancel)),
             _ => {
                 self.input_box.key_event(app, key_event);
@@ -200,9 +197,9 @@ pub struct FuzzyBoxBuilder<'a> {
 }
 
 impl<'a> FuzzyBoxBuilder<'a> {
-    pub fn build(self) -> Overlay<'a> {
+    pub fn build(self) -> FuzzyBox<'a> {
         let active = (0..self.options.len()).collect_vec();
-        Overlay::Fuzzy(FuzzyBox {
+        FuzzyBox {
             draw_area: self.draw_area,
             input_box: InputBoxBuilder::default().title(self.title).build(),
             list_draw_area: Rect::default(),
@@ -210,7 +207,7 @@ impl<'a> FuzzyBoxBuilder<'a> {
             options: self.options,
             prev_mode: None,
             active,
-        })
+        }
     }
 
     pub fn options(mut self, options: Vec<DialogAction<'a>>) -> Self {

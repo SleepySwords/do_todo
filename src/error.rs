@@ -16,7 +16,7 @@ pub enum AppError {
 
     #[error("JSON parsing error: {0}")]
     JsonError(JsonError),
-     
+
     #[error("YAML parsing error: {0}")]
     YamlError(YamlError),
 

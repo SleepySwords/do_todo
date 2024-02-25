@@ -11,7 +11,6 @@ use crate::{
             dialog::{DialogAction, DialogBoxBuilder},
             fuzzy::FuzzyBoxBuilder,
             input_box::InputBoxBuilder,
-            Overlay,
         },
     },
     error::AppError,
@@ -34,7 +33,7 @@ impl App {
                 }
                 PostEvent::noop(false)
             })
-            .build_overlay();
+            .build();
         Ok(PostEvent::push_overlay(add_input_dialog))
     }
 
@@ -112,7 +111,7 @@ impl App {
                                         PostEvent::noop(false)
                                     })
                                     .colour(Color::Red);
-                                return PostEvent::push_overlay(message.build_overlay());
+                                PostEvent::push_overlay(message.build())
                             }
                             _ => PostEvent::noop(false),
                         }
@@ -214,7 +213,7 @@ impl App {
                         Ok(PostEvent::noop(false))
                     })
                 })
-                .build_overlay();
+                .build();
             PostEvent::push_overlay(tag_menu)
         }));
 
@@ -274,7 +273,7 @@ impl App {
                                 },
                             )
                         });
-                    PostEvent::push_overlay(edit_name.build_overlay())
+                    PostEvent::push_overlay(edit_name.build())
                 },
             ));
         }
@@ -310,13 +309,13 @@ impl App {
                         tui::style::Color::Red,
                         0,
                     );
-                    return PostEvent::push_overlay(Overlay::Message(message_box));
+                    PostEvent::push_overlay(message_box)
                 } else {
-                    return result.expect("Should use match");
+                    result.expect("Should use match")
                 }
             });
 
-        PostEvent::push_overlay(tag_colour.build_overlay())
+        PostEvent::push_overlay(tag_colour.build())
     }
 
     pub fn create_delete_tag_menu(&mut self) -> PostEvent {
@@ -394,7 +393,7 @@ impl App {
                 }
                 PostEvent::noop(false)
             })
-            .build_overlay();
+            .build();
         Ok(PostEvent::push_overlay(add_input_dialog))
     }
 
@@ -482,7 +481,7 @@ impl App {
                 task.title = word.trim().to_string();
                 PostEvent::noop(false)
             })
-            .build_overlay();
+            .build();
         Ok(PostEvent::push_overlay(edit_box))
     }
 
@@ -649,7 +648,7 @@ impl App {
                 }
                 PostEvent::noop(false)
             })
-            .build_overlay();
+            .build();
         Ok(PostEvent::push_overlay(date_dialog))
     }
 }

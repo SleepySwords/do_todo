@@ -2,12 +2,12 @@ use crossterm::event::KeyEvent;
 
 use crate::{
     app::{App, Mode},
-    component::{completed_list::CompletedList, overlay::Overlay},
+    component::completed_list::CompletedList,
     config::Config,
     error::AppError,
     framework::key::KeyBinding,
     framework::{event::PostEvent, screen_manager::ScreenManager},
-    utils,
+    utils, Overlay,
 };
 
 fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {

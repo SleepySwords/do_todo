@@ -102,10 +102,10 @@ pub fn start_app(
             main_screen.draw(&screen_manager.app, &mut drawer);
 
             for overlay in screen_manager.overlays.iter_mut() {
-                overlay.component_mut().update_layout(chunk[0])
+                overlay.update_layout(chunk[0])
             }
             for overlay in screen_manager.overlays.iter() {
-                overlay.component().draw(&screen_manager.app, &mut drawer)
+                overlay.draw(&screen_manager.app, &mut drawer)
             }
 
             screen_manager.app.status_line.update_layout(chunk[1]);
@@ -137,7 +137,7 @@ pub fn start_app(
                             Ok(post_event) => screen_manager.handle_post_event(post_event),
                             Err(AppError::InvalidState(msg)) => {
                                 let prev_mode = screen_manager.app.mode;
-                                screen_manager.push_layer(Overlay::Message(MessageBox::new(
+                                screen_manager.push_layer(MessageBox::new(
                                     "An error occured".to_string(),
                                     move |app| {
                                         app.mode = prev_mode;
@@ -146,7 +146,7 @@ pub fn start_app(
                                     msg,
                                     Color::Red,
                                     0,
-                                )));
+                                ));
                             }
                             _ => {}
                         }

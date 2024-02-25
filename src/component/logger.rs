@@ -7,7 +7,11 @@ use tui::{
 };
 
 use crate::{
-    framework::{component::{Component, Drawer}, event::PostEvent}, utils
+    framework::{
+        component::{Component, Drawer},
+        event::PostEvent,
+    },
+    utils,
 };
 
 #[derive(Default)]

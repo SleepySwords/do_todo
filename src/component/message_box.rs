@@ -15,8 +15,6 @@ use crate::{
     utils::{self, centre_rect},
 };
 
-use super::overlay::Overlay;
-
 type MessageCallback = dyn Fn(&mut App) -> PostEvent;
 
 pub struct MessageBox {
@@ -48,25 +46,6 @@ impl MessageBox {
             selected_index,
             prev_mode: None,
             draw_area: Rect::default(),
-        }
-    }
-
-    pub fn new_by_list<T: Fn(&mut App) -> PostEvent + 'static>(
-        title: String,
-        draw_area: Rect,
-        callback: T,
-        words: Vec<String>,
-        colour: Color,
-        selected_index: usize,
-    ) -> MessageBox {
-        MessageBox {
-            title,
-            on_close: Some(Box::new(callback)),
-            message: words,
-            colour,
-            selected_index,
-            prev_mode: None,
-            draw_area,
         }
     }
 }
@@ -143,10 +122,6 @@ pub struct MessageBoxBuilder {
 }
 
 impl MessageBoxBuilder {
-    pub fn build_overlay(self) -> Overlay<'static> {
-        Overlay::Message(self.build())
-    }
-
     pub fn build(self) -> MessageBox {
         MessageBox {
             title: self.title,

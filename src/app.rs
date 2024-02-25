@@ -2,9 +2,12 @@ use chrono::{Local, NaiveTime};
 
 use crate::{
     component::{
-        completed_list::CompletedListContext, status_line::StatusLine,
-        task_list::TaskListContext,
-    }, config::Config, error::AppError, framework::event::PostEvent, task::TaskStore
+        completed_list::CompletedListContext, status_line::StatusLine, task_list::TaskListContext,
+    },
+    config::Config,
+    error::AppError,
+    framework::event::PostEvent,
+    task::TaskStore,
 };
 
 #[derive(Default)]

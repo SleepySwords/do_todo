@@ -16,8 +16,6 @@ use crate::{
     utils,
 };
 
-use super::Overlay;
-
 type InputBoxCallback = Option<Box<dyn Fn(&mut App, String) -> PostEvent>>;
 
 pub struct InputBox {
@@ -87,7 +85,7 @@ impl Component for InputBox {
             Some(AppEvent::Cancel) => {}
             _ => {}
         }
-        return PostEvent::noop(false);
+        PostEvent::noop(false)
     }
 
     fn update_layout(&mut self, draw_area: Rect) {
@@ -153,10 +151,6 @@ impl Default for InputBoxBuilder {
 }
 
 impl InputBoxBuilder {
-    pub fn build_overlay(self) -> Overlay<'static> {
-        Overlay::Input(self.build())
-    }
-
     pub fn build(self) -> InputBox {
         InputBox {
             title: self.title,

@@ -16,8 +16,6 @@ use crate::{
     utils::{self, handle_mouse_movement},
 };
 
-use super::Overlay;
-
 type DialogCallback = Box<dyn FnOnce(&mut App) -> PostEvent>;
 
 pub struct DialogAction<'a> {
@@ -123,7 +121,7 @@ impl Component for DialogBox<'_> {
                 }
             }
         }
-        return PostEvent::noop(false);
+        PostEvent::noop(false)
     }
 
     fn mouse_event(
@@ -147,7 +145,7 @@ impl Component for DialogBox<'_> {
         if let MouseEventKind::Down(_) = mouse_event.kind {
             return PostEvent::pop_layer(Some(AppEvent::Cancel));
         }
-        return PostEvent::noop(false);
+        PostEvent::noop(false)
     }
 
     fn update_layout(&mut self, area: Rect) {
@@ -169,14 +167,14 @@ pub struct DialogBoxBuilder<'a> {
 }
 
 impl<'a> DialogBoxBuilder<'a> {
-    pub fn build(self) -> Overlay<'a> {
-        Overlay::Dialog(DialogBox {
+    pub fn build(self) -> DialogBox<'a> {
+        DialogBox {
             draw_area: self.draw_area,
             title: self.title,
             index: self.index,
             options: self.options,
             prev_mode: self.prev_mode,
-        })
+        }
     }
 
     pub fn add_option(mut self, dialog_action: DialogAction<'a>) -> Self {

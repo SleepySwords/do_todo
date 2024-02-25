@@ -1,8 +1,8 @@
-use crate::Overlay;
+use super::component::Component;
 
 pub enum Action {
     PopLayer(Option<AppEvent>),
-    PushLayer(Overlay<'static>),
+    PushLayer(Box<dyn Component>),
     Noop,
 }
 
@@ -37,11 +37,10 @@ impl PostEvent {
         }
     }
 
-    pub fn push_overlay(overlay: Overlay<'static>) -> PostEvent {
+    pub fn push_overlay<T: Component + 'static>(overlay: T) -> PostEvent {
         PostEvent {
             propegate_further: false,
-            action: Action::PushLayer(overlay),
+            action: Action::PushLayer(Box::new(overlay)),
         }
     }
 }
-

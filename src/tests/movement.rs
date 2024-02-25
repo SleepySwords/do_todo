@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    app::{App, ScreenManager},
+    app::App,
     config::Config,
+    framework::screen_manager::ScreenManager,
     task::{Task, TaskStore},
     tests::assert_task_eq,
     utils::test::input_char,
