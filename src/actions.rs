@@ -1,12 +1,12 @@
 use chrono::{format::ParseErrorKind, Local, NaiveDate};
 use crossterm::event::KeyEvent;
 use itertools::Itertools;
-use tui::style::{Color, Style};
+use tui::style::{Color, Stylize};
 
 use crate::{
     app::{App, Mode},
     component::{
-        message_box::{MessageBox, MessageBoxBuilder},
+        message_box::MessageBoxBuilder,
         overlay::{
             dialog::{DialogAction, DialogBoxBuilder},
             fuzzy::FuzzyBoxBuilder,
@@ -24,10 +24,10 @@ use crate::{
 impl App {
     pub fn create_add_task_dialog(&mut self) -> Result<PostEvent, AppError> {
         let add_input_dialog = InputBoxBuilder::default()
-            .title(String::from("Add a task"))
+            .title("Add a task")
             .on_submit(move |app, word| {
                 app.task_store
-                    .add_task(Task::from_string(word.trim().to_string()));
+                    .add_task(Task::from_string(word.trim()));
                 if app.mode == Mode::CurrentTasks {
                     app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
                 }
@@ -67,13 +67,13 @@ impl App {
     ) -> PostEvent {
         if self.config.use_fuzzy {
             let fuzzy = FuzzyBoxBuilder::default()
-                .title(title.to_string())
+                .title(title)
                 .options(options)
                 .build();
             PostEvent::push_overlay(fuzzy)
         } else {
             let dialog = DialogBoxBuilder::default()
-                .title(title.to_string())
+                .title(title)
                 .options(options)
                 .build();
             PostEvent::push_overlay(dialog)
@@ -104,7 +104,7 @@ impl App {
                                 let prev_mode = app.mode; // FIXME: why is this here???
                                 app.mode = Mode::Overlay;
                                 let message = MessageBoxBuilder::default()
-                                    .title("An error occured".to_string())
+                                    .title("An error occured")
                                     .message(msg)
                                     .on_close(move |app| {
                                         app.mode = prev_mode;
@@ -128,8 +128,8 @@ impl App {
             return Ok(PostEvent::noop(false));
         }
         let delete_dialog = DialogBoxBuilder::default()
-            .title("Delete selected task".to_string())
-            .add_option(DialogAction::new(String::from("Delete"), move |app| {
+            .title("Delete selected task")
+            .add_option("Delete", move |app| {
                 let selected_index = &mut app.task_list.selected_index;
                 app.task_store.delete_task(*selected_index);
 
@@ -139,10 +139,8 @@ impl App {
                     *selected_index -= 1;
                 }
                 PostEvent::noop(false)
-            }))
-            .add_option(DialogAction::new(String::from("Cancel"), |_| {
-                PostEvent::noop(false)
-            }))
+            })
+            .add_option("Cancel", |_| PostEvent::noop(false))
             .build();
         Ok(PostEvent::push_overlay(delete_dialog))
     }
@@ -177,9 +175,8 @@ impl App {
             // Loops through the tags and adds them to the menu.
             for (i, tag) in self.task_store.tags.iter() {
                 let moved: usize = *i;
-                tag_options.push(DialogAction::styled(
-                    String::from(&tag.name),
-                    Style::default().fg(tag.colour),
+                tag_options.push(DialogAction::new(
+                    tag.name.to_owned().fg(tag.colour),
                     move |app| {
                         if let Some(task) = app.task_store.task_mut(selected_index) {
                             task.flip_tag(moved);
@@ -192,7 +189,7 @@ impl App {
 
         tag_options.push(DialogAction::new(String::from("New tag"), move |_| {
             let tag_menu = InputBoxBuilder::default()
-                .title(String::from("Tag name"))
+                .title("Tag name")
                 .on_submit(move |app, tag_name| {
                     app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
                         let colour = str_to_colour(&tag_colour)?;
@@ -250,12 +247,11 @@ impl App {
             let tag_id: usize = *i;
             let tag_name = tag.name.clone();
             let tag_colour = tag.colour;
-            tag_options.push(DialogAction::styled(
-                String::from(&tag.name),
-                Style::default().fg(tag.colour),
+            tag_options.push(DialogAction::new(
+                tag.name.to_owned().fg(tag.colour),
                 move |_app| {
                     let edit_name = InputBoxBuilder::default()
-                        .title("Edit tag name".to_string())
+                        .title("Edit tag name")
                         .fill(&tag_name)
                         .on_submit(move |app, tag_name| {
                             app.create_select_tag_colour(
@@ -277,9 +273,7 @@ impl App {
                 },
             ));
         }
-        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
-            PostEvent::noop(false)
-        }));
+        tag_options.push(DialogAction::new("Cancel", |_| PostEvent::noop(false)));
 
         self.create_dialog_or_fuzzy("Edit a tag", tag_options)
     }
@@ -293,25 +287,25 @@ impl App {
         T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone,
     {
         let tag_colour = InputBoxBuilder::default()
-            .title(String::from("Tag colour"))
+            .title("Tag colour")
             .fill(&default_string.clone())
             .on_submit(move |app, input| {
                 let result = callback(app, input);
                 let str = default_string.clone();
                 let cloned_callback = callback.clone();
-                if let Err(err) = result {
-                    let message_box = MessageBox::new(
-                        String::from("Error"),
-                        move |app| {
-                            app.create_select_tag_colour(str.clone(), cloned_callback.clone())
-                        },
-                        err.to_string(),
-                        tui::style::Color::Red,
-                        0,
-                    );
-                    PostEvent::push_overlay(message_box)
-                } else {
-                    result.expect("Should use match")
+                match result {
+                    Ok(r) => r,
+                    Err(err) => {
+                        let message_box = MessageBoxBuilder::default()
+                            .title("Error")
+                            .on_close(move |app| {
+                                app.create_select_tag_colour(str.clone(), cloned_callback.clone())
+                            })
+                            .colour(Color::Red)
+                            .message(err.to_string())
+                            .build();
+                        PostEvent::push_overlay(message_box)
+                    }
                 }
             });
 
@@ -324,28 +318,25 @@ impl App {
         for (i, tag) in self.task_store.tags.iter() {
             let tag_id: usize = *i;
             let tag_name = tag.name.clone();
-            tag_options.push(DialogAction::styled(
-                String::from(&tag.name),
-                Style::default().fg(tag.colour),
+            tag_options.push(DialogAction::new(
+                tag.name.to_owned().fg(tag.colour),
                 move |_app| {
                     let tag_dialog = DialogBoxBuilder::default()
                         .title(format!(
                             "Do you want to permenatly delete the tag {}",
                             tag_name
                         ))
-                        .add_option(DialogAction::new(String::from("Delete"), move |app| {
+                        .add_option("Delete".red(), move |app| {
                             app.task_store.delete_tag(tag_id);
                             PostEvent::noop(false)
-                        }))
-                        .add_option(DialogAction::new(String::from("Cancel"), move |_| {
-                            PostEvent::noop(false)
-                        }))
+                        })
+                        .add_option("Cancel", move |_| PostEvent::noop(false))
                         .build();
                     PostEvent::push_overlay(tag_dialog)
                 },
             ));
         }
-        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
+        tag_options.push(DialogAction::new("Cancel", |_| {
             PostEvent::noop(false)
         }));
 
@@ -387,7 +378,7 @@ impl App {
             .on_submit(move |app, word| {
                 if let Some(task) = app.task_store.task_mut(index) {
                     task.sub_tasks
-                        .push(Task::from_string(word.trim().to_string()));
+                        .push(Task::from_string(word.trim()));
                     task.opened = true;
                     app.task_list.selected_index += task.sub_tasks.len();
                 }
@@ -472,7 +463,7 @@ impl App {
             return Ok(PostEvent::noop(true));
         };
         let edit_box = InputBoxBuilder::default()
-            .title(String::from("Edit the selected task"))
+            .title("Edit the selected task")
             .fill(task.title.as_str())
             .on_submit(move |app, word| {
                 let Some(task) = app.task_store.task_mut(index) else {
@@ -485,7 +476,7 @@ impl App {
         Ok(PostEvent::push_overlay(edit_box))
     }
 
-    pub fn flip_progress_key(&mut self) -> Result<PostEvent, AppError> {
+    pub fn flip_selected_progress(&mut self) -> Result<PostEvent, AppError> {
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));
         }

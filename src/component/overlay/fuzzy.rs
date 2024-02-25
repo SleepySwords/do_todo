@@ -215,8 +215,8 @@ impl<'a> FuzzyBoxBuilder<'a> {
         self
     }
 
-    pub fn title(mut self, title: String) -> Self {
-        self.title = title;
+    pub fn title<T: Into<String>>(mut self, title: T) -> Self {
+        self.title = title.into();
         self
     }
 }

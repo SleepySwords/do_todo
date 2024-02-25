@@ -60,6 +60,11 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
             App::open_subtasks,
         ),
         KeyBinding::register_key(
+            config.flip_progress_key,
+            "Flips the selected task progess",
+            App::flip_selected_progress,
+        ),
+        KeyBinding::register_key(
             config.move_subtask_level_up,
             "Make the selected task a subtask of above",
             App::move_subtask_level_up,

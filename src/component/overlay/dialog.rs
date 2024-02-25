@@ -23,23 +23,14 @@ pub struct DialogAction<'a> {
     pub function: Option<DialogCallback>,
 }
 
-impl DialogAction<'_> {
-    pub fn new<F: 'static>(name: String, function: F) -> DialogAction<'static>
+impl<'a> DialogAction<'a> {
+    pub fn new<T, F: 'static>(name: T, function: F) -> DialogAction<'a>
     where
+        T: Into<Line<'a>>,
         F: FnOnce(&mut App) -> PostEvent,
     {
         DialogAction {
-            name: Line::raw(name),
-            function: Some(Box::new(function)),
-        }
-    }
-
-    pub fn styled<F: 'static>(name: String, style: Style, function: F) -> DialogAction<'static>
-    where
-        F: FnOnce(&mut App) -> PostEvent,
-    {
-        DialogAction {
-            name: Line::styled(name, style),
+            name: name.into(),
             function: Some(Box::new(function)),
         }
     }
@@ -177,8 +168,15 @@ impl<'a> DialogBoxBuilder<'a> {
         }
     }
 
-    pub fn add_option(mut self, dialog_action: DialogAction<'a>) -> Self {
-        self.options.push(dialog_action);
+    pub fn add_option<T, F: 'static>(mut self, line: T, function: F) -> Self
+    where
+        F: FnOnce(&mut App) -> PostEvent,
+        T: Into<Line<'a>>,
+    {
+        self.options.push(DialogAction {
+            name: line.into(),
+            function: Some(Box::new(function)),
+        });
         self
     }
 
@@ -187,8 +185,8 @@ impl<'a> DialogBoxBuilder<'a> {
         self
     }
 
-    pub fn title(mut self, title: String) -> Self {
-        self.title = title;
+    pub fn title<T: Into<String>>(mut self, title: T) -> Self {
+        self.title = title.into();
         self
     }
 }

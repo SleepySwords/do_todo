@@ -33,10 +33,10 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn from_string(content: String) -> Self {
+    pub fn from_string<T: Into<String>>(content: T) -> Self {
         Task {
             progress: false,
-            title: content,
+            title: content.into(),
             priority: Priority::None,
             tags: Vec::new(),
             due_date: None,
