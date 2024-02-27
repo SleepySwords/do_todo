@@ -1,4 +1,4 @@
-use chrono::{format::ParseErrorKind, Local, NaiveDate};
+use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
 use itertools::Itertools;
 use tui::style::{Color, Stylize};
@@ -26,15 +26,14 @@ impl App {
         let add_input_dialog = InputBoxBuilder::default()
             .title("Add a task")
             .on_submit(move |app, word| {
-                app.task_store
-                    .add_task(Task::from_string(word.trim()));
+                app.task_store.add_task(Task::from_string(word.trim()));
                 if app.mode == Mode::CurrentTasks {
                     app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
                 }
                 PostEvent::noop(false)
             })
             .build();
-        Ok(PostEvent::push_overlay(add_input_dialog))
+        Ok(PostEvent::push_layer(add_input_dialog))
     }
 
     pub fn go_to_task_list(&mut self) -> Result<PostEvent, AppError> {
@@ -70,13 +69,13 @@ impl App {
                 .title(title)
                 .options(options)
                 .build();
-            PostEvent::push_overlay(fuzzy)
+            PostEvent::push_layer(fuzzy)
         } else {
             let dialog = DialogBoxBuilder::default()
                 .title(title)
                 .options(options)
                 .build();
-            PostEvent::push_overlay(dialog)
+            PostEvent::push_layer(dialog)
         }
     }
 
@@ -111,7 +110,7 @@ impl App {
                                         PostEvent::noop(false)
                                     })
                                     .colour(Color::Red);
-                                PostEvent::push_overlay(message.build())
+                                PostEvent::push_layer(message.build())
                             }
                             _ => PostEvent::noop(false),
                         }
@@ -142,7 +141,7 @@ impl App {
             })
             .add_option("Cancel", |_| PostEvent::noop(false))
             .build();
-        Ok(PostEvent::push_overlay(delete_dialog))
+        Ok(PostEvent::push_layer(delete_dialog))
     }
 
     pub fn complete_selected_task(&mut self) -> Result<PostEvent, AppError> {
@@ -211,7 +210,7 @@ impl App {
                     })
                 })
                 .build();
-            PostEvent::push_overlay(tag_menu)
+            PostEvent::push_layer(tag_menu)
         }));
 
         if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
@@ -269,7 +268,7 @@ impl App {
                                 },
                             )
                         });
-                    PostEvent::push_overlay(edit_name.build())
+                    PostEvent::push_layer(edit_name.build())
                 },
             ));
         }
@@ -304,12 +303,12 @@ impl App {
                             .colour(Color::Red)
                             .message(err.to_string())
                             .build();
-                        PostEvent::push_overlay(message_box)
+                        PostEvent::push_layer(message_box)
                     }
                 }
             });
 
-        PostEvent::push_overlay(tag_colour.build())
+        PostEvent::push_layer(tag_colour.build())
     }
 
     pub fn create_delete_tag_menu(&mut self) -> PostEvent {
@@ -332,13 +331,11 @@ impl App {
                         })
                         .add_option("Cancel", move |_| PostEvent::noop(false))
                         .build();
-                    PostEvent::push_overlay(tag_dialog)
+                    PostEvent::push_layer(tag_dialog)
                 },
             ));
         }
-        tag_options.push(DialogAction::new("Cancel", |_| {
-            PostEvent::noop(false)
-        }));
+        tag_options.push(DialogAction::new("Cancel", |_| PostEvent::noop(false)));
 
         self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
@@ -377,15 +374,14 @@ impl App {
             .title(format!("Add a subtask to {}", task.title))
             .on_submit(move |app, word| {
                 if let Some(task) = app.task_store.task_mut(index) {
-                    task.sub_tasks
-                        .push(Task::from_string(word.trim()));
+                    task.sub_tasks.push(Task::from_string(word.trim()));
                     task.opened = true;
                     app.task_list.selected_index += task.sub_tasks.len();
                 }
                 PostEvent::noop(false)
             })
             .build();
-        Ok(PostEvent::push_overlay(add_input_dialog))
+        Ok(PostEvent::push_layer(add_input_dialog))
     }
 
     pub fn move_task_down(&mut self) -> Result<PostEvent, AppError> {
@@ -473,7 +469,7 @@ impl App {
                 PostEvent::noop(false)
             })
             .build();
-        Ok(PostEvent::push_overlay(edit_box))
+        Ok(PostEvent::push_layer(edit_box))
     }
 
     pub fn flip_selected_progress(&mut self) -> Result<PostEvent, AppError> {
@@ -623,23 +619,32 @@ impl App {
                     }
                     return PostEvent::noop(false);
                 }
-                let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y");
-                let date = if let Err(parser_error) = date {
-                    if ParseErrorKind::TooLong == parser_error.kind() {
-                        NaiveDate::parse_from_str(&date_str, "%d/%m/%Y")
-                    } else {
-                        date
-                    }
-                } else {
-                    date
-                };
+                let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y")
+                    .or_else(|_| NaiveDate::parse_from_str(&date_str, "%d/%m/%Y"))
+                    .or_else(|_| NaiveDate::parse_from_str(&date_str, "%Y-%m-%d"));
+
                 if let Some(task) = app.task_store.task_mut(index) {
-                    // FIXME: error hanlding
-                    task.due_date = Some(date.expect("aef"));
+                    match date {
+                        Ok(due) => {
+                            task.due_date = Some(due);
+                        }
+                        Err(err) => {
+                            let error_message = MessageBoxBuilder::default()
+                                .title("An error occured")
+                                .message(format!("Could not parse the date: {}", err.to_string()))
+                                .colour(Color::Red)
+                                .on_close(|app| {
+                                    app.create_due_date_dialog()
+                                        .expect("Should always be ok...")
+                                })
+                                .build();
+                            return PostEvent::push_layer(error_message);
+                        }
+                    }
                 }
                 PostEvent::noop(false)
             })
             .build();
-        Ok(PostEvent::push_overlay(date_dialog))
+        return Ok(PostEvent::push_layer(date_dialog));
     }
 }

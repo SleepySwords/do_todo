@@ -37,7 +37,7 @@ impl PostEvent {
         }
     }
 
-    pub fn push_overlay<T: Component + 'static>(overlay: T) -> PostEvent {
+    pub fn push_layer<T: Component + 'static>(overlay: T) -> PostEvent {
         PostEvent {
             propegate_further: false,
             action: Action::PushLayer(Box::new(overlay)),
