@@ -57,7 +57,7 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
         KeyBinding::register_key(
             config.flip_progress_key,
             "Open/closes the subtask",
-            App::flip_selected_task_progress,
+            App::flip_selected_progress,
         ),
         KeyBinding::register_key(
             config.flip_subtask_key,

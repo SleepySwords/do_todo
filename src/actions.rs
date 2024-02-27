@@ -11,6 +11,7 @@ use crate::{
             dialog::{DialogAction, DialogBoxBuilder},
             fuzzy::FuzzyBoxBuilder,
             input_box::InputBoxBuilder,
+            vim::VimMode,
         },
     },
     error::AppError,
@@ -32,6 +33,7 @@ impl App {
                 }
                 PostEvent::noop(false)
             })
+            .use_vim(&self.config, VimMode::Insert)
             .build();
         Ok(PostEvent::push_layer(add_input_dialog))
     }
@@ -186,7 +188,7 @@ impl App {
             }
         }
 
-        tag_options.push(DialogAction::new(String::from("New tag"), move |_| {
+        tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
             let tag_menu = InputBoxBuilder::default()
                 .title("Tag name")
                 .on_submit(move |app, tag_name| {
@@ -209,6 +211,7 @@ impl App {
                         Ok(PostEvent::noop(false))
                     })
                 })
+                .use_vim(&app.config, VimMode::Insert)
                 .build();
             PostEvent::push_layer(tag_menu)
         }));
@@ -252,6 +255,7 @@ impl App {
                     let edit_name = InputBoxBuilder::default()
                         .title("Edit tag name")
                         .fill(&tag_name)
+                        .use_vim(&_app.config, VimMode::Normal)
                         .on_submit(move |app, tag_name| {
                             app.create_select_tag_colour(
                                 tag_colour.to_string(),
@@ -287,6 +291,14 @@ impl App {
     {
         let tag_colour = InputBoxBuilder::default()
             .fill(&default_string.clone())
+            .use_vim(
+                &self.config,
+                if default_string.is_empty() {
+                    VimMode::Insert
+                } else {
+                    VimMode::Normal
+                },
+            )
             .on_submit(move |app, input| {
                 let result = callback(app, input);
                 let str = default_string.clone();
@@ -371,6 +383,7 @@ impl App {
         };
         let add_input_dialog = InputBoxBuilder::default()
             .title(format!("Add a subtask to {}", task.title))
+            .use_vim(&self.config, VimMode::Insert)
             .on_submit(move |app, word| {
                 if let Some(task) = app.task_store.task_mut(index) {
                     task.sub_tasks.push(Task::from_string(word.trim()));
@@ -459,6 +472,7 @@ impl App {
         };
         let edit_box = InputBoxBuilder::default()
             .title("Edit the selected task")
+            .use_vim(&self.config, VimMode::Normal)
             .fill(task.title.as_str())
             .on_submit(move |app, word| {
                 let Some(task) = app.task_store.task_mut(index) else {
@@ -467,6 +481,7 @@ impl App {
                 task.title = word.trim().to_string();
                 PostEvent::noop(false)
             })
+            .use_vim(&self.config, VimMode::Normal)
             .build();
         Ok(PostEvent::push_layer(edit_box))
     }
@@ -630,7 +645,7 @@ impl App {
                         Err(err) => {
                             let error_message = MessageBoxBuilder::default()
                                 .title("An error occured")
-                                .message(format!("Could not parse the date: {}", err.to_string()))
+                                .message(format!("Could not parse the date: {}", err))
                                 .colour(Color::Red)
                                 .on_close(|app| {
                                     app.create_due_date_dialog()
@@ -643,7 +658,8 @@ impl App {
                 }
                 PostEvent::noop(false)
             })
+            .use_vim(&self.config, VimMode::Insert)
             .build();
-        return Ok(PostEvent::push_layer(date_dialog));
+        Ok(PostEvent::push_layer(date_dialog))
     }
 }

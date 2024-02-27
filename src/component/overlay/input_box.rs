@@ -9,12 +9,16 @@ use tui_textarea::{CursorMove, Input, TextArea};
 
 use crate::{
     app::{App, Mode},
+    component::overlay::vim::{Operator, VimMode},
+    config::Config,
     framework::{
         component::{Component, Drawer},
         event::{AppEvent, PostEvent},
     },
     utils,
 };
+
+use super::vim::Vim;
 
 type InputBoxCallback = Option<Box<dyn Fn(&mut App, String) -> PostEvent>>;
 
@@ -25,10 +29,9 @@ pub enum InputMode {
 
 pub struct InputBox {
     pub draw_area: Rect,
-    pub prev_mode: Option<Mode>,
     pub input_mode: InputMode,
     title: String,
-    text_area: TextArea<'static>,
+    pub text_area: TextArea<'static>,
     on_submit: InputBoxCallback,
     prev_mode: Option<Mode>,
     full_width: bool,
@@ -58,6 +61,16 @@ impl InputBox {
     pub fn text(&self) -> String {
         self.text_area.lines().join("\n")
     }
+
+    pub fn submit(&mut self) -> PostEvent {
+        if self.text_area.lines().join("\n").is_empty() {
+            return PostEvent::noop(false);
+        }
+
+        // When popping the layer, probably should do the callback, rather than have an
+        // option.
+        PostEvent::pop_layer(Some(AppEvent::Submit))
+    }
 }
 
 impl Component for InputBox {
@@ -75,7 +88,7 @@ impl Component for InputBox {
         drawer.draw_widget(widget, box_area);
     }
 
-    pub fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
+    fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
         if let InputMode::Vim(_) = &self.input_mode {
             return self.input_vim(key_event);
         }
@@ -95,41 +108,28 @@ impl Component for InputBox {
         PostEvent::noop(false)
     }
 
-    pub fn submit(&mut self) -> PostEvent {
-        if self.text_area.lines().join("\n").is_empty() {
-            return PostEvent::noop(false);
+    fn unmount(&mut self, app: &mut App, event: Option<AppEvent>) -> PostEvent {
+        if let Some(mode) = self.prev_mode {
+            app.mode = mode;
         }
 
-        // When popping the layer, probably should do the callback, rather than have an
-        // option.
-        return PostEvent::pop_overlay(|app: &mut App, overlay| {
-            if let Overlay::Input(InputBox {
-                mut callback,
-                prev_mode,
-                text_area,
-                error_callback,
-                ..
-            }) = overlay
-            {
-                if let Some(mode) = prev_mode {
-                    app.mode = mode;
-                }
-
-                return if let Some(callback) = callback.take() {
-                    let err = (callback)(app, text_area.lines().join("\n"));
-                    match err {
-                        Ok(post_event) => post_event,
-                        Err(err) => (error_callback)(app, err, Some(callback)),
-                    }
-                } else {
-                    PostEvent::noop(false)
-                };
-            }
+        if let Some(AppEvent::Submit) = event {
+            return if let Some(callback) = self.on_submit.take() {
+                return (callback)(app, self.text_area.lines().join("\n"));
+            } else {
+                PostEvent::noop(false)
+            };
+        } else {
             PostEvent::noop(false)
-        });
+        }
     }
 
-    pub fn update_layout(&mut self, draw_area: Rect) {
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn update_layout(&mut self, draw_area: Rect) {
         if self.full_width {
             self.draw_area = draw_area
         } else {
