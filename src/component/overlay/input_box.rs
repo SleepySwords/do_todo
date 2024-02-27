@@ -18,8 +18,15 @@ use crate::{
 
 type InputBoxCallback = Option<Box<dyn Fn(&mut App, String) -> PostEvent>>;
 
+pub enum InputMode {
+    Normal,
+    Vim(Vim),
+}
+
 pub struct InputBox {
     pub draw_area: Rect,
+    pub prev_mode: Option<Mode>,
+    pub input_mode: InputMode,
     title: String,
     text_area: TextArea<'static>,
     on_submit: InputBoxCallback,
@@ -28,6 +35,26 @@ pub struct InputBox {
 }
 
 impl InputBox {
+    fn formated_title(&self) -> String {
+        match &self.input_mode {
+            InputMode::Normal => self.title.to_string(),
+            InputMode::Vim(vim) => {
+                let mode = match vim.mode {
+                    VimMode::Normal => "Normal",
+                    VimMode::Insert => "Insert",
+                    VimMode::Visual => "Visual",
+                };
+                let operator = match vim.operator {
+                    Operator::Delete => "- Delete",
+                    Operator::Change => "- Change",
+                    Operator::Yank => "- Yank",
+                    Operator::None => "",
+                };
+                format!("{} - {} {}", self.title, mode, operator)
+            }
+        }
+    }
+
     pub fn text(&self) -> String {
         self.text_area.lines().join("\n")
     }
@@ -40,7 +67,7 @@ impl Component for InputBox {
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.config.selected_border_colour))
             .border_type(app.config.border_type)
-            .title(self.title.as_ref());
+            .title(self.formated_title());
         let box_area = boxes.inner(self.draw_area);
 
         drawer.draw_widget(Clear, self.draw_area);
@@ -48,13 +75,14 @@ impl Component for InputBox {
         drawer.draw_widget(widget, box_area);
     }
 
-    fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
+    pub fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {
+        if let InputMode::Vim(_) = &self.input_mode {
+            return self.input_vim(key_event);
+        }
+
         match key_event.code {
             KeyCode::Enter => {
-                if self.text_area.lines().join("\n").is_empty() {
-                    return PostEvent::noop(false);
-                }
-                return PostEvent::pop_layer(Some(AppEvent::Submit));
+                return self.submit();
             }
             KeyCode::Tab => {
                 self.text_area.insert_newline();
@@ -67,28 +95,41 @@ impl Component for InputBox {
         PostEvent::noop(false)
     }
 
-    fn mount(&mut self, app: &mut App) {
-        self.prev_mode = Some(app.mode);
-        app.mode = Mode::Overlay;
-    }
-
-    fn unmount(&mut self, app: &mut App, event: Option<AppEvent>) -> PostEvent {
-        if let Some(mode) = self.prev_mode {
-            app.mode = mode;
+    pub fn submit(&mut self) -> PostEvent {
+        if self.text_area.lines().join("\n").is_empty() {
+            return PostEvent::noop(false);
         }
-        match event {
-            Some(AppEvent::Submit) => {
-                if let Some(callback) = &self.on_submit {
-                    return (callback)(app, self.text_area.lines().join("\n"));
+
+        // When popping the layer, probably should do the callback, rather than have an
+        // option.
+        return PostEvent::pop_overlay(|app: &mut App, overlay| {
+            if let Overlay::Input(InputBox {
+                mut callback,
+                prev_mode,
+                text_area,
+                error_callback,
+                ..
+            }) = overlay
+            {
+                if let Some(mode) = prev_mode {
+                    app.mode = mode;
                 }
+
+                return if let Some(callback) = callback.take() {
+                    let err = (callback)(app, text_area.lines().join("\n"));
+                    match err {
+                        Ok(post_event) => post_event,
+                        Err(err) => (error_callback)(app, err, Some(callback)),
+                    }
+                } else {
+                    PostEvent::noop(false)
+                };
             }
-            Some(AppEvent::Cancel) => {}
-            _ => {}
-        }
-        PostEvent::noop(false)
+            PostEvent::noop(false)
+        });
     }
 
-    fn update_layout(&mut self, draw_area: Rect) {
+    pub fn update_layout(&mut self, draw_area: Rect) {
         if self.full_width {
             self.draw_area = draw_area
         } else {
@@ -132,6 +173,7 @@ impl Component for InputBox {
 
 pub struct InputBoxBuilder {
     title: String,
+    input_mode: InputMode,
     text_area: TextArea<'static>,
     on_submit: InputBoxCallback,
     draw_area: Rect,
@@ -142,6 +184,7 @@ impl Default for InputBoxBuilder {
     fn default() -> Self {
         InputBoxBuilder {
             title: String::default(),
+            input_mode: InputMode::Normal,
             text_area: TextArea::default(),
             on_submit: Some(Box::new(|_app, _task| PostEvent::noop(false))),
             draw_area: Rect::default(),
@@ -154,6 +197,7 @@ impl InputBoxBuilder {
     pub fn build(self) -> InputBox {
         InputBox {
             title: self.title,
+            input_mode: self.input_mode,
             text_area: self.text_area,
             on_submit: self.on_submit,
             draw_area: self.draw_area,
@@ -189,6 +233,20 @@ impl InputBoxBuilder {
         T: Fn(&mut App, String) -> PostEvent,
     {
         self.on_submit = Some(Box::new(callback));
+        self
+    }
+
+    /// Pass in None to disable vim, or pass in Some with the starting mode
+    pub fn use_vim(mut self, config: &Config, default_mode: VimMode) -> Self {
+        if config.vim_mode {
+            self.input_mode = InputMode::Vim(Vim {
+                mode: default_mode,
+                operator: Operator::None,
+                pending: None,
+            })
+        } else {
+            self.input_mode = InputMode::Normal
+        }
         self
     }
 }

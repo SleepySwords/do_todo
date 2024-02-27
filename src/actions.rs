@@ -22,7 +22,7 @@ use crate::{
 
 // Universal functions
 impl App {
-    pub fn create_add_task_dialog(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_add_task_menu(&mut self) -> Result<PostEvent, AppError> {
         let add_input_dialog = InputBoxBuilder::default()
             .title("Add a task")
             .on_submit(move |app, word| {
@@ -286,7 +286,6 @@ impl App {
         T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone,
     {
         let tag_colour = InputBoxBuilder::default()
-            .title("Tag colour")
             .fill(&default_string.clone())
             .on_submit(move |app, input| {
                 let result = callback(app, input);
@@ -340,7 +339,7 @@ impl App {
         self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
 
-    pub fn change_priority(&mut self) -> Result<PostEvent, AppError> {
+    pub fn cycle_priority(&mut self) -> Result<PostEvent, AppError> {
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));
         }
@@ -365,7 +364,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn create_add_subtask_dialog(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_add_subtask_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let Some(task) = self.task_store.task_mut(index) else {
             return Ok(PostEvent::noop(false));
@@ -384,7 +383,7 @@ impl App {
         Ok(PostEvent::push_layer(add_input_dialog))
     }
 
-    pub fn move_task_down(&mut self) -> Result<PostEvent, AppError> {
+    pub fn move_selected_task_down(&mut self) -> Result<PostEvent, AppError> {
         let autosort = self.task_store.auto_sort;
 
         let Some(FindParentResult {
@@ -416,7 +415,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn move_task_up(&mut self) -> Result<PostEvent, AppError> {
+    pub fn move_selected_task_up(&mut self) -> Result<PostEvent, AppError> {
         let auto_sort = self.task_store.auto_sort;
 
         let Some(FindParentResult {
@@ -453,7 +452,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn create_edit_selected_task_dialog(&mut self) -> Result<PostEvent, AppError> {
+    pub fn create_edit_selected_task_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let Some(task) = self.task_store.task(index) else {
             return Ok(PostEvent::noop(true));
@@ -483,7 +482,7 @@ impl App {
         Ok(PostEvent::noop(false))
     }
 
-    pub fn open_subtasks(&mut self) -> Result<PostEvent, AppError> {
+    pub fn flip_subtasks(&mut self) -> Result<PostEvent, AppError> {
         let selected_index = &mut self.task_list.selected_index;
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));
