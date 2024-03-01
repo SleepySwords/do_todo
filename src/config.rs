@@ -122,8 +122,8 @@ impl Default for Config {
             border_type: BorderType::Plain,
             selected_cursor: String::from(" > "),
             nested_padding: String::from(" │  "),
-            closed_subtask: String::from(" >  "),
-            open_subtask: String::from(" v  "),
+            closed_subtask: String::from(" ▸  "),
+            open_subtask: String::from(" ▾  "),
             debug: false,
         }
     }
@@ -158,6 +158,8 @@ impl Config {
 }
 
 pub mod color_parser {
+    use std::str::FromStr;
+
     use serde::{Deserialize, Deserializer, Serializer};
     use tui::style::Color;
 
@@ -172,8 +174,28 @@ pub mod color_parser {
     where
         D: Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        s.parse::<Color>().map_err(serde::de::Error::custom)
+        #[derive(serde::Deserialize)]
+        enum ColorWrapper {
+            Rgb(u8, u8, u8),
+            Indexed(u8),
+        }
+
+        #[derive(serde::Deserialize)]
+        #[serde(untagged)]
+        enum MultipleType {
+            String(String),
+            ColorWrapper(ColorWrapper),
+        }
+
+        let multi_type = MultipleType::deserialize(deserializer)
+            .map_err(|_| serde::de::Error::custom("Failed to parse Colors"))?;
+        match multi_type {
+            MultipleType::String(s) => FromStr::from_str(&s).map_err(serde::de::Error::custom),
+            MultipleType::ColorWrapper(color_wrapper) => match color_wrapper {
+                ColorWrapper::Rgb(r, g, b) => Ok(Color::Rgb(r, g, b)),
+                ColorWrapper::Indexed(index) => Ok(Color::Indexed(index)),
+            },
+        }
     }
 }
 

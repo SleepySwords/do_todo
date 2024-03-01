@@ -21,8 +21,6 @@ pub struct MainScreen {
 
 impl MainScreen {
     pub fn new() -> MainScreen {
-        // The use of a RefCell means that we have to be more carefull in where we borrow this
-        // variable. Ie: No storing borrowed references.
         MainScreen {
             task_list: TaskList::new(),
             completed_list: CompletedList::new(),

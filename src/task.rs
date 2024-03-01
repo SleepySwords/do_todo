@@ -17,8 +17,8 @@ pub struct Tag {
     pub colour: Color,
 }
 
-#[derive(Clone, PartialEq, Default, Deserialize, Serialize)]
 #[skip_serializing_none]
+#[derive(Clone, PartialEq, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Task {
     pub progress: bool,
