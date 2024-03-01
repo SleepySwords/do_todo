@@ -139,11 +139,6 @@ impl MessageBoxBuilder {
         self
     }
 
-    pub fn message_list(mut self, message: Vec<String>) -> Self {
-        self.message = message;
-        self
-    }
-
     pub fn message(mut self, message: String) -> Self {
         self.message = message
             .split('\n')

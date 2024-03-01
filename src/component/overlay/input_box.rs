@@ -50,7 +50,7 @@ impl InputBox {
                 let operator = match vim.operator {
                     Operator::Delete => "- Delete",
                     Operator::Change => "- Change",
-                    Operator::Yank => "- Yank",
+                    // Operator::Yank => "- Yank",
                     Operator::None => "",
                 };
                 format!("{} - {} {}", self.title, mode, operator)

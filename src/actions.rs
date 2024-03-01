@@ -291,6 +291,7 @@ impl App {
     {
         let tag_colour = InputBoxBuilder::default()
             .fill(&default_string.clone())
+            .title("Select a colour")
             .use_vim(
                 &self.config,
                 if default_string.is_empty() {
@@ -336,7 +337,7 @@ impl App {
                             "Do you want to permenatly delete the tag {}",
                             tag_name
                         ))
-                        .add_option("Delete".red(), move |app| {
+                        .add_option("Delete", move |app| {
                             app.task_store.delete_tag(tag_id);
                             PostEvent::noop(false)
                         })

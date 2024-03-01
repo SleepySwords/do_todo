@@ -15,7 +15,7 @@ pub enum VimMode {
 pub enum Operator {
     Delete,
     Change,
-    Yank,
+    // Yank,
     None,
 }
 
