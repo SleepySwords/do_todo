@@ -8,7 +8,10 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Component, PostEvent},
+    framework::{
+        component::{Component, Drawer},
+        event::PostEvent,
+    },
     task::Task,
     utils::{self, handle_mouse_movement_app},
 };
@@ -98,6 +101,14 @@ impl TaskList {
             spans.push(tag_label);
         }
 
+        if let Some(due_date) = task.due_date {
+            let due_label = Span::styled(
+                due_date.format(" [%-d %b %C%y]").to_string(),
+                config.date_colour(due_date),
+            );
+            spans.push(due_label);
+        }
+
         *task_index += 1;
 
         if task.opened {
@@ -118,7 +129,7 @@ impl TaskList {
 }
 
 impl Component for TaskList {
-    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         let mut current_index = 0;
         let tasks: Vec<ListItem> = app
             .task_store

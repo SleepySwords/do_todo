@@ -4,7 +4,7 @@ use crossterm::event::KeyCode;
 use tui::style::Color;
 
 use crate::{
-    app::ScreenManager,
+    framework::screen_manager::ScreenManager,
     task::{Tag, Task, TaskStore},
     utils::test::{input_char, input_code, setup},
 };

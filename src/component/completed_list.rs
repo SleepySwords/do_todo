@@ -7,7 +7,10 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::{Component, PostEvent},
+    framework::{
+        component::{Component, Drawer},
+        event::PostEvent,
+    },
     task::Task,
     utils,
 };
@@ -52,7 +55,7 @@ impl CompletedList {
 }
 
 impl Component for CompletedList {
-    fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         let theme = &app.config;
 
         let selected_index = app.completed_list.selected_index;

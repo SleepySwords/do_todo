@@ -4,46 +4,9 @@ use tui::{
     Frame,
 };
 
-use crate::{app::App, component::overlay::Overlay};
+use crate::app::App;
 
-type PopOverlayCallback = dyn FnOnce(&mut App, Overlay) -> PostEvent;
-
-pub enum Action {
-    PopOverlay(Box<PopOverlayCallback>),
-    PushLayer(Overlay<'static>),
-    Noop,
-}
-
-pub struct PostEvent {
-    pub propegate_further: bool,
-    pub action: Action,
-}
-
-impl PostEvent {
-    pub fn noop(propagate_further: bool) -> PostEvent {
-        PostEvent {
-            propegate_further: propagate_further,
-            action: Action::Noop,
-        }
-    }
-
-    pub fn pop_overlay<F: 'static>(function: F) -> PostEvent
-    where
-        F: FnOnce(&mut App, Overlay) -> PostEvent,
-    {
-        PostEvent {
-            propegate_further: false,
-            action: Action::PopOverlay(Box::new(function)),
-        }
-    }
-
-    pub fn push_overlay(overlay: Overlay<'static>) -> PostEvent {
-        PostEvent {
-            propegate_further: false,
-            action: Action::PushLayer(overlay),
-        }
-    }
-}
+use super::event::{AppEvent, PostEvent};
 
 /// A component that is able to be drawn on the screen.
 pub trait Component {
@@ -51,10 +14,7 @@ pub trait Component {
     fn draw(&self, app: &App, drawer: &mut Drawer);
 
     fn key_event(&mut self, _app: &mut App, _key_event: crossterm::event::KeyEvent) -> PostEvent {
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        }
+        PostEvent::noop(true)
     }
 
     fn mouse_event(
@@ -62,17 +22,20 @@ pub trait Component {
         _app: &mut App,
         _mouse_event: crossterm::event::MouseEvent,
     ) -> PostEvent {
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        }
+        PostEvent::noop(true)
     }
 
     fn update_layout(&mut self, draw_area: Rect);
+
+    fn mount(&mut self, _app: &mut App) {}
+
+    /// This is called before the pop_overlay callback.
+    fn unmount(&mut self, _app: &mut App, _event: Option<AppEvent>) -> PostEvent {
+        PostEvent::noop(false)
+    }
 }
 
-// How does this even work, mind blown, wait does it give back ownership when it's done, if so
-// that's just really fucking cool.
+// This abstraction is kind off not needed...
 pub struct Drawer<'a, 'b> {
     frame: &'a mut Frame<'b>,
 }

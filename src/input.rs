@@ -1,13 +1,13 @@
 use crossterm::event::KeyEvent;
 
 use crate::{
-    app::{App, Mode, ScreenManager},
-    component::{completed_list::CompletedList, overlay::Overlay},
+    app::{App, Mode},
+    component::completed_list::CompletedList,
     config::Config,
-    draw::PostEvent,
     error::AppError,
-    key::KeyBinding,
-    utils,
+    framework::key::KeyBinding,
+    framework::{event::PostEvent, screen_manager::ScreenManager},
+    utils, Overlay,
 };
 
 fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
@@ -57,12 +57,17 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
         KeyBinding::register_key(
             config.flip_progress_key,
             "Open/closes the subtask",
-            App::flip_selected_task_progress,
+            App::flip_selected_progress,
         ),
         KeyBinding::register_key(
             config.flip_subtask_key,
             "Open/closes the subtask",
             App::flip_subtasks,
+        ),
+        KeyBinding::register_key(
+            config.flip_progress_key,
+            "Flips the selected task progess",
+            App::flip_selected_progress,
         ),
         KeyBinding::register_key(
             config.move_subtask_level_up,
@@ -73,6 +78,11 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
             config.move_subtask_level_down,
             "Make the selected task not a subtask of the parent",
             App::move_subtask_level_down,
+        ),
+        KeyBinding::register_key(
+            config.add_date,
+            "Adds a date to the selected task",
+            App::create_due_date_dialog,
         ),
     ]
 }

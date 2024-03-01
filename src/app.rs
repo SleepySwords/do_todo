@@ -1,13 +1,12 @@
 use chrono::{Local, NaiveTime};
 
 use crate::{
-    component::status_line::StatusLine,
     component::{
-        completed_list::CompletedListContext, overlay::Overlay, task_list::TaskListContext,
+        completed_list::CompletedListContext, status_line::StatusLine, task_list::TaskListContext,
     },
     config::Config,
-    draw::{Action, PostEvent},
     error::AppError,
+    framework::event::PostEvent,
     task::TaskStore,
 };
 
@@ -26,35 +25,6 @@ pub struct App {
     pub completed_list: CompletedListContext,
 
     should_shutdown: bool,
-}
-
-// Above should be data, this should be map.
-pub struct ScreenManager {
-    pub app: App,
-    pub overlays: Vec<Overlay<'static>>,
-}
-
-impl ScreenManager {
-    pub fn push_layer(&mut self, component: Overlay<'static>) {
-        self.overlays.push(component);
-    }
-
-    pub fn pop_layer(&mut self) -> Option<Overlay<'static>> {
-        self.overlays.pop()
-    }
-
-    pub(crate) fn handle_post_event(&mut self, post_event: PostEvent) {
-        match post_event.action {
-            Action::PopOverlay(fun) => {
-                if let Some(overlay) = self.pop_layer() {
-                    let result = (fun)(&mut self.app, overlay);
-                    self.handle_post_event(result);
-                }
-            }
-            Action::PushLayer(overlay) => self.push_layer(overlay),
-            Action::Noop => {}
-        }
-    }
 }
 
 impl App {

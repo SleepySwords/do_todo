@@ -8,26 +8,27 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::PostEvent,
+    framework::{
+        component::{Component, Drawer},
+        event::{AppEvent, PostEvent},
+    },
     utils::{self, centre_rect},
 };
 
-use super::overlay::Overlay;
-
-type MessageCallback = dyn FnOnce(&mut App) -> PostEvent;
+type MessageCallback = dyn Fn(&mut App) -> PostEvent;
 
 pub struct MessageBox {
     title: String,
-    callback: Option<Box<MessageCallback>>,
+    on_close: Option<Box<MessageCallback>>,
     message: Vec<String>,
     colour: Color,
     selected_index: usize,
-    pub mode_to_restore: Option<Mode>,
+    pub prev_mode: Option<Mode>,
     draw_area: Rect,
 }
 
 impl MessageBox {
-    pub fn new<T: FnOnce(&mut App) -> PostEvent + 'static>(
+    pub fn new<T: Fn(&mut App) -> PostEvent + 'static>(
         title: String,
         callback: T,
         words: String,
@@ -36,46 +37,21 @@ impl MessageBox {
     ) -> MessageBox {
         MessageBox {
             title,
-            callback: Some(Box::new(callback)),
+            on_close: Some(Box::new(callback)),
             message: words
                 .split('\n')
                 .map(|f| f.to_string())
                 .collect::<Vec<String>>(),
             colour,
             selected_index,
-            mode_to_restore: None,
+            prev_mode: None,
             draw_area: Rect::default(),
         }
     }
-
-    pub fn new_by_list<T: Fn(&mut App) -> PostEvent + 'static>(
-        title: String,
-        draw_area: Rect,
-        callback: T,
-        words: Vec<String>,
-        colour: Color,
-        selected_index: usize,
-    ) -> MessageBox {
-        MessageBox {
-            title,
-            callback: Some(Box::new(callback)),
-            message: words,
-            colour,
-            selected_index,
-            mode_to_restore: None,
-            draw_area,
-        }
-    }
-
-    pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.mode_to_restore = Some(app.mode);
-        app.mode = Mode::Overlay;
-        self
-    }
 }
 
-impl MessageBox {
-    pub fn draw(&self, app: &App, drawer: &mut crate::draw::Drawer) {
+impl Component for MessageBox {
+    fn draw(&self, app: &App, drawer: &mut Drawer) {
         let style = Style::default().fg(self.colour);
         let text = self
             .message
@@ -97,43 +73,90 @@ impl MessageBox {
         drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
     }
 
-    pub fn key_event(&mut self, app: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
-        if let Some(mode) = self.mode_to_restore {
-            app.mode = mode;
-        }
-        if let Some(callback) = self.callback.take() {
-            let result = (callback)(app);
-            return PostEvent::pop_overlay(|_, _| result);
-        }
-        PostEvent::pop_overlay(|_, _| PostEvent::noop(false))
+    fn key_event(&mut self, _: &mut App, _: crossterm::event::KeyEvent) -> PostEvent {
+        PostEvent::pop_layer(None)
     }
 
-    pub fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn unmount(&mut self, app: &mut App, _: Option<AppEvent>) -> PostEvent {
+        if let Some(mode) = self.prev_mode {
+            app.mode = mode;
+        }
+        if let Some(callback) = self.on_close.take() {
+            return (callback)(app);
+        }
+        PostEvent::noop(false)
+    }
+
+    fn mouse_event(&mut self, _app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if let MouseEventKind::Down(..) = mouse_event.kind {
             if !utils::inside_rect((mouse_event.row, mouse_event.column), self.draw_area) {
-                return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                    if let Overlay::Message(mut message) = overlay {
-                        if let Some(mode) = message.mode_to_restore {
-                            app.mode = mode;
-                        }
-                        if let Some(callback) = message.callback.take() {
-                            (callback)(app);
-                        }
-                    }
-                    PostEvent::noop(false)
-                });
+                return PostEvent::pop_layer(None);
             }
         }
         PostEvent::noop(false)
     }
 
-    pub fn update_layout(&mut self, draw_area: Rect) {
-        let height = ((self.message.len() + 2) as u16)
-            .min(Constraint::Percentage(70).apply(draw_area.height));
+    fn update_layout(&mut self, draw_area: Rect) {
+        let height = ((self.message.len() + 2) as u16).min((draw_area.height) * 70 / 100);
         self.draw_area = centre_rect(
             Constraint::Percentage(70),
             Constraint::Length(height),
             draw_area,
         );
+    }
+}
+
+#[derive(Default)]
+pub struct MessageBoxBuilder {
+    title: String,
+    on_close: Option<Box<MessageCallback>>,
+    message: Vec<String>,
+    colour: Color,
+    selected_index: usize,
+    draw_area: Rect,
+}
+
+impl MessageBoxBuilder {
+    pub fn build(self) -> MessageBox {
+        MessageBox {
+            title: self.title,
+            on_close: self.on_close,
+            draw_area: self.draw_area,
+            prev_mode: None,
+            colour: self.colour,
+            selected_index: self.selected_index,
+            message: self.message,
+        }
+    }
+
+    pub fn title<T: Into<String>>(mut self, title: T) -> Self {
+        self.title = title.into();
+        self
+    }
+
+    pub fn message(mut self, message: String) -> Self {
+        self.message = message
+            .split('\n')
+            .map(|f| f.to_string())
+            .collect::<Vec<String>>();
+        self
+    }
+
+    pub fn colour(mut self, colour: Color) -> Self {
+        self.colour = colour;
+        self
+    }
+
+    pub fn on_close<T: 'static>(mut self, callback: T) -> Self
+    where
+        T: Fn(&mut App) -> PostEvent,
+    {
+        self.on_close = Some(Box::new(callback));
+        self
     }
 }

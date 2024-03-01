@@ -8,14 +8,16 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
-    draw::PostEvent,
+    framework::{
+        component::{Component, Drawer},
+        event::{AppEvent, PostEvent},
+    },
     utils::{self, handle_mouse_movement},
 };
 
 use super::{
     dialog::DialogAction,
     input_box::{InputBox, InputBoxBuilder},
-    Overlay,
 };
 
 pub struct FuzzyBox<'a> {
@@ -27,14 +29,15 @@ pub struct FuzzyBox<'a> {
     options: Vec<DialogAction<'a>>,
     pub prev_mode: Option<Mode>,
 }
-
 impl FuzzyBox<'_> {
     fn generate_rect(&self, rect: Rect) -> Rect {
         // FIXME: consider using length of options.
         utils::centre_rect(Constraint::Percentage(70), Constraint::Percentage(80), rect)
     }
+}
 
-    pub fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
+impl Component for FuzzyBox<'_> {
+    fn key_event(&mut self, app: &mut App, key_event: KeyEvent) -> PostEvent {
         let code = key_event.code;
         match code {
             _ if app.config.move_down_fuzzy.is_pressed(key_event) => {
@@ -71,38 +74,8 @@ impl FuzzyBox<'_> {
                 }
                 PostEvent::noop(false)
             }
-            KeyCode::Enter => {
-                return PostEvent::pop_overlay(|app, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox {
-                        active,
-                        index,
-                        mut options,
-                        prev_mode,
-                        ..
-                    }) = overlay
-                    {
-                        if let Some(mode) = prev_mode {
-                            app.mode = mode;
-                        }
-                        if let Some(Some(opt)) = active.get(index).map(|&id| options.get_mut(id)) {
-                            if let Some(callback) = opt.function.take() {
-                                return (callback)(app);
-                            }
-                        }
-                    }
-                    PostEvent::noop(false)
-                });
-            }
-            KeyCode::Esc => PostEvent::pop_overlay(|app, overlay| {
-                if let Overlay::Fuzzy(FuzzyBox {
-                    prev_mode: Some(mode),
-                    ..
-                }) = overlay
-                {
-                    app.mode = mode;
-                }
-                PostEvent::noop(false)
-            }),
+            KeyCode::Enter => PostEvent::pop_layer(Some(AppEvent::Submit)),
+            KeyCode::Esc => PostEvent::pop_layer(Some(AppEvent::Cancel)),
             _ => {
                 self.input_box.key_event(app, key_event);
                 let input = self.input_box.text().to_ascii_lowercase();
@@ -124,7 +97,30 @@ impl FuzzyBox<'_> {
         }
     }
 
-    pub fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
+    fn mount(&mut self, app: &mut App) {
+        self.prev_mode = Some(app.mode);
+        app.mode = Mode::Overlay;
+    }
+
+    fn unmount(&mut self, app: &mut App, event: Option<AppEvent>) -> PostEvent {
+        if let Some(prev_mode) = self.prev_mode {
+            app.mode = prev_mode;
+        }
+        if let Some(AppEvent::Submit) = event {
+            if let Some(Some(opt)) = self
+                .active
+                .get(self.index)
+                .map(|&id| self.options.get_mut(id))
+            {
+                if let Some(callback) = opt.function.take() {
+                    return (callback)(app);
+                }
+            }
+        }
+        PostEvent::noop(false)
+    }
+
+    fn draw(&self, app: &crate::app::App, drawer: &mut Drawer) {
         self.input_box.draw(app, drawer);
 
         let mut list = List::new(
@@ -156,7 +152,7 @@ impl FuzzyBox<'_> {
         drawer.draw_stateful_widget(list, &mut list_state, self.list_draw_area);
     }
 
-    pub fn update_layout(&mut self, draw_area: Rect) {
+    fn update_layout(&mut self, draw_area: Rect) {
         self.draw_area = self.generate_rect(draw_area);
         let layout = Layout::default()
             .direction(tui::layout::Direction::Vertical)
@@ -167,7 +163,7 @@ impl FuzzyBox<'_> {
         self.list_draw_area = layout[1];
     }
 
-    pub fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
+    fn mouse_event(&mut self, app: &mut App, mouse_event: MouseEvent) -> PostEvent {
         if utils::inside_rect(
             (mouse_event.row, mouse_event.column),
             self.input_box.draw_area,
@@ -186,16 +182,7 @@ impl FuzzyBox<'_> {
             );
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
-                return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                    if let Overlay::Fuzzy(FuzzyBox {
-                        prev_mode: Some(mode),
-                        ..
-                    }) = overlay
-                    {
-                        app.mode = mode;
-                    }
-                    PostEvent::noop(false)
-                });
+                return PostEvent::pop_layer(Some(AppEvent::Cancel));
             }
             PostEvent::noop(false)
         }
@@ -207,21 +194,20 @@ pub struct FuzzyBoxBuilder<'a> {
     draw_area: Rect,
     title: String,
     options: Vec<DialogAction<'a>>,
-    prev_mode: Option<Mode>,
 }
 
 impl<'a> FuzzyBoxBuilder<'a> {
-    pub fn build(self) -> Overlay<'a> {
+    pub fn build(self) -> FuzzyBox<'a> {
         let active = (0..self.options.len()).collect_vec();
-        Overlay::Fuzzy(FuzzyBox {
+        FuzzyBox {
             draw_area: self.draw_area,
             input_box: InputBoxBuilder::default().title(self.title).build(),
             list_draw_area: Rect::default(),
             index: 0,
             options: self.options,
-            prev_mode: self.prev_mode,
+            prev_mode: None,
             active,
-        })
+        }
     }
 
     pub fn options(mut self, options: Vec<DialogAction<'a>>) -> Self {
@@ -229,14 +215,8 @@ impl<'a> FuzzyBoxBuilder<'a> {
         self
     }
 
-    pub fn save_mode(mut self, app: &mut App) -> Self {
-        self.prev_mode = Some(app.mode);
-        app.mode = Mode::Overlay;
-        self
-    }
-
-    pub fn title(mut self, title: String) -> Self {
-        self.title = title;
+    pub fn title<T: Into<String>>(mut self, title: T) -> Self {
+        self.title = title.into();
         self
     }
 }

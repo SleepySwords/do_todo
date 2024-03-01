@@ -7,7 +7,10 @@ use tui::{
 };
 
 use crate::{
-    draw::{Action, Component, PostEvent},
+    framework::{
+        component::{Component, Drawer},
+        event::PostEvent,
+    },
     utils,
 };
 
@@ -18,7 +21,7 @@ pub struct Logger {
 }
 
 impl Component for Logger {
-    fn draw(&self, app: &crate::app::App, drawer: &mut crate::draw::Drawer) {
+    fn draw(&self, app: &crate::app::App, drawer: &mut Drawer) {
         if self.opened {
             let style = Style::default().fg(Color::Red);
             let text = app
@@ -53,22 +56,13 @@ impl Component for Logger {
         let key_code = key_event.code;
         if self.opened {
             self.opened = false;
-            return PostEvent {
-                propegate_further: true,
-                action: Action::Noop,
-            };
+            return PostEvent::noop(true);
         }
         if key_code == KeyCode::Char('p') {
             self.opened = true;
-            return PostEvent {
-                propegate_further: true,
-                action: Action::Noop,
-            };
+            return PostEvent::noop(false);
         }
-        PostEvent {
-            propegate_further: false,
-            action: Action::Noop,
-        }
+        PostEvent::noop(true)
     }
 
     fn update_layout(&mut self, draw_area: tui::layout::Rect) {

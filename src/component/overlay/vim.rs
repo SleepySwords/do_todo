@@ -1,12 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use tui_textarea::{CursorMove, Input};
 
-use crate::{app::App, draw::PostEvent};
+use crate::framework::event::{AppEvent, PostEvent};
 
-use super::{
-    input_box::{InputBox, InputMode},
-    Overlay,
-};
+use super::input_box::{InputBox, InputMode};
 
 pub enum VimMode {
     Normal,
@@ -18,7 +15,7 @@ pub enum VimMode {
 pub enum Operator {
     Delete,
     Change,
-    Yank,
+    // Yank,
     None,
 }
 
@@ -113,29 +110,11 @@ impl InputBox {
                     if vim.operator != Operator::None {
                         vim.operator = Operator::None;
                     } else {
-                        return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                            if let Overlay::Input(InputBox {
-                                prev_mode: Some(mode),
-                                ..
-                            }) = overlay
-                            {
-                                app.mode = mode;
-                            }
-                            PostEvent::noop(false)
-                        });
+                        return PostEvent::pop_layer(Some(AppEvent::Cancel));
                     }
                 }
                 KeyCode::Char('q') => {
-                    return PostEvent::pop_overlay(|app: &mut App, overlay| {
-                        if let Overlay::Input(InputBox {
-                            prev_mode: Some(mode),
-                            ..
-                        }) = overlay
-                        {
-                            app.mode = mode;
-                        }
-                        PostEvent::noop(false)
-                    })
+                    return PostEvent::pop_layer(Some(AppEvent::Cancel));
                 }
                 KeyCode::Char('c') => {
                     if vim.operator == Operator::Change {

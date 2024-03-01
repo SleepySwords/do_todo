@@ -1,39 +1,41 @@
-use chrono::Local;
+use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
 use itertools::Itertools;
-use tui::style::{Color, Style};
+use tui::style::{Color, Stylize};
 
 use crate::{
     app::{App, Mode},
     component::{
-        message_box::MessageBox,
-        overlay::{dialog::DialogAction, vim::VimMode, Overlay},
-        overlay::{dialog::DialogBoxBuilder, fuzzy::FuzzyBoxBuilder, input_box::InputBoxBuilder},
+        message_box::MessageBoxBuilder,
+        overlay::{
+            dialog::{DialogAction, DialogBoxBuilder},
+            fuzzy::FuzzyBoxBuilder,
+            input_box::InputBoxBuilder,
+            vim::VimMode,
+        },
     },
-    draw::PostEvent,
     error::AppError,
+    framework::event::PostEvent,
     input,
     task::{CompletedTask, FindParentResult, Task, TaskStore},
     utils::{self, str_to_colour},
 };
-//
+
 // Universal functions
 impl App {
     pub fn create_add_task_menu(&mut self) -> Result<PostEvent, AppError> {
         let add_input_dialog = InputBoxBuilder::default()
-            .title(String::from("Add a task"))
-            .callback(move |app, word| {
-                app.task_store
-                    .add_task(Task::from_string(word.trim().to_string()));
+            .title("Add a task")
+            .on_submit(move |app, word| {
+                app.task_store.add_task(Task::from_string(word.trim()));
                 if app.mode == Mode::CurrentTasks {
                     app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
                 }
-                Ok(PostEvent::noop(false))
+                PostEvent::noop(false)
             })
             .use_vim(&self.config, VimMode::Insert)
-            .save_mode(self)
-            .build_overlay();
-        Ok(PostEvent::push_overlay(add_input_dialog))
+            .build();
+        Ok(PostEvent::push_layer(add_input_dialog))
     }
 
     pub fn go_to_task_list(&mut self) -> Result<PostEvent, AppError> {
@@ -66,18 +68,16 @@ impl App {
     ) -> PostEvent {
         if self.config.use_fuzzy {
             let fuzzy = FuzzyBoxBuilder::default()
-                .title(title.to_string())
+                .title(title)
                 .options(options)
-                .save_mode(self)
                 .build();
-            PostEvent::push_overlay(fuzzy)
+            PostEvent::push_layer(fuzzy)
         } else {
             let dialog = DialogBoxBuilder::default()
-                .title(title.to_string())
+                .title(title)
                 .options(options)
-                .save_mode(self)
                 .build();
-            PostEvent::push_overlay(dialog)
+            PostEvent::push_layer(dialog)
         }
     }
 
@@ -102,18 +102,17 @@ impl App {
                         match result {
                             Ok(result) => result,
                             Err(AppError::InvalidState(msg)) => {
-                                let prev_mode = app.mode;
+                                let prev_mode = app.mode; // FIXME: why is this here???
                                 app.mode = Mode::Overlay;
-                                return PostEvent::push_overlay(Overlay::Message(MessageBox::new(
-                                    "An error occured".to_string(),
-                                    move |app| {
+                                let message = MessageBoxBuilder::default()
+                                    .title("An error occured")
+                                    .message(msg)
+                                    .on_close(move |app| {
                                         app.mode = prev_mode;
                                         PostEvent::noop(false)
-                                    },
-                                    msg,
-                                    Color::Red,
-                                    0,
-                                )));
+                                    })
+                                    .colour(Color::Red);
+                                PostEvent::push_layer(message.build())
                             }
                             _ => PostEvent::noop(false),
                         }
@@ -130,8 +129,8 @@ impl App {
             return Ok(PostEvent::noop(false));
         }
         let delete_dialog = DialogBoxBuilder::default()
-            .title("Delete selected task".to_string())
-            .add_option(DialogAction::new(String::from("Delete"), move |app| {
+            .title("Delete selected task")
+            .add_option("Delete", move |app| {
                 let selected_index = &mut app.task_list.selected_index;
                 app.task_store.delete_task(*selected_index);
 
@@ -141,13 +140,10 @@ impl App {
                     *selected_index -= 1;
                 }
                 PostEvent::noop(false)
-            }))
-            .add_option(DialogAction::new(String::from("Cancel"), |_| {
-                PostEvent::noop(false)
-            }))
-            .save_mode(self)
+            })
+            .add_option("Cancel", |_| PostEvent::noop(false))
             .build();
-        Ok(PostEvent::push_overlay(delete_dialog))
+        Ok(PostEvent::push_layer(delete_dialog))
     }
 
     pub fn complete_selected_task(&mut self) -> Result<PostEvent, AppError> {
@@ -180,9 +176,8 @@ impl App {
             // Loops through the tags and adds them to the menu.
             for (i, tag) in self.task_store.tags.iter() {
                 let moved: usize = *i;
-                tag_options.push(DialogAction::styled(
-                    String::from(&tag.name),
-                    Style::default().fg(tag.colour),
+                tag_options.push(DialogAction::new(
+                    tag.name.to_owned().fg(tag.colour),
                     move |app| {
                         if let Some(task) = app.task_store.task_mut(selected_index) {
                             task.flip_tag(moved);
@@ -195,33 +190,30 @@ impl App {
 
         tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
             let tag_menu = InputBoxBuilder::default()
-                .title(String::from("Tag name"))
-                .callback(move |app, tag_name| {
-                    Ok(
-                        app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
-                            let colour = str_to_colour(&tag_colour)?;
+                .title("Tag name")
+                .on_submit(move |app, tag_name| {
+                    app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
+                        let colour = str_to_colour(&tag_colour)?;
 
-                            let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
-                            app.task_store.tags.insert(
-                                tag_id,
-                                crate::task::Tag {
-                                    name: tag_name.clone(),
-                                    colour,
-                                },
-                            );
-                            if app.task_store.find_tasks_draw_size() > selected_index {
-                                if let Some(task) = app.task_store.task_mut(selected_index) {
-                                    task.flip_tag(tag_id);
-                                }
+                        let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
+                        app.task_store.tags.insert(
+                            tag_id,
+                            crate::task::Tag {
+                                name: tag_name.clone(),
+                                colour,
+                            },
+                        );
+                        if app.task_store.find_tasks_draw_size() > selected_index {
+                            if let Some(task) = app.task_store.task_mut(selected_index) {
+                                task.flip_tag(tag_id);
                             }
-                            Ok(PostEvent::noop(false))
-                        }),
-                    )
+                        }
+                        Ok(PostEvent::noop(false))
+                    })
                 })
                 .use_vim(&app.config, VimMode::Insert)
-                .save_mode(app)
-                .build_overlay();
-            PostEvent::push_overlay(tag_menu)
+                .build();
+            PostEvent::push_layer(tag_menu)
         }));
 
         if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
@@ -257,15 +249,15 @@ impl App {
             let tag_id: usize = *i;
             let tag_name = tag.name.clone();
             let tag_colour = tag.colour;
-            tag_options.push(DialogAction::styled(
-                String::from(&tag.name),
-                Style::default().fg(tag.colour),
-                move |app| {
+            tag_options.push(DialogAction::new(
+                tag.name.to_owned().fg(tag.colour),
+                move |_app| {
                     let edit_name = InputBoxBuilder::default()
-                        .title("Edit tag name".to_string())
+                        .title("Edit tag name")
                         .fill(&tag_name)
-                        .callback(move |app, tag_name| {
-                            Ok(app.create_select_tag_colour(
+                        .use_vim(&_app.config, VimMode::Normal)
+                        .on_submit(move |app, tag_name| {
+                            app.create_select_tag_colour(
                                 tag_colour.to_string(),
                                 move |app, tag_colour| {
                                     let colour = utils::str_to_colour(&tag_colour)?;
@@ -278,17 +270,13 @@ impl App {
                                     );
                                     Ok(PostEvent::noop(false))
                                 },
-                            ))
-                        })
-                        .use_vim(&app.config, VimMode::Normal)
-                        .save_mode(app);
-                    PostEvent::push_overlay(edit_name.build_overlay())
+                            )
+                        });
+                    PostEvent::push_layer(edit_name.build())
                 },
             ));
         }
-        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
-            PostEvent::noop(false)
-        }));
+        tag_options.push(DialogAction::new("Cancel", |_| PostEvent::noop(false)));
 
         self.create_dialog_or_fuzzy("Edit a tag", tag_options)
     }
@@ -299,11 +287,11 @@ impl App {
         callback: T,
     ) -> PostEvent
     where
-        T: Fn(&mut App, String) -> Result<PostEvent, AppError>,
+        T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone,
     {
         let tag_colour = InputBoxBuilder::default()
-            .title(String::from("Tag colour"))
-            .fill(&default_string)
+            .fill(&default_string.clone())
+            .title("Select a colour")
             .use_vim(
                 &self.config,
                 if default_string.is_empty() {
@@ -312,27 +300,27 @@ impl App {
                     VimMode::Normal
                 },
             )
-            .callback(callback)
-            .error_callback(move |app, err, callback| {
-                let message_box = MessageBox::new(
-                    String::from("Error"),
-                    move |app| {
-                        if let Some(callback) = callback {
-                            app.create_select_tag_colour(default_string, callback)
-                        } else {
-                            PostEvent::noop(false)
-                        }
-                    },
-                    err.to_string(),
-                    tui::style::Color::Red,
-                    0,
-                )
-                .save_mode(app);
-                return PostEvent::push_overlay(Overlay::Message(message_box));
-            })
-            .save_mode(self);
+            .on_submit(move |app, input| {
+                let result = callback(app, input);
+                let str = default_string.clone();
+                let cloned_callback = callback.clone();
+                match result {
+                    Ok(r) => r,
+                    Err(err) => {
+                        let message_box = MessageBoxBuilder::default()
+                            .title("Error")
+                            .on_close(move |app| {
+                                app.create_select_tag_colour(str.clone(), cloned_callback.clone())
+                            })
+                            .colour(Color::Red)
+                            .message(err.to_string())
+                            .build();
+                        PostEvent::push_layer(message_box)
+                    }
+                }
+            });
 
-        PostEvent::push_overlay(tag_colour.build_overlay())
+        PostEvent::push_layer(tag_colour.build())
     }
 
     pub fn create_delete_tag_menu(&mut self) -> PostEvent {
@@ -341,31 +329,25 @@ impl App {
         for (i, tag) in self.task_store.tags.iter() {
             let tag_id: usize = *i;
             let tag_name = tag.name.clone();
-            tag_options.push(DialogAction::styled(
-                String::from(&tag.name),
-                Style::default().fg(tag.colour),
-                move |app| {
+            tag_options.push(DialogAction::new(
+                tag.name.to_owned().fg(tag.colour),
+                move |_app| {
                     let tag_dialog = DialogBoxBuilder::default()
                         .title(format!(
                             "Do you want to permenatly delete the tag {}",
                             tag_name
                         ))
-                        .add_option(DialogAction::new(String::from("Delete"), move |app| {
+                        .add_option("Delete", move |app| {
                             app.task_store.delete_tag(tag_id);
                             PostEvent::noop(false)
-                        }))
-                        .add_option(DialogAction::new(String::from("Cancel"), move |_| {
-                            PostEvent::noop(false)
-                        }))
-                        .save_mode(app)
+                        })
+                        .add_option("Cancel", move |_| PostEvent::noop(false))
                         .build();
-                    PostEvent::push_overlay(tag_dialog)
+                    PostEvent::push_layer(tag_dialog)
                 },
             ));
         }
-        tag_options.push(DialogAction::new(String::from("Cancel"), |_| {
-            PostEvent::noop(false)
-        }));
+        tag_options.push(DialogAction::new("Cancel", |_| PostEvent::noop(false)));
 
         self.create_dialog_or_fuzzy("Delete a tag", tag_options)
     }
@@ -402,19 +384,17 @@ impl App {
         };
         let add_input_dialog = InputBoxBuilder::default()
             .title(format!("Add a subtask to {}", task.title))
-            .callback(move |app, word| {
+            .use_vim(&self.config, VimMode::Insert)
+            .on_submit(move |app, word| {
                 if let Some(task) = app.task_store.task_mut(index) {
-                    task.sub_tasks
-                        .push(Task::from_string(word.trim().to_string()));
+                    task.sub_tasks.push(Task::from_string(word.trim()));
                     task.opened = true;
                     app.task_list.selected_index += task.sub_tasks.len();
                 }
-                Ok(PostEvent::noop(false))
+                PostEvent::noop(false)
             })
-            .use_vim(&self.config, VimMode::Insert)
-            .save_mode(self)
-            .build_overlay();
-        Ok(PostEvent::push_overlay(add_input_dialog))
+            .build();
+        Ok(PostEvent::push_layer(add_input_dialog))
     }
 
     pub fn move_selected_task_down(&mut self) -> Result<PostEvent, AppError> {
@@ -492,22 +472,22 @@ impl App {
             return Ok(PostEvent::noop(true));
         };
         let edit_box = InputBoxBuilder::default()
-            .title(String::from("Edit the selected task"))
+            .title("Edit the selected task")
+            .use_vim(&self.config, VimMode::Normal)
             .fill(task.title.as_str())
-            .callback(move |app, word| {
+            .on_submit(move |app, word| {
                 let Some(task) = app.task_store.task_mut(index) else {
-                    return Ok(PostEvent::noop(false));
+                    return PostEvent::noop(false);
                 };
                 task.title = word.trim().to_string();
-                Ok(PostEvent::noop(false))
+                PostEvent::noop(false)
             })
             .use_vim(&self.config, VimMode::Normal)
-            .save_mode(self)
-            .build_overlay();
-        Ok(PostEvent::push_overlay(edit_box))
+            .build();
+        Ok(PostEvent::push_layer(edit_box))
     }
 
-    pub fn flip_selected_task_progress(&mut self) -> Result<PostEvent, AppError> {
+    pub fn flip_selected_progress(&mut self) -> Result<PostEvent, AppError> {
         if self.task_store.tasks.is_empty() {
             return Ok(PostEvent::noop(true));
         }
@@ -641,5 +621,46 @@ impl App {
             }
         }
         Ok(PostEvent::noop(false))
+    }
+
+    pub fn create_due_date_dialog(&mut self) -> Result<PostEvent, AppError> {
+        let index = self.task_list.selected_index;
+        let date_dialog = InputBoxBuilder::default()
+            .title("Add date or specify \"none\" to remove".to_string())
+            .on_submit(move |app, date_str| {
+                if date_str.to_lowercase() == "none" {
+                    if let Some(task) = app.task_store.task_mut(index) {
+                        task.due_date = None;
+                    }
+                    return PostEvent::noop(false);
+                }
+                let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y")
+                    .or_else(|_| NaiveDate::parse_from_str(&date_str, "%d/%m/%Y"))
+                    .or_else(|_| NaiveDate::parse_from_str(&date_str, "%Y-%m-%d"));
+
+                if let Some(task) = app.task_store.task_mut(index) {
+                    match date {
+                        Ok(due) => {
+                            task.due_date = Some(due);
+                        }
+                        Err(err) => {
+                            let error_message = MessageBoxBuilder::default()
+                                .title("An error occured")
+                                .message(format!("Could not parse the date: {}", err))
+                                .colour(Color::Red)
+                                .on_close(|app| {
+                                    app.create_due_date_dialog()
+                                        .expect("Should always be ok...")
+                                })
+                                .build();
+                            return PostEvent::push_layer(error_message);
+                        }
+                    }
+                }
+                PostEvent::noop(false)
+            })
+            .use_vim(&self.config, VimMode::Insert)
+            .build();
+        Ok(PostEvent::push_layer(date_dialog))
     }
 }

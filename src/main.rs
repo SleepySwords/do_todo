@@ -3,25 +3,26 @@ mod app;
 mod component;
 mod config;
 mod data_io;
-mod draw;
 mod error;
+mod framework;
 mod input;
-mod key;
-mod logger;
 mod screens;
 mod task;
 mod tests;
 mod utils;
 
-use app::ScreenManager;
-use component::{message_box::MessageBox, overlay::Overlay};
+use component::{logger::Logger, message_box::MessageBox, overlay::Overlay};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use draw::PostEvent;
 use error::AppError;
+use framework::{
+    component::{Component, Drawer},
+    event::PostEvent,
+    screen_manager::ScreenManager,
+};
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Layout},
@@ -35,12 +36,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{
-    app::App,
-    draw::{Component, Drawer},
-    logger::Logger,
-    screens::main_screen::MainScreen,
-};
+use crate::{app::App, screens::main_screen::MainScreen};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (theme, tasks) = data_io::get_data();
@@ -88,7 +84,8 @@ pub fn start_app(
 ) -> io::Result<()> {
     let mut main_screen = MainScreen::new();
 
-    let mut logger = Logger::default();
+    let var_name = Logger::default();
+    let mut logger = var_name;
 
     while !screen_manager.app.should_shutdown() {
         terminal.draw(|f| {
@@ -108,7 +105,7 @@ pub fn start_app(
                 overlay.update_layout(chunk[0])
             }
             for overlay in screen_manager.overlays.iter() {
-                overlay.draw(screen_manager, &mut drawer)
+                overlay.draw(&screen_manager.app, &mut drawer)
             }
 
             screen_manager.app.status_line.update_layout(chunk[1]);
@@ -140,7 +137,7 @@ pub fn start_app(
                             Ok(post_event) => screen_manager.handle_post_event(post_event),
                             Err(AppError::InvalidState(msg)) => {
                                 let prev_mode = screen_manager.app.mode;
-                                screen_manager.push_layer(Overlay::Message(MessageBox::new(
+                                screen_manager.push_layer(MessageBox::new(
                                     "An error occured".to_string(),
                                     move |app| {
                                         app.mode = prev_mode;
@@ -149,7 +146,7 @@ pub fn start_app(
                                     msg,
                                     Color::Red,
                                     0,
-                                )));
+                                ));
                             }
                             _ => {}
                         }

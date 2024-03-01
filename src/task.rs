@@ -1,17 +1,23 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use tui::style::Color;
 
 use std::{cmp, collections::BTreeMap, fmt::Display, vec};
 
-use crate::{app::App, config::Config};
+use crate::{
+    app::App,
+    config::{color_parser, Config},
+};
 
 #[derive(Deserialize, Serialize)]
 pub struct Tag {
     pub name: String,
+    #[serde(with = "color_parser")]
     pub colour: Color,
 }
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Task {
@@ -19,6 +25,7 @@ pub struct Task {
     pub title: String,
     pub priority: Priority,
     pub tags: Vec<usize>,
+    pub due_date: Option<NaiveDate>,
 
     // Ignored if sub_tasks is empty
     pub opened: bool,
@@ -26,12 +33,13 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn from_string(content: String) -> Self {
+    pub fn from_string<T: Into<String>>(content: T) -> Self {
         Task {
             progress: false,
-            title: content,
+            title: content.into(),
             priority: Priority::None,
             tags: Vec::new(),
+            due_date: None,
             opened: true,
             sub_tasks: vec![],
         }
@@ -107,6 +115,7 @@ impl CompletedTask {
                 progress: false,
                 title: content,
                 priority: Priority::None,
+                due_date: None,
                 tags: Vec::new(),
                 opened: true,
                 sub_tasks: vec![],
@@ -186,8 +195,11 @@ pub struct TaskStore {
 }
 
 pub struct FindParentResult<'a> {
+    /// The tasks that contains the parent.
     pub tasks: &'a Vec<Task>,
+    /// If there is a parent, the index of the parent within it's task.
     pub parent_index: Option<usize>,
+    /// The index of the task within the top-level tasks or within the subtask.
     pub task_local_offset: usize,
 }
 
