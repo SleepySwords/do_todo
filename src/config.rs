@@ -25,6 +25,9 @@ pub struct Config {
     #[serde(with = "color_parser")]
     pub low_priority_colour: Color,
 
+    #[serde(with = "color_parser")]
+    pub default_task_colour: Color,
+
     pub use_fuzzy: bool,
     pub vim_mode: bool,
     pub up_keys: [Key; 2],
@@ -79,6 +82,7 @@ impl Default for Config {
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::LightYellow,
             low_priority_colour: Color::Green,
+            default_task_colour: Color::default(),
             use_fuzzy: true,
             vim_mode: false,
             up_keys: [

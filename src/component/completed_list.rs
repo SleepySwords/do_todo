@@ -70,10 +70,10 @@ impl Component for CompletedList {
                     if selected_index == i {
                         theme.selected_task_colour
                     } else {
-                        Color::White
+                        theme.default_task_colour
                     }
                 } else {
-                    Color::White
+                    theme.default_task_colour
                 };
                 let content = Line::from(Span::styled(
                     format!(

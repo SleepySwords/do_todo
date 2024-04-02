@@ -59,7 +59,7 @@ impl TaskList {
             style.fg(if Self::is_task_selected(app, task_index) {
                 config.selected_task_colour
             } else {
-                Color::White
+                config.default_task_colour
             }),
         );
         spans.push(progress);
@@ -90,7 +90,7 @@ impl TaskList {
             style.fg(if Self::is_task_selected(app, task_index) {
                 config.selected_task_colour
             } else {
-                Color::White
+                config.default_task_colour
             }),
         );
         spans.push(content);
