@@ -2,6 +2,7 @@ mod actions;
 mod app;
 mod component;
 mod config;
+mod data;
 mod data_io;
 mod error;
 mod framework;
@@ -10,6 +11,7 @@ mod screens;
 mod task;
 mod tests;
 mod utils;
+mod storage;
 
 use component::{logger::Logger, message_box::MessageBox, overlay::Overlay};
 use crossterm::{
@@ -68,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     let app = screen_manager.app;
-    data_io::save_data(&app.config, &app.task_store);
+    data_io::save_data(&app.config, app.task_store);
 
     if let Err(err) = result {
         eprintln!("{:?}", err);

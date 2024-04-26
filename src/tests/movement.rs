@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use crate::{
     app::App,
@@ -19,7 +19,7 @@ fn test_rollover() {
                 Task::from_string(String::from("based")),
             ],
             completed_tasks: vec![],
-            tags: BTreeMap::new(),
+            tags: HashMap::new(),
             auto_sort: false,
         },
     );
@@ -55,7 +55,7 @@ fn test_shifting_tasks() {
                 Task::from_string(String::from("based")),
             ],
             completed_tasks: vec![],
-            tags: BTreeMap::new(),
+            tags: HashMap::new(),
             auto_sort: false,
         },
     );

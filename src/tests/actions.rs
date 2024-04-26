@@ -1,4 +1,4 @@
-use std::{cmp, collections::BTreeMap};
+use std::{cmp, collections::HashMap};
 
 use chrono::Local;
 use crossterm::event::KeyCode;
@@ -40,7 +40,7 @@ fn test_edit_task() {
     let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from(TEST_TASK_NAME))],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('e', &mut main_app);
@@ -58,7 +58,7 @@ fn test_edit_delete_task() {
     let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from(TEST_TASK_NAME))],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('e', &mut main_app);
@@ -76,7 +76,7 @@ fn test_cancel_edit_task() {
     let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('e', &mut main_app);
@@ -92,7 +92,7 @@ fn test_delete_task() {
     let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('d', &mut main_app);
@@ -105,7 +105,7 @@ fn test_cancel_delete_task() {
     let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('d', &mut main_app);
@@ -122,7 +122,7 @@ fn test_priority() {
             Task::from_string(String::from("oof")),
         ],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('p', &mut main_app);
@@ -154,7 +154,7 @@ fn test_complete_task() {
     let mut main_app = setup(TaskStore {
         tasks: vec![Task::from_string(String::from("meme"))],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('c', &mut main_app);
@@ -170,7 +170,7 @@ fn test_restore_task() {
             String::from("meme"),
             Local::now().naive_local(),
         )],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('2', &mut main_app);
@@ -202,7 +202,7 @@ fn sort() {
             String::from("meme"),
             Local::now().naive_local(),
         )],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('s', &mut main_app);
@@ -238,7 +238,7 @@ fn test_autosort() {
             String::from("meme"),
             Local::now().naive_local(),
         )],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     input_char('S', &mut main_app);

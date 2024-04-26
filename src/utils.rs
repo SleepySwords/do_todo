@@ -99,7 +99,7 @@ pub fn handle_mouse_movement_app(
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> PostEvent {
-    if let Some(index) = app.selected_index(mode) {
+  if let Some(index) = app.selected_index(mode) {
         if max_items == 0 {
             return PostEvent::noop(false);
         }

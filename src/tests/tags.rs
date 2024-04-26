@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use crossterm::event::KeyCode;
 use tui::style::Color;
@@ -37,7 +37,7 @@ fn test_tag_creation() {
             Task::from_string(String::from("oof")),
         ],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
 
@@ -123,7 +123,7 @@ fn test_tag_cancel_and_enter() {
             Task::from_string(String::from("oof")),
         ],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     add_tag(&mut screen_manager, TEST_TAG, "ewfnjaweknf");
@@ -148,7 +148,7 @@ fn test_tag_removal() {
             Task::from_string(String::from("oof")),
         ],
         completed_tasks: vec![],
-        tags: BTreeMap::new(),
+        tags: HashMap::new(),
         auto_sort: false,
     });
     add_tag(&mut screen_manager, TEST_TAG, "1");
@@ -166,9 +166,9 @@ fn test_tag_removal() {
 
 #[test]
 fn test_flip_tag() {
-    let mut tags = BTreeMap::new();
+    let mut tags = HashMap::new();
     tags.insert(
-        0,
+        "0".to_string(),
         Tag {
             name: String::from("test"),
             colour: Color::Red,

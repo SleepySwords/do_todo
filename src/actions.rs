@@ -175,7 +175,7 @@ impl App {
         if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
             // Loops through the tags and adds them to the menu.
             for (i, tag) in self.task_store.tags.iter() {
-                let moved: usize = *i;
+                let moved = i.to_string();
                 tag_options.push(DialogAction::new(
                     tag.name.to_owned().fg(tag.colour),
                     move |app| {
@@ -195,9 +195,9 @@ impl App {
                     app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
                         let colour = str_to_colour(&tag_colour)?;
 
-                        let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
+                        let tag_id = app.task_store.tags.keys().len().to_string();
                         app.task_store.tags.insert(
-                            tag_id,
+                            tag_id.clone(),
                             crate::task::Tag {
                                 name: tag_name.clone(),
                                 colour,
@@ -246,7 +246,7 @@ impl App {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         for (i, tag) in self.task_store.tags.iter() {
-            let tag_id: usize = *i;
+            let tag_id = i.to_string();
             let tag_name = tag.name.clone();
             let tag_colour = tag.colour;
             tag_options.push(DialogAction::new(
@@ -257,12 +257,13 @@ impl App {
                         .fill(&tag_name)
                         .use_vim(&_app.config, VimMode::Normal)
                         .on_submit(move |app, tag_name| {
+                            let tag_id = tag_id.to_string();
                             app.create_select_tag_colour(
                                 tag_colour.to_string(),
                                 move |app, tag_colour| {
                                     let colour = utils::str_to_colour(&tag_colour)?;
                                     app.task_store.tags.insert(
-                                        tag_id,
+                                        tag_id.to_string(),
                                         crate::task::Tag {
                                             name: tag_name.clone(),
                                             colour,
@@ -327,7 +328,7 @@ impl App {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         for (i, tag) in self.task_store.tags.iter() {
-            let tag_id: usize = *i;
+            let tag_id = i.to_string();
             let tag_name = tag.name.clone();
             tag_options.push(DialogAction::new(
                 tag.name.to_owned().fg(tag.colour),
@@ -338,7 +339,7 @@ impl App {
                             tag_name
                         ))
                         .add_option("Delete", move |app| {
-                            app.task_store.delete_tag(tag_id);
+                            app.task_store.delete_tag(&tag_id);
                             PostEvent::noop(false)
                         })
                         .add_option("Cancel", move |_| PostEvent::noop(false))

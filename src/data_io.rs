@@ -10,7 +10,12 @@ use std::{
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
-use crate::{config::Config, error::AppError, task::TaskStore};
+use crate::{
+    config::Config,
+    error::AppError,
+    storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
+    task::TaskStore,
+};
 
 const DIR: &str = "dotodo";
 
@@ -97,7 +102,11 @@ pub fn get_data() -> (Config, TaskStore) {
         DATA_FILE,
         // NOTE: This doesn't work:
         // serde_json::from_str::<TaskStore>,
-        |x| serde_json::from_str::<TaskStore>(x),
+        |x| {
+            serde_json::from_str::<JSONVersion>(x)
+                .map(Into::<TaskStore>::into)
+                .or_else(|_| serde_json::from_str::<LegacyTaskStore>(x).map(|x| x.into()))
+        },
         "task data",
     );
 
@@ -140,11 +149,12 @@ where
     }
 }
 
-pub fn save_data(config: &Config, task_store: &TaskStore) {
+pub fn save_data(config: &Config, task_store: TaskStore) {
+    let json = JSONVersion::V0(task_store);
     save_to_file(
         dirs::data_local_dir(),
         DATA_FILE,
-        || serde_json::to_string_pretty(task_store),
+        || serde_json::to_string_pretty(&json),
         "data",
     );
 
