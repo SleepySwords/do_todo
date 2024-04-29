@@ -1,12 +1,14 @@
 use crate::task::{FindParentResult, Task};
 
+pub type TaskID = String;
+
 /// Handles how tasks are stored
-trait DataTaskStore {
+pub trait DataTaskStore {
     /// Returns this mutable task with this id.
-    fn task_mut(&mut self, id: String) -> Option<&mut dyn Task2>;
+    fn task_mut(&mut self, id: String) -> Option<&mut Task>;
 
     /// Returns the task with this id.
-    fn task(&self, id: String) -> Option<&dyn Task2>;
+    fn task(&self, id: String) -> Option<&Task>;
 
     /// Deletes the task with this id.
     fn delete_task(&mut self, id: String) -> Option<Task>;
@@ -18,7 +20,7 @@ trait DataTaskStore {
     /// Otherwise returns the global tasks.
     ///
     /// * `id` - The id to get, if None, will return global tasks
-    fn subtasks(&mut self, id: Option<String>) -> Option<&mut Vec<Task>>;
+    fn subtasks(&mut self, id: Option<String>) -> Option<&mut Vec<TaskID>>;
 
     /// Finds the tasks global positon
     fn task_position(&self, id: String) -> Option<usize>;
