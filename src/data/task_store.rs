@@ -1,14 +1,20 @@
-use crate::task::{FindParentResult, Task};
+use crate::task::{CompletedTask, FindParentResult, Task};
 
 pub type TaskID = String;
 
 /// Handles how tasks are stored
 pub trait DataTaskStore {
     /// Returns this mutable task with this id.
-    fn task_mut(&mut self, id: String) -> Option<&mut Task>;
+    fn task_mut(&mut self, id: &TaskID) -> Option<&mut Task>;
 
     /// Returns the task with this id.
-    fn task(&self, id: String) -> Option<&Task>;
+    fn task(&self, id: &TaskID) -> Option<&Task>;
+
+    /// Returns this mutable completed task with this id.
+    fn completed_task_mut(&mut self, id: &TaskID) -> Option<&mut CompletedTask>;
+
+    /// Returns the completed task with this id.
+    fn completed_task(&self, id: &TaskID) -> Option<&CompletedTask>;
 
     /// Deletes the task with this id.
     fn delete_task(&mut self, id: String) -> Option<Task>;
@@ -20,20 +26,21 @@ pub trait DataTaskStore {
     /// Otherwise returns the global tasks.
     ///
     /// * `id` - The id to get, if None, will return global tasks
-    fn subtasks(&mut self, id: Option<String>) -> Option<&mut Vec<TaskID>>;
+    fn subtasks(&mut self, id: Option<&TaskID>) -> Option<&mut Vec<TaskID>>;
 
-    /// Finds the tasks global positon
-    fn task_position(&self, id: String) -> Option<usize>;
+    /// Finds the task at the global positon
+    fn global_pos_to_task(&self, pos: usize) -> Option<TaskID>;
 
-    fn delete_tag(&mut self, tag_id: usize);
+    fn delete_tag(&mut self, tag_id: String);
 
+    /// Sorts all the task based on priority
     fn sort(&mut self);
 
     /// Adds a task to this data store
     ///
     /// * `task` - The task to be added.
     /// * `parent` - The parent of the task to be added.
-    fn add_task(&mut self, task: Task, parent: Option<String>);
+    fn add_task(&mut self, task: Task, parent: Option<TaskID>);
 
     /// Fetches data from the data source
     fn refresh(&mut self);
@@ -43,10 +50,5 @@ pub trait DataTaskStore {
     /// * `id` - The id of the task to be moved
     /// * `parent` - If specified, where the task should be moved to
     /// * `order` - What place should the task be placed within the order.
-    fn move_task(&mut self, id: String, parent: Option<String>, order: usize);
-}
-
-/// Interface for a task.
-trait Task2 {
-    // Maybe parent?
+    fn move_task(&mut self, id: TaskID, parent: Option<TaskID>, order: usize);
 }
