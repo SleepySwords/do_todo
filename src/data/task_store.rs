@@ -36,7 +36,7 @@ pub trait DataTaskStore {
     /// Otherwise returns the global tasks.
     ///
     /// * `id` - The id to get, if None, will return global tasks
-    fn subtasks(&self, id: Option<&TaskID>) -> Option<&Vec<TaskID>>;
+    fn subtasks(&self, id: &TaskID) -> Option<&Vec<TaskID>>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.

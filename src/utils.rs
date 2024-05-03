@@ -62,34 +62,32 @@ pub fn handle_key_movement(
     index: &mut usize,
     max_items: usize,
 ) -> PostEvent {
-    match () {
-        _ if theme.move_top.is_pressed(key_event) => {
-            *index = 0;
-            PostEvent::noop(false)
-        }
-        _ if theme.move_bottom.is_pressed(key_event) => {
-            *index = max_items - 1;
-            PostEvent::noop(false)
-        }
-        _ if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) => {
-            if max_items == 0 {
-                return PostEvent::noop(true);
-            }
-            *index = (*index + 1).rem_euclid(max_items);
-            PostEvent::noop(false)
-        }
-        _ if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) => {
-            if max_items == 0 {
-                return PostEvent::noop(true);
-            }
-            match index.checked_sub(1) {
-                Some(val) => *index = val,
-                None => *index = max_items - 1,
-            }
-            PostEvent::noop(false)
-        }
-        _ => PostEvent::noop(true),
+    if theme.move_top.is_pressed(key_event) {
+        *index = 0;
+        return PostEvent::noop(false);
     }
+    if theme.move_bottom.is_pressed(key_event) {
+        *index = max_items - 1;
+        return PostEvent::noop(false);
+    }
+    if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) {
+        if max_items == 0 {
+            return PostEvent::noop(true);
+        }
+        *index = (*index + 1).rem_euclid(max_items);
+        return PostEvent::noop(false);
+    }
+    if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) {
+        if max_items == 0 {
+            return PostEvent::noop(true);
+        }
+        match index.checked_sub(1) {
+            Some(val) => *index = val,
+            None => *index = max_items - 1,
+        }
+        return PostEvent::noop(false);
+    }
+    return PostEvent::noop(true);
 }
 
 pub fn handle_mouse_movement_app(
@@ -99,7 +97,7 @@ pub fn handle_mouse_movement_app(
     max_items: usize,
     MouseEvent { row, kind, .. }: crossterm::event::MouseEvent,
 ) -> PostEvent {
-  if let Some(index) = app.selected_index(mode) {
+    if let Some(index) = app.selected_index(mode) {
         if max_items == 0 {
             return PostEvent::noop(false);
         }

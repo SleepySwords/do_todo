@@ -115,7 +115,7 @@ impl From<LegacyTaskStore> for JsonDataStore {
                 .map(|(key, value)| (key.to_string(), value))
                 .collect(),
             tasks,
-            completeed_tasks: completed_tasks,
+            completed_tasks,
             subtasks,
             root: roots,
             completed_root,

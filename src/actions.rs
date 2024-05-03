@@ -157,9 +157,6 @@ impl App {
         let local = Local::now();
         let time_completed = local.naive_local();
         if let Some(completed_task) = self.task_store.global_pos_to_task(*selected_index) {
-            let Some(task) = self.task_store.delete_task(&completed_task) else {
-                return Ok(PostEvent::noop(true));
-            };
             self.task_store
                 .complete_task(completed_task, time_completed);
             if *selected_index == self.task_store.find_tasks_draw_size()

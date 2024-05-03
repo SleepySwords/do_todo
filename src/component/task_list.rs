@@ -40,7 +40,7 @@ impl TaskList {
 
     fn draw_task<'a>(
         app: &'a App,
-        task_id: &'a String,
+        task_id: &String,
         nested_level: usize,
         task_index: &mut usize,
     ) -> Vec<Line<'a>> {
@@ -71,13 +71,9 @@ impl TaskList {
         let padding = config.nested_padding.repeat(nested_level);
         spans.push(Span::styled(padding, Style::default().fg(Color::DarkGray)));
 
-        if task.sub_tasks.is_empty() {
-            let priority = Span::styled(
-                task.priority.short_hand(),
-                style.fg(task.priority.colour(config)),
-            );
-            spans.push(priority);
-        } else {
+        let subtasks = app.task_store.subtasks(task_id);
+
+        if subtasks.is_some_and(|x| !x.is_empty()) {
             let sub_tasks = Span::styled(
                 if task.opened {
                     &config.open_subtask
@@ -87,6 +83,12 @@ impl TaskList {
                 style.fg(task.priority.colour(config)),
             );
             spans.push(sub_tasks);
+        } else {
+            let priority = Span::styled(
+                task.priority.short_hand(),
+                style.fg(task.priority.colour(config)),
+            );
+            spans.push(priority);
         }
 
         let content = Span::styled(
@@ -116,21 +118,20 @@ impl TaskList {
         *task_index += 1;
 
         if task.opened {
-            let Some(subtasks) = app.task_store.subtasks(Some(task_id)) else {
-                return vec![Line::from(spans)];
-            };
-            let mut drawn_tasks = subtasks
-                .iter()
-                .flat_map(|sub_task| {
-                    let drawn_task = Self::draw_task(app, sub_task, nested_level + 1, task_index);
-                    drawn_task
-                })
-                .collect_vec();
-            (drawn_tasks).insert(0, Line::from(spans));
-            drawn_tasks
-        } else {
-            vec![Line::from(spans)]
+            if let Some(subtasks) = subtasks {
+                let mut drawn_tasks = subtasks
+                    .iter()
+                    .flat_map(|sub_task| {
+                        let drawn_task =
+                            Self::draw_task(app, sub_task, nested_level + 1, task_index);
+                        drawn_task
+                    })
+                    .collect_vec();
+                (drawn_tasks).insert(0, Line::from(spans));
+                return drawn_tasks;
+            }
         }
+        vec![Line::from(spans)]
     }
 }
 
