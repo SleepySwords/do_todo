@@ -1,15 +1,20 @@
 use std::collections::HashMap;
 
-use crate::task::{CompletedTask, FindParentResult, Tag, Task};
+use serde::{Deserialize, Serialize};
+
+use crate::{data_io, task::{CompletedTask, FindParentResult, Tag, Task}};
 
 use super::task_store::{DataTaskStore, TaskID};
 
-struct JsonDataStore {
-    tasks: HashMap<TaskID, Task>,
-    completeed_tasks: HashMap<TaskID, CompletedTask>,
-    subtasks: HashMap<TaskID, Vec<String>>,
-    root: Vec<TaskID>,
-    tags: HashMap<String, Tag>,
+#[derive(Default, Clone, Deserialize, Serialize)]
+pub struct JsonDataStore {
+    pub tasks: HashMap<TaskID, Task>,
+    pub completeed_tasks: HashMap<TaskID, CompletedTask>,
+    pub subtasks: HashMap<TaskID, Vec<String>>,
+    pub root: Vec<TaskID>,
+    pub completed_root: Vec<TaskID>,
+    pub tags: HashMap<String, Tag>,
+    pub task_count: usize,
 }
 
 impl JsonDataStore {
@@ -31,6 +36,21 @@ impl JsonDataStore {
 
         return None;
     }
+
+    fn _find_tasks_draw_size(&self, task_id: &TaskID) -> usize {
+        if let Some(task) = self.task(task_id) {
+            if !task.opened {
+                return 1;
+            } else {
+                return if let Some(tasks) = self.subtasks(Some(task_id)) {
+                    tasks.iter().map(|f| self._find_tasks_draw_size(f)).sum()
+                } else {
+                    0
+                };
+            }
+        }
+        return 0;
+    }
 }
 
 impl DataTaskStore for JsonDataStore {
@@ -50,8 +70,8 @@ impl DataTaskStore for JsonDataStore {
         return self.completeed_tasks.get(id);
     }
 
-    fn delete_task(&mut self, id: TaskID) -> Option<Task> {
-        return self.tasks.remove(&id);
+    fn delete_task(&mut self, id: &TaskID) -> Option<Task> {
+        return self.tasks.remove(id);
     }
 
     // FIXME: this is redunded with the move operator
@@ -60,7 +80,7 @@ impl DataTaskStore for JsonDataStore {
     }
 
     // FIXME: might be able to wrap this in a &mut Vec<Task> perhaps?
-    fn subtasks(&mut self, id: Option<&TaskID>) -> Option<&mut Vec<TaskID>> {
+    fn subtasks_mut(&mut self, id: Option<&TaskID>) -> Option<&mut Vec<TaskID>> {
         if let Some(id) = id {
             return self.subtasks.get_mut(id);
         } else {
@@ -68,17 +88,33 @@ impl DataTaskStore for JsonDataStore {
         }
     }
 
+    fn subtasks(&self, id: Option<&TaskID>) -> Option<&Vec<TaskID>> {
+        return None;
+    }
+
+    fn root_tasks(&self) -> &Vec<TaskID> {
+        return &self.root;
+    }
+
+    fn completed_root_tasks(&self) -> &Vec<TaskID> {
+        return &self.completed_root;
+    }
+
     fn global_pos_to_task(&self, mut pos: usize) -> Option<TaskID> {
         return self._global_pos_to_task(&mut pos, &self.root);
     }
 
-    fn delete_tag(&mut self, tag_id: String) {
-        self.tags.remove(&tag_id);
+    fn global_pos_to_completed(&self, pos: usize) -> Option<TaskID> {
+        todo!()
+    }
+
+    fn delete_tag(&mut self, tag_id: &String) {
+        self.tags.remove(tag_id);
         for (_, task) in &mut self.tasks {
-            task.tags.retain(|f| f == &tag_id);
+            task.tags.retain(|f| f == tag_id);
         }
         for (_, completed_task) in &mut self.completeed_tasks {
-            completed_task.task.tags.retain(|f| f == &tag_id);
+            completed_task.task.tags.retain(|f| f == tag_id);
         }
     }
 
@@ -103,5 +139,28 @@ impl DataTaskStore for JsonDataStore {
 
     fn move_task(&mut self, id: TaskID, parent: Option<TaskID>, order: usize) {
         todo!()
+    }
+
+    fn find_tasks_draw_size(&self) -> usize {
+        self.root_tasks()
+            .iter()
+            .map(|t| self._find_tasks_draw_size(t))
+            .sum()
+    }
+
+    fn complete_task(&self, id: TaskID, data: chrono::prelude::NaiveDateTime) -> usize {
+        todo!()
+    }
+
+    fn tags(&self) -> &HashMap<String, Tag> {
+        return &self.tags;
+    }
+
+    fn tags_mut(&mut self) -> &mut HashMap<String, Tag> {
+        return &mut self.tags;
+    }
+
+    fn save(&self) {
+        data_io::save_task_json(self);
     }
 }

@@ -46,7 +46,7 @@ impl Component for StatusLine {
     fn draw(&self, app: &App, drawer: &mut Drawer) {
         let help = Text::styled(
             self.status_line.clone()
-                + if app.task_store.auto_sort {
+                + if app.task_list.auto_sort {
                     " Auto sort is current enabled"
                 } else {
                     ""

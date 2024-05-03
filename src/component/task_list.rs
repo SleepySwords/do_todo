@@ -12,7 +12,6 @@ use crate::{
         component::{Component, Drawer},
         event::PostEvent,
     },
-    task::Task,
     utils::{self, handle_mouse_movement_app},
 };
 
@@ -25,6 +24,7 @@ pub struct TaskList {
 #[derive(Default)]
 pub struct TaskListContext {
     pub selected_index: usize,
+    pub auto_sort: bool,
 }
 
 impl TaskList {
@@ -40,11 +40,15 @@ impl TaskList {
 
     fn draw_task<'a>(
         app: &'a App,
-        task: &'a Task,
+        task_id: &'a String,
         nested_level: usize,
         task_index: &mut usize,
     ) -> Vec<Line<'a>> {
         let config = &app.config;
+
+        let Some(task) = app.task_store.task(task_id) else {
+            return vec![];
+        };
 
         let mut spans = Vec::new();
 
@@ -112,8 +116,10 @@ impl TaskList {
         *task_index += 1;
 
         if task.opened {
-            let mut drawn_tasks = task
-                .sub_tasks
+            let Some(subtasks) = app.task_store.subtasks(Some(task_id)) else {
+                return vec![Line::from(spans)];
+            };
+            let mut drawn_tasks = subtasks
                 .iter()
                 .flat_map(|sub_task| {
                     let drawn_task = Self::draw_task(app, sub_task, nested_level + 1, task_index);
@@ -133,7 +139,7 @@ impl Component for TaskList {
         let mut current_index = 0;
         let tasks: Vec<ListItem> = app
             .task_store
-            .tasks
+            .root_tasks()
             .iter()
             .flat_map(|task| Self::draw_task(app, task, 0, &mut current_index))
             .map(ListItem::from)

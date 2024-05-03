@@ -1,4 +1,8 @@
-use crate::task::{CompletedTask, FindParentResult, Task};
+use std::collections::HashMap;
+
+use chrono::NaiveDateTime;
+
+use crate::task::{CompletedTask, FindParentResult, Tag, Task};
 
 pub type TaskID = String;
 
@@ -17,7 +21,7 @@ pub trait DataTaskStore {
     fn completed_task(&self, id: &TaskID) -> Option<&CompletedTask>;
 
     /// Deletes the task with this id.
-    fn delete_task(&mut self, id: String) -> Option<Task>;
+    fn delete_task(&mut self, id: &String) -> Option<Task>;
 
     /// Gets the parent of this task with this id.
     fn find_parent(&self, id: String) -> Option<FindParentResult>;
@@ -26,12 +30,33 @@ pub trait DataTaskStore {
     /// Otherwise returns the global tasks.
     ///
     /// * `id` - The id to get, if None, will return global tasks
-    fn subtasks(&mut self, id: Option<&TaskID>) -> Option<&mut Vec<TaskID>>;
+    fn subtasks_mut(&mut self, id: Option<&TaskID>) -> Option<&mut Vec<TaskID>>;
+
+    /// Returns the subtasks of a task if `id` is some
+    /// Otherwise returns the global tasks.
+    ///
+    /// * `id` - The id to get, if None, will return global tasks
+    fn subtasks(&self, id: Option<&TaskID>) -> Option<&Vec<TaskID>>;
+
+    /// Returns the subtasks of a task if `id` is some
+    /// Otherwise returns the global tasks.
+    ///
+    /// * `id` - The id to get, if None, will return global tasks
+    fn root_tasks(&self) -> &Vec<TaskID>;
+
+    /// Returns the subtasks of a task if `id` is some
+    /// Otherwise returns the global tasks.
+    ///
+    /// * `id` - The id to get, if None, will return global tasks
+    fn completed_root_tasks(&self) -> &Vec<TaskID>;
 
     /// Finds the task at the global positon
     fn global_pos_to_task(&self, pos: usize) -> Option<TaskID>;
 
-    fn delete_tag(&mut self, tag_id: String);
+    /// Finds the task at the global positon
+    fn global_pos_to_completed(&self, pos: usize) -> Option<TaskID>;
+
+    fn delete_tag(&mut self, tag_id: &String);
 
     /// Sorts all the task based on priority
     fn sort(&mut self);
@@ -45,10 +70,21 @@ pub trait DataTaskStore {
     /// Fetches data from the data source
     fn refresh(&mut self);
 
+    /// Saves the data to the data source
+    fn save(&self);
+
     /// Move a task from one place to another
     ///
     /// * `id` - The id of the task to be moved
     /// * `parent` - If specified, where the task should be moved to
     /// * `order` - What place should the task be placed within the order.
     fn move_task(&mut self, id: TaskID, parent: Option<TaskID>, order: usize);
+
+    fn find_tasks_draw_size(&self) -> usize;
+
+    fn complete_task(&self, id: TaskID, data: NaiveDateTime) -> usize;
+
+    fn tags(&self) -> &HashMap<String, Tag>;
+
+    fn tags_mut(&mut self) -> &mut HashMap<String, Tag>;
 }

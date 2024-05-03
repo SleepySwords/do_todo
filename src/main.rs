@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     let app = screen_manager.app;
-    data_io::save_data(&app.config, app.task_store);
+    data_io::save_config(&app.config, app.task_store);
 
     if let Err(err) = result {
         eprintln!("{:?}", err);

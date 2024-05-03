@@ -1,4 +1,4 @@
 
-mod task_store;
-mod json_data_store;
+pub mod task_store;
+pub mod json_data_store;
 

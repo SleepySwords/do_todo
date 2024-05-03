@@ -92,7 +92,7 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent,
         &app.config,
         key_event,
         &mut app.completed_list.selected_index,
-        app.task_store.completed_tasks.len(),
+        app.task_store.completed_root_tasks().len(),
     );
 
     if !result.propegate_further {

@@ -10,7 +10,7 @@ use crate::{
     config::{color_parser, Config},
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Tag {
     pub name: String,
     #[serde(with = "color_parser")]
@@ -46,13 +46,13 @@ impl Task {
     }
 
     pub fn first_tag<'a>(&self, app: &'a App) -> Option<&'a Tag> {
-        app.task_store.tags.get(self.tags.first().unwrap())
+        app.task_store.tags().get(self.tags.first().unwrap())
     }
 
     pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + '_ {
         self.tags
             .iter()
-            .filter_map(|tag_index| return app.task_store.tags.get(tag_index))
+            .filter_map(|tag_index| return app.task_store.tags().get(tag_index))
     }
 
     pub fn flip_tag(&mut self, tag: String) {
@@ -95,7 +95,7 @@ impl Task {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Clone, Serialize)]
 pub struct CompletedTask {
     pub task: Task,
     pub time_completed: NaiveDateTime,

@@ -1,10 +1,14 @@
 use chrono::{NaiveDate, NaiveDateTime};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash, task::Wake};
 
-use crate::task::{CompletedTask, Priority, Tag, Task, TaskStore};
+use crate::{
+    data::json_data_store::JsonDataStore,
+    task::{CompletedTask, Priority, Tag, Task, TaskStore},
+};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Default, Deserialize, Serialize)]
@@ -59,21 +63,63 @@ impl From<LegacyCompletedTask> for CompletedTask {
     }
 }
 
-impl From<LegacyTaskStore> for TaskStore {
+fn add_to_task(
+    tasks: &mut HashMap<String, Task>,
+    subtasks: &mut HashMap<String, Vec<String>>,
+    name: &LegacyTask,
+    id: &mut usize,
+) {
+    if let Some(subtask) = subtasks.get_mut(&id.to_string()) {
+        subtask.push((*id + 1).to_string());
+    } else {
+        subtasks.insert(id.to_string(), vec![(*id + 1).to_string()]);
+    }
+    *id += 1;
+    tasks.insert(id.to_string(), (*name).clone().into());
+    for subtask in &name.sub_tasks {
+        add_to_task(tasks, subtasks, &subtask, id);
+    }
+}
+
+impl From<LegacyTaskStore> for JsonDataStore {
     fn from(value: LegacyTaskStore) -> Self {
-        TaskStore {
+        let mut tasks = HashMap::new();
+        let mut completed_tasks: HashMap<String, CompletedTask> = HashMap::new();
+        let mut subtasks = HashMap::new();
+        let mut id = 0;
+
+        let roots = value
+            .tasks
+            .into_iter()
+            .map(|f| {
+                let curr_id = id;
+                for subtask in &f.sub_tasks {
+                    add_to_task(&mut tasks, &mut subtasks, &subtask, &mut id);
+                }
+                id += 1;
+                tasks.insert(curr_id.to_string(), f.into());
+                return curr_id.to_string();
+            })
+            .collect_vec();
+
+        let completed_root = value.completed_tasks.into_iter().map(|f| {
+            id += 1;
+            completed_tasks.insert(id.to_string(), (f).into());
+            return id.to_string();
+        }).collect_vec();
+
+        JsonDataStore {
             tags: value
                 .tags
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect(),
-            tasks: value.tasks.into_iter().map(|t| t.into()).collect(),
-            completed_tasks: value
-                .completed_tasks
-                .into_iter()
-                .map(|t| t.into())
-                .collect(),
-            auto_sort: value.auto_sort,
+            tasks,
+            completeed_tasks: completed_tasks,
+            subtasks,
+            root: roots,
+            completed_root,
+            task_count: id,
         }
     }
 }

@@ -12,6 +12,7 @@ use std::{
 
 use crate::{
     config::Config,
+    data::{json_data_store::JsonDataStore, task_store::DataTaskStore},
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
     task::TaskStore,
@@ -86,7 +87,7 @@ where
     Default::default()
 }
 
-pub fn get_data() -> (Config, TaskStore) {
+pub fn get_data() -> (Config, JsonDataStore) {
     let config_local_dir = dirs::config_local_dir();
     let data_local_dir = dirs::data_local_dir();
 
@@ -104,7 +105,7 @@ pub fn get_data() -> (Config, TaskStore) {
         // serde_json::from_str::<TaskStore>,
         |x| {
             serde_json::from_str::<JSONVersion>(x)
-                .map(Into::<TaskStore>::into)
+                .map(Into::<JsonDataStore>::into)
                 .or_else(|_| serde_json::from_str::<LegacyTaskStore>(x).map(|x| x.into()))
         },
         "task data",
@@ -149,19 +150,24 @@ where
     }
 }
 
-pub fn save_data(config: &Config, task_store: TaskStore) {
-    let json = JSONVersion::V0(task_store);
-    save_to_file(
-        dirs::data_local_dir(),
-        DATA_FILE,
-        || serde_json::to_string_pretty(&json),
-        "data",
-    );
+pub fn save_config(config: &Config, task_store: Box<dyn DataTaskStore>) {
+    task_store.save();
 
     save_to_file(
         dirs::config_local_dir(),
         CONFIG_FILE,
         || serde_yaml::to_string(config),
         "config",
+    );
+}
+
+pub fn save_task_json(task_store: &JsonDataStore) {
+    let json = JSONVersion::V1(task_store.clone());
+
+    save_to_file(
+        dirs::data_local_dir(),
+        DATA_FILE,
+        || serde_json::to_string_pretty(&json),
+        "data",
     );
 }

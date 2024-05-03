@@ -3,17 +3,12 @@ use chrono::{Local, NaiveTime};
 use crate::{
     component::{
         completed_list::CompletedListContext, status_line::StatusLine, task_list::TaskListContext,
-    },
-    config::Config,
-    error::AppError,
-    framework::event::PostEvent,
-    task::TaskStore,
+    }, config::Config, data::{json_data_store::JsonDataStore, task_store::DataTaskStore}, error::AppError, framework::event::PostEvent, task::TaskStore
 };
 
-#[derive(Default)]
 pub struct App {
     pub config: Config,
-    pub task_store: TaskStore,
+    pub task_store: Box<dyn DataTaskStore>,
 
     pub status_line: StatusLine,
 
@@ -28,12 +23,16 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(theme: Config, task_data: TaskStore) -> App {
+    pub fn new<T: DataTaskStore + 'static>(theme: Config, task_data: T) -> App {
         App {
             config: theme,
-            task_store: task_data,
+            task_store: Box::new(task_data),
             status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
-            ..Default::default()
+            mode: Mode::CurrentTasks,
+            logs: vec![],
+            task_list: TaskListContext::default(),
+            completed_list: CompletedListContext::default(),
+            should_shutdown: false,
         }
     }
 
