@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
 
-use crate::task::{CompletedTask, FindParentResult, Tag, Task};
+use crate::task::{CompletedTask, FindParentResult, FindParentResult2, Tag, Task};
 
 pub type TaskID = String;
 
@@ -21,10 +21,10 @@ pub trait DataTaskStore {
     fn completed_task(&self, id: &TaskID) -> Option<&CompletedTask>;
 
     /// Deletes the task with this id.
-    fn delete_task(&mut self, id: &String) -> Option<Task>;
+    fn delete_task(&mut self, id: &TaskID) -> Option<Task>;
 
     /// Gets the parent of this task with this id.
-    fn find_parent(&self, id: String) -> Option<FindParentResult>;
+    fn find_parent(&self, id: &TaskID) -> Option<FindParentResult2>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
@@ -51,10 +51,14 @@ pub trait DataTaskStore {
     fn completed_root_tasks(&self) -> &Vec<TaskID>;
 
     /// Finds the task at the global positon
+    // FIXME: Should this be a global interface?
+    // This is not really related to the implementation at heart.
     fn global_pos_to_task(&self, pos: usize) -> Option<TaskID>;
 
     /// Finds the task at the global positon
     fn global_pos_to_completed(&self, pos: usize) -> Option<TaskID>;
+
+    fn task_to_global_pos(&self, id: &TaskID) -> Option<usize>;
 
     fn delete_tag(&mut self, tag_id: &String);
 
@@ -65,7 +69,7 @@ pub trait DataTaskStore {
     ///
     /// * `task` - The task to be added.
     /// * `parent` - The parent of the task to be added.
-    fn add_task(&mut self, task: Task, parent: Option<TaskID>);
+    fn add_task(&mut self, task: Task, parent: Option<&TaskID>);
 
     /// Fetches data from the data source
     fn refresh(&mut self);
@@ -78,11 +82,17 @@ pub trait DataTaskStore {
     /// * `id` - The id of the task to be moved
     /// * `parent` - If specified, where the task should be moved to
     /// * `order` - What place should the task be placed within the order.
-    fn move_task(&mut self, id: TaskID, parent: Option<TaskID>, order: usize);
+    ///
+    fn move_task(&mut self, id: &TaskID, parent: Option<TaskID>, order: usize, global: Option<()>);
+    /// FIXME: global task moving?
+
+    fn find_task_draw_size(&self, task_id: &TaskID) -> usize;
 
     fn find_tasks_draw_size(&self) -> usize;
 
-    fn complete_task(&self, id: TaskID, data: NaiveDateTime) -> usize;
+    fn complete_task(&mut self, id: &TaskID, time_completed: NaiveDateTime);
+
+    fn restore(&mut self, id: &TaskID);
 
     fn tags(&self) -> &HashMap<String, Tag>;
 

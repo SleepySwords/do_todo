@@ -30,6 +30,12 @@ pub enum AppError {
     InvalidState(String),
 }
 
+impl AppError {
+    pub fn invalid_state<T: Into<String>>(msg: T) -> AppError{
+        AppError::InvalidState(msg.into())
+    }
+}
+
 impl From<ParseIntError> for AppError {
     fn from(_: ParseIntError) -> AppError {
         AppError::InvalidColour

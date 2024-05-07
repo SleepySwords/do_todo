@@ -1,13 +1,14 @@
-use std::collections::HashMap;
+use std::{cmp, collections::HashMap};
 
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     data_io,
-    task::{CompletedTask, FindParentResult, Tag, Task},
+    task::{CompletedTask, FindParentResult, FindParentResult2, Priority, Tag, Task},
 };
 
-use super::task_store::{DataTaskStore, TaskID};
+use super::data_store::{DataTaskStore, TaskID};
 
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct JsonDataStore {
@@ -27,31 +28,41 @@ impl JsonDataStore {
         }
         *selected -= 1;
 
-        let Some(task) = self.task(task_id) else {
-            return None;
-        };
+        let task = self.task(task_id)?;
         if !task.opened {
             return None;
         }
-        let Some(subtasks) = self.subtasks.get(task_id) else {
-            return None;
-        };
+        let subtasks = self.subtasks.get(task_id)?;
         subtasks
             .iter()
             .find_map(|f| self._global_pos_to_task(selected, f))
     }
 
-    fn _find_tasks_draw_size(&self, task_id: &TaskID) -> usize {
-        if let Some(task) = self.task(task_id) {
-            return if !task.opened {
-                1
-            } else {
-                self.subtasks(task_id).map_or(1, |f| {
-                    f.iter().map(|k| 1 + self._find_tasks_draw_size(k)).sum()
-                })
-            };
+    fn _task_to_global(
+        &self,
+        current_index: &mut usize,
+        to_find: &TaskID,
+        curr: &TaskID,
+    ) -> Option<()> {
+        if to_find == curr {
+            return Some(());
         }
-        return 0;
+        *current_index += 1;
+        let t = self.task(curr)?;
+        if !t.opened {
+            return None;
+        }
+        if let Some(subtasks) = self.subtasks(curr) {
+            for task in subtasks {
+                if task == to_find {
+                    return Some(());
+                }
+                if let Some(()) = self._task_to_global(current_index, to_find, task) {
+                    return Some(());
+                }
+            }
+        }
+        None
     }
 }
 
@@ -74,12 +85,27 @@ impl DataTaskStore for JsonDataStore {
 
     fn delete_task(&mut self, id: &TaskID) -> Option<Task> {
         self.root.retain(|f| f != id);
-        return self.tasks.remove(id);
+        self.subtasks
+            .values_mut()
+            .for_each(|val| val.retain(|f| f != id));
+        self.tasks.remove(id)
     }
 
-    // FIXME: this is redunded with the move operator
-    fn find_parent(&self, id: TaskID) -> Option<FindParentResult> {
-        todo!()
+    fn find_parent(&self, id: &TaskID) -> Option<FindParentResult2> {
+        let parent = self
+            .subtasks
+            .iter()
+            .find(|(_, subs)| subs.contains(id))
+            .map(|p| p.0);
+        let local_index = if let Some(p) = parent {
+            self.subtasks.get(p).unwrap().iter().position(|t| t == id)
+        } else {
+            self.root.iter().position(|t| t == id)
+        };
+        Some(FindParentResult2 {
+            task_local_offset: local_index?,
+            parent_id: parent.cloned(),
+        })
     }
 
     // FIXME: might be able to wrap this in a &mut Vec<Task> perhaps?
@@ -87,7 +113,7 @@ impl DataTaskStore for JsonDataStore {
         if let Some(id) = id {
             return self.subtasks.get_mut(id);
         } else {
-            return Some(&mut self.root);
+            Some(&mut self.root)
         }
     }
 
@@ -96,11 +122,11 @@ impl DataTaskStore for JsonDataStore {
     }
 
     fn root_tasks(&self) -> &Vec<TaskID> {
-        return &self.root;
+        &self.root
     }
 
     fn completed_root_tasks(&self) -> &Vec<TaskID> {
-        return &self.completed_root;
+        &self.completed_root
     }
 
     fn global_pos_to_task(&self, mut pos: usize) -> Option<TaskID> {
@@ -110,31 +136,38 @@ impl DataTaskStore for JsonDataStore {
             .find_map(|f| self._global_pos_to_task(&mut pos, f));
     }
 
-    fn global_pos_to_completed(&self, pos: usize) -> Option<TaskID> {
-        todo!()
+    fn global_pos_to_completed(&self, mut pos: usize) -> Option<TaskID> {
+        return self
+            .completed_root
+            .iter()
+            .find_map(|f| self._global_pos_to_task(&mut pos, f));
     }
 
     fn delete_tag(&mut self, tag_id: &String) {
         self.tags.remove(tag_id);
-        for (_, task) in &mut self.tasks {
-            task.tags.retain(|f| f == tag_id);
+        for task in &mut self.tasks.values_mut() {
+            task.tags.retain(|f| f != tag_id);
         }
-        for (_, completed_task) in &mut self.completed_tasks {
-            completed_task.task.tags.retain(|f| f == tag_id);
+        for completed_task in &mut self.completed_tasks.values_mut() {
+            completed_task.task.tags.retain(|f| f != tag_id);
         }
     }
 
     fn sort(&mut self) {
-        todo!("Sort all the subtasks vecs")
+        self.root.sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
+        for subtasks in self.subtasks.values_mut() {
+            subtasks.sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
+        }
     }
 
-    fn add_task(&mut self, task: Task, parent: Option<TaskID>) {
+    fn add_task(&mut self, task: Task, parent: Option<&TaskID>) {
         let parents = if let Some(parent_id) = parent {
-            self.subtasks.get_mut(&parent_id).unwrap()
+            self.subtasks.get_mut(parent_id).unwrap()
         } else {
             &mut self.root
         };
-        let key = (self.tasks.len() + self.completed_tasks.len() + 1).to_string();
+        let key = (self.task_count + 1).to_string();
+        self.task_count += 1;
         self.tasks.insert(key.clone(), task);
         parents.push(key);
     }
@@ -143,30 +176,95 @@ impl DataTaskStore for JsonDataStore {
         todo!()
     }
 
-    fn move_task(&mut self, id: TaskID, parent: Option<TaskID>, order: usize) {
-        todo!()
+    fn save(&self) {
+        data_io::save_task_json(self);
+    }
+
+    fn move_task(&mut self, id: &TaskID, parent: Option<TaskID>, order: usize, global: Option<()>) {
+        let hash_map = &mut self.subtasks;
+        let subtasks = if let Some((_, subtasks)) = hash_map
+            .iter_mut()
+            .find(|(_, subtasks)| subtasks.contains(id))
+        {
+            subtasks
+        } else {
+            &mut self.root
+        };
+        if let Some(p) = parent {
+            subtasks.retain(|f| f != id);
+            if let Some(subtasks) = self.subtasks_mut(Some(&p)) {
+                subtasks.insert(order, id.to_string());
+            } else {
+                self.subtasks.insert(p, vec![id.to_string()]);
+            }
+        } else if global.is_some() {
+            subtasks.retain(|f| f != id);
+            self.root.insert(order, id.to_string());
+        } else {
+            subtasks.retain(|f| f != id);
+            subtasks.insert(order, id.to_string());
+        }
+    }
+
+    fn find_task_draw_size(&self, task_id: &TaskID) -> usize {
+        if let Some(task) = self.task(task_id) {
+            return if !task.opened {
+                0
+            } else {
+                self.subtasks(task_id)
+                    .map_or(0, |f| f.iter().map(|k| self.find_task_draw_size(k)).sum())
+            } + 1;
+        }
+        0
     }
 
     fn find_tasks_draw_size(&self) -> usize {
         self.root_tasks()
             .iter()
-            .map(|t| self._find_tasks_draw_size(t))
+            .map(|t| self.find_task_draw_size(t))
             .sum()
     }
 
-    fn complete_task(&self, id: TaskID, data: chrono::prelude::NaiveDateTime) -> usize {
-        todo!()
+    fn complete_task(&mut self, id: &TaskID, time_completed: NaiveDateTime) {
+        self.root.retain(|f| f != id);
+        self.subtasks
+            .values_mut()
+            .for_each(|subtasks| subtasks.retain(|f| f != id));
+        if let Some(task) = self.tasks.remove(id) {
+            self.completed_tasks.insert(
+                id.to_string(),
+                CompletedTask::from_task(task, time_completed),
+            );
+            self.completed_root.push(id.to_string());
+        }
+    }
+
+    fn restore(&mut self, id: &TaskID) {
+        self.completed_root.retain(|f| f != id);
+        self.subtasks
+            .values_mut()
+            .for_each(|subtasks| subtasks.retain(|f| f != id));
+        if let Some(task) = self.completed_tasks.remove(id) {
+            self.tasks.insert(id.to_string(), task.task);
+            self.root.push(id.to_string());
+        }
     }
 
     fn tags(&self) -> &HashMap<String, Tag> {
-        return &self.tags;
+        &self.tags
     }
 
     fn tags_mut(&mut self) -> &mut HashMap<String, Tag> {
-        return &mut self.tags;
+        &mut self.tags
     }
 
-    fn save(&self) {
-        data_io::save_task_json(self);
+    fn task_to_global_pos(&self, id: &TaskID) -> Option<usize> {
+        let mut current_index = 0;
+        for curr in &self.root {
+            if let Some(()) = self._task_to_global(&mut current_index, id, curr) {
+                return Some(current_index);
+            }
+        }
+        None
     }
 }

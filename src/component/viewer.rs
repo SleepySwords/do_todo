@@ -8,10 +8,13 @@ use tui::{
 
 // A viewer of a task/something
 use crate::{
-    app::{App, Mode}, data::task_store, framework::{
+    app::{App, Mode},
+    framework::{
         component::{Component, Drawer},
         event::{Action, PostEvent},
-    }, task::Task, utils
+    },
+    task::Task,
+    utils,
 };
 
 #[derive(Default)]
@@ -92,7 +95,10 @@ impl Viewer {
         drawer: &mut Drawer,
     ) {
         // FIXME: global tasks?
-        let Some(task_id) = app.task_store.global_pos_to_completed(app.completed_list.selected_index) else {
+        let Some(task_id) = app
+            .task_store
+            .global_pos_to_completed(app.completed_list.selected_index)
+        else {
             return;
         };
         let Some(completed_task) = &app.task_store.completed_task(&task_id) else {

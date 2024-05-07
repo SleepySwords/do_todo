@@ -17,7 +17,7 @@ use crate::{
     error::AppError,
     framework::event::PostEvent,
     input,
-    task::{FindParentResult, Task, TaskStore},
+    task::{FindParentResult, FindParentResult2, Task, TaskStore},
     utils::{self, str_to_colour},
 };
 
@@ -158,7 +158,7 @@ impl App {
         let time_completed = local.naive_local();
         if let Some(completed_task) = self.task_store.global_pos_to_task(*selected_index) {
             self.task_store
-                .complete_task(completed_task, time_completed);
+                .complete_task(&completed_task, time_completed);
             if *selected_index == self.task_store.find_tasks_draw_size()
                 && !self.task_store.root_tasks().is_empty()
             {
@@ -172,7 +172,7 @@ impl App {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         let selected_index = self.task_list.selected_index;
-        let Some(tag_id) = self.task_store.global_pos_to_task(selected_index) else {
+        let Some(task_id) = self.task_store.global_pos_to_task(selected_index) else {
             // FIXME: should probs error?
             return Ok(PostEvent::noop(true));
         };
@@ -181,7 +181,7 @@ impl App {
             // Loops through the tags and adds them to the menu.
             for (i, tag) in self.task_store.tags().iter() {
                 let moved = i.to_string();
-                let moved_name = tag_id.clone();
+                let moved_name = task_id.clone();
                 tag_options.push(DialogAction::new(
                     tag.name.to_owned().fg(tag.colour),
                     move |app| {
@@ -194,10 +194,12 @@ impl App {
             }
         }
 
+        let new_task = task_id.clone();
         tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
             let tag_menu = InputBoxBuilder::default()
                 .title("Tag name")
                 .on_submit(move |app, tag_name| {
+                    let new_task = new_task.clone();
                     app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
                         let colour = str_to_colour(&tag_colour)?;
 
@@ -210,7 +212,7 @@ impl App {
                             },
                         );
                         if app.task_store.find_tasks_draw_size() > selected_index {
-                            if let Some(task) = app.task_store.task_mut(&tag_id) {
+                            if let Some(task) = app.task_store.task_mut(&new_task) {
                                 task.flip_tag(tag_id);
                             }
                         }
@@ -226,7 +228,7 @@ impl App {
             tag_options.push(DialogAction::new(
                 String::from("Clear all tags"),
                 move |app| {
-                    if let Some(task) = app.task_store.task_mut(&tag_id) {
+                    if let Some(task) = app.task_store.task_mut(&task_id) {
                         task.tags.clear();
                     };
                     PostEvent::noop(false)
@@ -364,29 +366,24 @@ impl App {
             return Ok(PostEvent::noop(true));
         }
 
-        let old_task = {
-            let Some(old_task_id) = self
-                .task_store
-                .global_pos_to_task(self.task_list.selected_index)
-            else {
-                return Ok(PostEvent::noop(true));
-            };
-            let Some(task) = self.task_store.task_mut(&old_task_id) else {
-                return Ok(PostEvent::noop(true));
-            };
-            task.priority = task.priority.next_priority();
-
-            task.clone()
+        let Some(task_id) = self
+            .task_store
+            .global_pos_to_task(self.task_list.selected_index)
+        else {
+            return Ok(PostEvent::noop(true));
         };
+        let Some(task) = self.task_store.task_mut(&task_id) else {
+            return Ok(PostEvent::noop(true));
+        };
+        task.priority = task.priority.next_priority();
 
         if self.task_list.auto_sort {
             self.task_store.sort();
+            let Some(new_pos) = self.task_store.task_to_global_pos(&task_id) else {
+                return Ok(PostEvent::noop(false));
+            };
+            self.task_list.selected_index = new_pos;
         }
-
-        // self.task_list.selected_index =
-        //     self.task_store.task_position(&old_task).ok_or_else(|| {
-        //         AppError::InvalidState("Cannot find the selected tasks index.".to_string())
-        //     })?;
         Ok(PostEvent::noop(false))
     }
 
@@ -403,10 +400,12 @@ impl App {
             .title(format!("Add a subtask to {}", task.title))
             .use_vim(&self.config, VimMode::Insert)
             .on_submit(move |app, word| {
+                app.task_store
+                    .add_task(Task::from_string(word.trim()), Some(&task_id));
                 if let Some(task) = app.task_store.task_mut(&task_id) {
-                    task.sub_tasks.push(Task::from_string(word.trim()));
                     task.opened = true;
-                    app.task_list.selected_index += task.sub_tasks.len();
+                    app.task_list.selected_index +=
+                        app.task_store.subtasks(&task_id).map_or(0, |f| f.len());
                 }
                 PostEvent::noop(false)
             });
@@ -414,77 +413,91 @@ impl App {
     }
 
     pub fn move_selected_task_down(&mut self) -> Result<PostEvent, AppError> {
-        // let autosort = self.task_list.auto_sort;
+        let autosort = self.task_list.auto_sort;
 
-        // let Some(task_id) = self.task_store.global_pos_to_task(self.task_list.selected_index) else {
-        //     todo!()
-        // };
+        let Some(task_id) = self
+            .task_store
+            .global_pos_to_task(self.task_list.selected_index)
+        else {
+            todo!()
+        };
 
-        // let Some(FindParentResult {
-        //     tasks: parent_tasks,
-        //     parent_index,
-        //     task_local_offset: local_index,
-        // }) = self.task_store.find_parent(task_id)
-        // else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        let Some(FindParentResult2 {
+            parent_id: parent_index,
+            task_local_offset: local_index,
+        }) = self.task_store.find_parent(&task_id)
+        else {
+            return Ok(PostEvent::noop(true));
+        };
 
-        // let new_index = (local_index + 1) % parent_tasks.len();
+        let parent_subtasks = if let Some(parent) = &parent_index {
+            self.task_store.subtasks(parent).unwrap()
+        } else {
+            self.task_store.root_tasks()
+        };
 
-        // let Some(parent_subtasks) = self.task_store.subtasks(parent_index) else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        let new_index = (local_index + 1) % parent_subtasks.len();
 
-        // let task = &parent_subtasks[local_index];
-        // let task_above = &parent_subtasks[new_index];
+        let task = &parent_subtasks[local_index];
+        let task_above = &parent_subtasks[new_index];
 
-        // if task.priority == task_above.priority || !autosort {
+        if self.task_store.task(task).unwrap().priority
+            == self.task_store.task(task_above).unwrap().priority
+            || !autosort
+        {
+            self.task_store.move_task(&task_id, None, new_index, None);
+            self.task_list.selected_index = self.task_store.task_to_global_pos(&task_id).unwrap();
+        }
 
-        // self.task_store.move_task(task_id, None, new_index);
-        //     let task = parent_subtasks.remove(local_index);
-
-        //     parent_subtasks.insert(new_index, task);
-
-        //     self.task_list.selected_index =
-        //         TaskStore::local_index_to_global(new_index, parent_subtasks, parent_index);
-        // }
         Ok(PostEvent::noop(false))
     }
 
     pub fn move_selected_task_up(&mut self) -> Result<PostEvent, AppError> {
-        // let auto_sort = self.task_store.auto_sort;
+        let autosort = self.task_list.auto_sort;
 
-        // let Some(FindParentResult {
-        //     tasks: parent_subtasks,
-        //     parent_index,
-        //     task_local_offset: local_index,
-        // }) = self.task_store.find_parent(self.task_list.selected_index)
-        // else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        let Some(task_id) = self
+            .task_store
+            .global_pos_to_task(self.task_list.selected_index)
+        else {
+            return Err(AppError::invalid_state("Could not find task to move."));
+        };
 
-        // if parent_subtasks.is_empty() {
-        //     return Ok(PostEvent::noop(true));
-        // }
+        let Some(FindParentResult2 {
+            parent_id,
+            task_local_offset: local_index,
+        }) = self.task_store.find_parent(&task_id)
+        else {
+            return Ok(PostEvent::noop(true));
+        };
 
-        // let new_index =
-        //     (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
+        let parent_subtasks = if let Some(parent) = &parent_id {
+            self.task_store
+                .subtasks(parent)
+                .ok_or_else(|| AppError::invalid_state("Subtasks are not found in parent"))?
+        } else {
+            self.task_store.root_tasks()
+        };
 
-        // let Some(mut_parent_subtasks) = self.task_store.subtasks(parent_index) else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        let new_index =
+            (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
 
-        // let task = &mut_parent_subtasks[local_index];
-        // let task_above = &mut_parent_subtasks[new_index];
+        let task = self
+            .task_store
+            .task(&parent_subtasks[local_index])
+            .ok_or_else(|| AppError::invalid_state("Subtasks are not found in parent"))?;
+        let task_above = self
+            .task_store
+            .task(&parent_subtasks[new_index])
+            .ok_or_else(|| AppError::invalid_state("Subtasks are not found in parent"))?;
 
-        // if task.priority == task_above.priority || !auto_sort {
-        //     let task = mut_parent_subtasks.remove(local_index);
+        if task.priority == task_above.priority || !autosort {
+            self.task_store.move_task(&task_id, None, new_index, None);
+            self.task_list.selected_index = self
+                .task_store
+                .task_to_global_pos(&task_id)
+                .ok_or_else(|| AppError::invalid_state("Did not find global position of task"))?;
+        }
 
-        //     mut_parent_subtasks.insert(new_index, task);
-
-        //     self.task_list.selected_index =
-        //         TaskStore::local_index_to_global(new_index, mut_parent_subtasks, parent_index);
-        // }
         Ok(PostEvent::noop(false))
     }
 
@@ -518,7 +531,10 @@ impl App {
         if self.task_store.root_tasks().is_empty() {
             return Ok(PostEvent::noop(true));
         }
-        let Some(task_id) = self.task_store.global_pos_to_task(self.task_list.selected_index) else {
+        let Some(task_id) = self
+            .task_store
+            .global_pos_to_task(self.task_list.selected_index)
+        else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
@@ -530,11 +546,14 @@ impl App {
     }
 
     pub fn flip_subtasks(&mut self) -> Result<PostEvent, AppError> {
-        let selected_index = &mut self.task_list.selected_index;
+        let _selected_index = &mut self.task_list.selected_index;
         if self.task_store.root_tasks().is_empty() {
             return Ok(PostEvent::noop(true));
         }
-        let Some(task_id) = self.task_store.global_pos_to_task(self.task_list.selected_index) else {
+        let Some(task_id) = self
+            .task_store
+            .global_pos_to_task(self.task_list.selected_index)
+        else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
@@ -552,16 +571,26 @@ impl App {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        let Some(FindParentResult {
-            tasks: parent_tasks,
-            parent_index,
+
+        // FIXME: this should also probs return subtasks?
+        let Some(FindParentResult2 {
+            parent_id,
             task_local_offset: local_index,
-        }) = self.task_store.find_parent(task_id.clone())
+        }) = self.task_store.find_parent(&task_id)
         else {
             return Ok(PostEvent::noop(true));
         };
 
-        if parent_tasks.is_empty() {
+        // FIXME: should be refactored into a singular subtasks thing.
+        let subtasks = if let Some(parent_id) = parent_id {
+            self.task_store
+                .subtasks(&parent_id)
+                .ok_or_else(|| AppError::invalid_state("Parent does not have subtasks"))?
+        } else {
+            self.task_store.root_tasks()
+        };
+
+        if subtasks.is_empty() {
             return Ok(PostEvent::noop(true));
         }
 
@@ -570,83 +599,73 @@ impl App {
         }
 
         let prev_local_index = local_index - 1;
-        let prev_global_index =
-            TaskStore::local_index_to_global(prev_local_index, parent_tasks, parent_index);
-        let Some(prev_task_id) = self.task_store.global_pos_to_task(prev_global_index) else {
-            // FIXME: panic!
-            return Ok(PostEvent::noop(true));
-        };
+        let prev_task_id = subtasks[prev_local_index].to_string();
+        let order = self
+            .task_store
+            .subtasks(&prev_task_id)
+            .map_or(0, |sub| sub.len());
 
-        let Some(task) = self.task_store.delete_task(&task_id) else {
-            return Ok(PostEvent::noop(true));
-        };
+        self.task_store
+            .move_task(&task_id, Some(prev_task_id.to_string()), order, None);
 
         let Some(prev_task) = self.task_store.task_mut(&prev_task_id) else {
-            return Ok(PostEvent::noop(true));
+            return Ok(PostEvent::noop(false));
         };
-
         if !prev_task.opened {
             prev_task.opened = true;
             // Have to remove the task when adding
-            *selected_index += prev_task.find_task_draw_size() - 1;
+            *selected_index += self.task_store.find_task_draw_size(&prev_task_id)
+                - self.task_store.find_task_draw_size(&task_id)
+                - 1;
         }
-        prev_task.sub_tasks.push(task);
 
-        // FIXME: refactor this to ideally not clone
         if self.task_list.auto_sort {
-            let Some(task) = self.task_store.task(&task_id).cloned() else {
-                return Err(AppError::InvalidState(
-                    "There is no task selected.".to_string(),
-                ));
-            };
             self.task_store.sort();
-            // if let Some(task_pos) = self.task_store.task_position(&task) {
-            //     *selected_index = task_pos;
-            // }
+            if let Some(task_pos) = self.task_store.task_to_global_pos(&task_id) {
+                *selected_index = task_pos;
+            }
         }
         Ok(PostEvent::noop(false))
     }
 
     pub fn move_subtask_level_down(&mut self) -> Result<PostEvent, AppError> {
-        // let selected_index = &mut self.task_list.selected_index;
-        // let Some(FindParentResult { parent_index, .. }) =
-        //     self.task_store.find_parent(*selected_index)
-        // else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        let selected_index = &mut self.task_list.selected_index;
+        let Some(task_id) = self.task_store.global_pos_to_task(*selected_index) else {
+            return Err(AppError::invalid_state("Task does not exist"));
+        };
+        let Some(FindParentResult2 { parent_id, .. }) = self.task_store.find_parent(&task_id)
+        else {
+            return Ok(PostEvent::noop(true));
+        };
 
-        // let Some(parent_index) = parent_index else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        let Some(parent_id) = parent_id else {
+            return Ok(PostEvent::noop(true));
+        };
 
         // let Some(task) = self.task_store.delete_task(*selected_index) else {
         //     return Ok(PostEvent::noop(true));
         // };
 
-        // let Some(FindParentResult {
-        //     tasks: grandparent_subtasks,
-        //     parent_index: grandparent_index,
-        //     ..
-        // }) = self.task_store.find_parent(parent_index)
-        // else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        let Some(FindParentResult2 {
+            parent_id: grand_parent_id,
+            task_local_offset: parent_local_index,
+            ..
+        }) = self.task_store.find_parent(&parent_id)
+        else {
+            return Ok(PostEvent::noop(true));
+        };
 
-        // let parent_local_index = grandparent_subtasks
-        //     .iter()
-        //     .position(|t| {
-        //         t == self
-        //             .task_store
-        //             .task(parent_index)
-        //             .expect("This is definately a task")
-        //     })
-        //     .ok_or_else(|| {
-        //         AppError::InvalidState("Cannot find the parent tasks index.".to_string())
-        //     })?;
-
-        // let Some(grandparent_subtasks) = self.task_store.subtasks(grandparent_index) else {
-        //     return Ok(PostEvent::noop(true));
-        // };
+        if let Some(grand_parent_id) = grand_parent_id {
+            self.task_store.move_task(
+                &task_id,
+                Some(grand_parent_id),
+                parent_local_index + 1,
+                None,
+            );
+        } else {
+            self.task_store
+                .move_task(&task_id, None, parent_local_index + 1, Some(()));
+        }
 
         // let new_index = parent_local_index + 1;
         // grandparent_subtasks.insert(new_index, task);
@@ -668,7 +687,10 @@ impl App {
     }
 
     pub fn create_due_date_dialog(&mut self) -> Result<PostEvent, AppError> {
-        let Some(task_id) = self.task_store.global_pos_to_task(self.task_list.selected_index) else {
+        let Some(task_id) = self
+            .task_store
+            .global_pos_to_task(self.task_list.selected_index)
+        else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };

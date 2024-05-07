@@ -1,4 +1,2 @@
-
-pub mod version;
 pub mod legacy;
-
+pub mod version;

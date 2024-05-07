@@ -7,7 +7,7 @@ use std::{cmp, collections::HashMap, fmt::Display, vec};
 
 use crate::{
     app::App,
-    config::{color_parser, Config},
+    config::{color_parser, Config}, data::data_store::TaskID,
 };
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -168,7 +168,7 @@ impl Display for Priority {
 impl Priority {
     pub fn colour(&self, theme: &Config) -> Color {
         match self {
-            Priority::None => Color::White,
+            Priority::None => theme.none_priority_colour,
             Priority::High => theme.high_priority_colour,
             Priority::Normal => theme.normal_priority_colour,
             Priority::Low => theme.low_priority_colour,
@@ -192,6 +192,13 @@ pub struct TaskStore {
     pub tasks: Vec<Task>,
     pub completed_tasks: Vec<CompletedTask>,
     pub auto_sort: bool,
+}
+
+pub struct FindParentResult2 {
+    /// If there is a parent, the index of the parent within it's task.
+    pub parent_id: Option<TaskID>,
+    /// The index of the task within the top-level tasks or within the subtask.
+    pub task_local_offset: usize,
 }
 
 pub struct FindParentResult<'a> {

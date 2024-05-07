@@ -3,11 +3,11 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-use std::{collections::HashMap, hash::Hash, task::Wake};
+use std::collections::HashMap;
 
 use crate::{
     data::json_data_store::JsonDataStore,
-    task::{CompletedTask, Priority, Tag, Task, TaskStore},
+    task::{CompletedTask, Priority, Tag, Task},
 };
 
 #[skip_serializing_none]
@@ -67,17 +67,19 @@ fn add_to_task(
     tasks: &mut HashMap<String, Task>,
     subtasks: &mut HashMap<String, Vec<String>>,
     name: &LegacyTask,
-    id: &mut usize,
+    parent_id: usize,
+    id_gen: &mut usize,
 ) {
-    if let Some(subtask) = subtasks.get_mut(&id.to_string()) {
-        subtask.push((*id + 1).to_string());
+    *id_gen += 1;
+    if let Some(subtask) = subtasks.get_mut(&parent_id.to_string()) {
+        subtask.push((*id_gen).to_string());
     } else {
-        subtasks.insert(id.to_string(), vec![(*id + 1).to_string()]);
+        subtasks.insert(parent_id.to_string(), vec![(*id_gen).to_string()]);
     }
-    *id += 1;
-    tasks.insert(id.to_string(), (*name).clone().into());
+    tasks.insert(id_gen.to_string(), (*name).clone().into());
+    let curr = *id_gen;
     for subtask in &name.sub_tasks {
-        add_to_task(tasks, subtasks, &subtask, id);
+        add_to_task(tasks, subtasks, subtask, curr, id_gen);
     }
 }
 
@@ -86,27 +88,31 @@ impl From<LegacyTaskStore> for JsonDataStore {
         let mut tasks = HashMap::new();
         let mut completed_tasks: HashMap<String, CompletedTask> = HashMap::new();
         let mut subtasks = HashMap::new();
-        let mut id = 0;
+        let mut id_gen = 0;
 
         let roots = value
             .tasks
             .into_iter()
             .map(|f| {
-                let curr_id = id;
+                let curr_id = id_gen;
                 for subtask in &f.sub_tasks {
-                    add_to_task(&mut tasks, &mut subtasks, &subtask, &mut id);
+                    add_to_task(&mut tasks, &mut subtasks, subtask, curr_id, &mut id_gen);
                 }
-                id += 1;
+                id_gen += 1;
                 tasks.insert(curr_id.to_string(), f.into());
-                return curr_id.to_string();
+                curr_id.to_string()
             })
             .collect_vec();
 
-        let completed_root = value.completed_tasks.into_iter().map(|f| {
-            id += 1;
-            completed_tasks.insert(id.to_string(), (f).into());
-            return id.to_string();
-        }).collect_vec();
+        let completed_root = value
+            .completed_tasks
+            .into_iter()
+            .map(|f| {
+                id_gen += 1;
+                completed_tasks.insert(id_gen.to_string(), (f).into());
+                id_gen.to_string()
+            })
+            .collect_vec();
 
         JsonDataStore {
             tags: value
@@ -119,7 +125,7 @@ impl From<LegacyTaskStore> for JsonDataStore {
             subtasks,
             root: roots,
             completed_root,
-            task_count: id,
+            task_count: id_gen,
         }
     }
 }

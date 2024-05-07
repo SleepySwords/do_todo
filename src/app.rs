@@ -3,7 +3,11 @@ use chrono::{Local, NaiveTime};
 use crate::{
     component::{
         completed_list::CompletedListContext, status_line::StatusLine, task_list::TaskListContext,
-    }, config::Config, data::{json_data_store::JsonDataStore, task_store::DataTaskStore}, error::AppError, framework::event::PostEvent, task::TaskStore
+    },
+    config::Config,
+    data::{data_store::DataTaskStore},
+    error::AppError,
+    framework::event::PostEvent,
 };
 
 pub struct App {

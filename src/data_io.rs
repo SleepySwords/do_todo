@@ -12,10 +12,9 @@ use std::{
 
 use crate::{
     config::Config,
-    data::{json_data_store::JsonDataStore, task_store::DataTaskStore},
+    data::{json_data_store::JsonDataStore, data_store::DataTaskStore},
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
-    task::TaskStore,
 };
 
 const DIR: &str = "dotodo";

@@ -8,10 +8,10 @@ mod error;
 mod framework;
 mod input;
 mod screens;
+mod storage;
 mod task;
 mod tests;
 mod utils;
-mod storage;
 
 use component::{logger::Logger, message_box::MessageBox, overlay::Overlay};
 use crossterm::{

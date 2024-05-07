@@ -87,7 +87,7 @@ pub fn handle_key_movement(
         }
         return PostEvent::noop(false);
     }
-    return PostEvent::noop(true);
+    PostEvent::noop(true)
 }
 
 pub fn handle_mouse_movement_app(

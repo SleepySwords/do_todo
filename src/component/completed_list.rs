@@ -11,7 +11,6 @@ use crate::{
         component::{Component, Drawer},
         event::PostEvent,
     },
-    task::Task,
     utils,
 };
 
@@ -34,24 +33,21 @@ impl CompletedList {
     }
 
     pub fn restore_task(app: &mut App) {
-        // FIXME: do this later
-        // if app.task_store.completed_root_tasks().is_empty() {
-        //     return;
-        // }
+        if app.task_store.completed_root_tasks().is_empty() {
+            return;
+        }
 
-        // let current_selected_task = app
-        //     .task_store
-        //     .completed_tasks
-        //     .remove(app.completed_list.selected_index);
-
-        // app.task_store
-        //     .add_task(Task::from_completed_task(current_selected_task));
-
-        // if app.completed_list.selected_index == app.task_store.completed_tasks.len()
-        //     && !app.task_store.completed_tasks.is_empty()
-        // {
-        //     app.completed_list.selected_index -= 1;
-        // }
+        if let Some(completed_task) = app
+            .task_store
+            .global_pos_to_completed(app.completed_list.selected_index)
+        {
+            app.task_store.restore(&completed_task);
+            if app.completed_list.selected_index >= app.task_store.completed_root_tasks().len() - 1
+                && !app.task_store.completed_root_tasks().is_empty()
+            {
+                app.completed_list.selected_index -= 1;
+            }
+        }
     }
 }
 
