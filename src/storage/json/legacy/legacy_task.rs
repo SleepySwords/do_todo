@@ -49,7 +49,6 @@ impl From<LegacyTask> for Task {
             tags: t.tags.into_iter().map(|f| f.to_string()).collect(),
             due_date: t.due_date,
             opened: t.opened,
-            sub_tasks: t.sub_tasks.into_iter().map(|f| f.into()).collect(),
         }
     }
 }

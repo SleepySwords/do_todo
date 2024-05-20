@@ -12,7 +12,7 @@ categories = ["command-line-utilities"]
 chrono = { version = "0.4", features = ["serde"] }
 crossterm = { version = "0.27", features = ["serde"] }
 dirs = "5.0.0"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
 serde_yaml = "0.8"
 serde_json = "1.0"
 tui = { package = "ratatui", version = "0.26.0", features = ["serde"]}
@@ -20,6 +20,10 @@ tui-textarea = { version = "0.4.0", features = ["crossterm", "ratatui"], default
 itertools = "0.10.5"
 lazy_static = "1.4.0"
 serde_with = "3.6.1"
+
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+serde_urlencoded = "0.7.1"
 
 
 # Using textwrap for now until tui-rs implements more general wrapping for widgets such as Tables.

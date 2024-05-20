@@ -4,14 +4,11 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    data_io,
-    task::{CompletedTask, FindParentResult, Tag, Task},
+    data::data_store::{DataTaskStore, TaskID}, task::{CompletedTask, FindParentResult, Tag, Task}
 };
 
-use super::data_store::{DataTaskStore, TaskID};
-
 #[derive(Default, Clone, Deserialize, Serialize)]
-pub struct JsonDataStore {
+pub struct TodoistDataStore {
     pub tasks: HashMap<TaskID, Task>,
     pub completed_tasks: HashMap<TaskID, CompletedTask>,
     pub subtasks: HashMap<TaskID, Vec<String>>,
@@ -21,7 +18,7 @@ pub struct JsonDataStore {
     pub task_count: usize,
 }
 
-impl JsonDataStore {
+impl TodoistDataStore {
     fn _global_pos_to_task(&self, selected: &mut usize, task_id: &str) -> Option<TaskID> {
         if *selected == 0 {
             return Some(task_id.to_string());
@@ -66,7 +63,7 @@ impl JsonDataStore {
     }
 }
 
-impl DataTaskStore for JsonDataStore {
+impl DataTaskStore for TodoistDataStore {
     fn task_mut(&mut self, id: &str) -> Option<&mut Task> {
         return self.tasks.get_mut(id);
     }
@@ -177,7 +174,7 @@ impl DataTaskStore for JsonDataStore {
     }
 
     fn save(&self) {
-        data_io::save_task_json(self);
+        // data_io::save_task_json(self);
     }
 
     fn move_task(&mut self, id: &str, parent: Option<TaskID>, order: usize, global: Option<()>) {

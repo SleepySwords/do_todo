@@ -1,0 +1,67 @@
+use std::collections::HashMap;
+
+use itertools::Itertools;
+use tokio::runtime::Runtime;
+
+use crate::task::Task;
+
+use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistTask};
+
+#[derive(serde::Deserialize, Debug)]
+pub struct TodoistSync {
+    pub items: Option<Vec<TodoistTask>>,
+}
+
+pub fn sync() -> TodoistDataStore {
+    let sync = Runtime::new().unwrap().block_on(async {
+        let client = reqwest::Client::new();
+        let mut params = HashMap::new();
+        params.insert("sync_token", "*");
+        params.insert("resource_types", "[\"all\"]");
+        let hi = client
+            .post("https://api.todoist.com/sync/v9/sync")
+            .header(
+                "Authorization",
+                "Bearer xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            )
+            .form(&params);
+
+        hi.send()
+            .await
+            .unwrap()
+            .json::<TodoistSync>()
+            .await
+            .unwrap()
+    });
+
+    let mut subtasks: HashMap<String, Vec<String>> = HashMap::new();
+    let mut root_tasks = Vec::new();
+    let tasks: HashMap<String, Task> = sync
+        .items
+        .unwrap_or_else(|| Vec::new())
+        .into_iter()
+        .map(|f| {
+            if let Some(ref parent_id) = f.parent_id {
+                println!("ok");
+                let subtasks = subtasks.entry(parent_id.clone()).or_insert_with(|| Vec::new());
+                subtasks.push(f.id.clone());
+            } else {
+                root_tasks.push(f.id.clone());
+            }
+            (f.id.clone(), f.into())
+        })
+        .collect();
+
+    println!("{:?}", subtasks);
+    println!("{:?}", tasks);
+
+    TodoistDataStore {
+        root: root_tasks,
+        tasks,
+        completed_tasks: HashMap::new(),
+        subtasks,
+        completed_root: Vec::new(),
+        tags: HashMap::new(),
+        task_count: 0,
+    }
+}

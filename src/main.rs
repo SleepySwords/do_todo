@@ -19,6 +19,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use data::todoist::todoist_login::sync;
 use error::AppError;
 use framework::{
     component::{Component, Drawer},
@@ -38,10 +39,13 @@ use std::{
     time::Duration,
 };
 
-use crate::{app::App, screens::main_screen::MainScreen};
+use crate::{
+    app::App, screens::main_screen::MainScreen,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (theme, tasks) = data_io::get_data();
+    let tasks = sync();
 
     enable_raw_mode()?;
 
@@ -74,7 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if let Err(err) = result {
         eprintln!("{:?}", err);
-        return Err(Box::new(err));
+        Err(Box::new(err))?;
     }
 
     Ok(())

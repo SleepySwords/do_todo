@@ -17,7 +17,7 @@ use crate::{
     error::AppError,
     framework::event::PostEvent,
     input,
-    task::{FindParentResult, FindParentResult2, Task, TaskStore},
+    task::{FindParentResult, Task},
     utils::{self, str_to_colour},
 };
 
@@ -422,7 +422,7 @@ impl App {
             todo!()
         };
 
-        let Some(FindParentResult2 {
+        let Some(FindParentResult {
             parent_id: parent_index,
             task_local_offset: local_index,
         }) = self.task_store.find_parent(&task_id)
@@ -462,7 +462,7 @@ impl App {
             return Err(AppError::invalid_state("Could not find task to move."));
         };
 
-        let Some(FindParentResult2 {
+        let Some(FindParentResult {
             parent_id,
             task_local_offset: local_index,
         }) = self.task_store.find_parent(&task_id)
@@ -573,7 +573,7 @@ impl App {
         };
 
         // FIXME: this should also probs return subtasks?
-        let Some(FindParentResult2 {
+        let Some(FindParentResult {
             parent_id,
             task_local_offset: local_index,
         }) = self.task_store.find_parent(&task_id)
@@ -633,7 +633,7 @@ impl App {
         let Some(task_id) = self.task_store.global_pos_to_task(*selected_index) else {
             return Err(AppError::invalid_state("Task does not exist"));
         };
-        let Some(FindParentResult2 { parent_id, .. }) = self.task_store.find_parent(&task_id)
+        let Some(FindParentResult { parent_id, .. }) = self.task_store.find_parent(&task_id)
         else {
             return Ok(PostEvent::noop(true));
         };
@@ -646,7 +646,7 @@ impl App {
         //     return Ok(PostEvent::noop(true));
         // };
 
-        let Some(FindParentResult2 {
+        let Some(FindParentResult {
             parent_id: grand_parent_id,
             task_local_offset: parent_local_index,
             ..
@@ -667,22 +667,12 @@ impl App {
                 .move_task(&task_id, None, parent_local_index + 1, Some(()));
         }
 
-        // let new_index = parent_local_index + 1;
-        // grandparent_subtasks.insert(new_index, task);
-        // *selected_index =
-        //     TaskStore::local_index_to_global(new_index, grandparent_subtasks, grandparent_index);
-        // // FIXME: refactor this to ideally not clone
-        // if self.task_store.auto_sort {
-        //     let Some(task) = self.task_store.task(*selected_index).cloned() else {
-        //         return Err(AppError::InvalidState(
-        //             "Invalid selected index for this task.".to_string(),
-        //         ));
-        //     };
-        //     self.task_store.sort();
-        //     if let Some(task_pos) = self.task_store.task_position(&task) {
-        //         *selected_index = task_pos;
-        //     }
-        // }
+        if self.task_list.auto_sort {
+            self.task_store.sort();
+            if let Some(task_pos) = self.task_store.task_to_global_pos(&task_id) {
+                *selected_index = task_pos;
+            }
+        }
         Ok(PostEvent::noop(false))
     }
 
