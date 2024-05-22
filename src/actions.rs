@@ -633,8 +633,7 @@ impl App {
         let Some(task_id) = self.task_store.global_pos_to_task(*selected_index) else {
             return Err(AppError::invalid_state("Task does not exist"));
         };
-        let Some(FindParentResult { parent_id, .. }) = self.task_store.find_parent(&task_id)
-        else {
+        let Some(FindParentResult { parent_id, .. }) = self.task_store.find_parent(&task_id) else {
             return Ok(PostEvent::noop(true));
         };
 

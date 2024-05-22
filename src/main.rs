@@ -34,9 +34,7 @@ use tui::{
 };
 
 use std::{
-    error::Error,
-    io::{self, Stdout},
-    time::Duration,
+    env, error::Error, io::{self, Stdout}, time::Duration
 };
 
 use crate::{
@@ -44,8 +42,15 @@ use crate::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (theme, tasks) = data_io::get_data();
-    let tasks = sync();
+
+    #[cfg(debug_assertions)]
+    let is_debug = true;
+
+    #[cfg(not(debug_assertions))]
+    let is_debug = false;
+
+    let (theme, tasks) = data_io::get_data(is_debug);
+    // let tasks = sync();
 
     enable_raw_mode()?;
 

@@ -12,7 +12,7 @@ use std::{
 
 use crate::{
     config::Config,
-    data::{json_data_store::JsonDataStore, data_store::DataTaskStore},
+    data::{data_store::DataTaskStore, json_data_store::JsonDataStore},
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
 };
@@ -86,7 +86,7 @@ where
     Default::default()
 }
 
-pub fn get_data() -> (Config, JsonDataStore) {
+pub fn get_data(is_debug: bool) -> (Config, JsonDataStore) {
     let config_local_dir = dirs::config_local_dir();
     let data_local_dir = dirs::data_local_dir();
 
@@ -97,18 +97,24 @@ pub fn get_data() -> (Config, JsonDataStore) {
         "config",
     );
 
+    let dir = if is_debug {
+        Some(std::env::current_dir().unwrap())
+    } else {
+        data_local_dir
+    };
+
     let task_store = load_from_file(
-        data_local_dir,
+        dir,
         DATA_FILE,
         // NOTE: This doesn't work:
         // serde_json::from_str::<TaskStore>,
         |x| {
             serde_json::from_str::<JSONVersion>(x)
                 .map(Into::<JsonDataStore>::into) // NOTE: we might do something similar as below
-                                                  // if/when we introduce integers as ids again
-                                                  // This is because for some reason, serde tags
-                                                  // don't like int strings as keys
-                                                  // See: https://github.com/serde-rs/serde/issues/2672
+                // if/when we introduce integers as ids again
+                // This is because for some reason, serde tags
+                // don't like int strings as keys
+                // See: https://github.com/serde-rs/serde/issues/2672
                 .or_else(|_| serde_json::from_str::<LegacyTaskStore>(x).map(|x| x.into()))
         },
         "task data",
@@ -164,11 +170,15 @@ pub fn save_config(config: &Config, task_store: Box<dyn DataTaskStore>) {
     );
 }
 
-pub fn save_task_json(task_store: &JsonDataStore) {
+pub fn save_task_json(task_store: &JsonDataStore, is_debug: bool) {
     let json = JSONVersion::V1(task_store.clone());
 
     save_to_file(
-        dirs::data_local_dir(),
+        if is_debug {
+            Some(std::env::current_dir().unwrap())
+        } else {
+            dirs::data_local_dir()
+        },
         DATA_FILE,
         || serde_json::to_string_pretty(&json),
         "data",

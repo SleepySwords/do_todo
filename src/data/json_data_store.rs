@@ -154,7 +154,8 @@ impl DataTaskStore for JsonDataStore {
     }
 
     fn sort(&mut self) {
-        self.root.sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
+        self.root
+            .sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
         for subtasks in self.subtasks.values_mut() {
             subtasks.sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
         }
@@ -177,10 +178,22 @@ impl DataTaskStore for JsonDataStore {
     }
 
     fn save(&self) {
-        data_io::save_task_json(self);
+        #[cfg(debug_assertions)]
+        let is_debug = true;
+
+        #[cfg(not(debug_assertions))]
+        let is_debug = false;
+
+        data_io::save_task_json(self, is_debug);
     }
 
-    fn move_task(&mut self, id: TaskIDRef, parent: Option<TaskID>, order: usize, global: Option<()>) {
+    fn move_task(
+        &mut self,
+        id: TaskIDRef,
+        parent: Option<TaskID>,
+        order: usize,
+        global: Option<()>,
+    ) {
         let hash_map = &mut self.subtasks;
         let subtasks = if let Some((_, subtasks)) = hash_map
             .iter_mut()
