@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use itertools::Itertools;
 use tokio::runtime::Runtime;
 
 use crate::task::Task;

@@ -104,7 +104,11 @@ pub fn get_data() -> (Config, JsonDataStore) {
         // serde_json::from_str::<TaskStore>,
         |x| {
             serde_json::from_str::<JSONVersion>(x)
-                .map(Into::<JsonDataStore>::into)
+                .map(Into::<JsonDataStore>::into) // NOTE: we might do something similar as below
+                                                  // if/when we introduce integers as ids again
+                                                  // This is because for some reason, serde tags
+                                                  // don't like int strings as keys
+                                                  // See: https://github.com/serde-rs/serde/issues/2672
                 .or_else(|_| serde_json::from_str::<LegacyTaskStore>(x).map(|x| x.into()))
         },
         "task data",

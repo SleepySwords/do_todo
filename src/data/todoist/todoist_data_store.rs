@@ -4,22 +4,22 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    data::data_store::{DataTaskStore, TaskID}, task::{CompletedTask, FindParentResult, Tag, Task}
+    data::data_store::{DataTaskStore, TaskID, TaskIDRef}, task::{CompletedTask, FindParentResult, Tag, Task}
 };
 
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct TodoistDataStore {
     pub tasks: HashMap<TaskID, Task>,
     pub completed_tasks: HashMap<TaskID, CompletedTask>,
-    pub subtasks: HashMap<TaskID, Vec<String>>,
-    pub root: Vec<String>,
+    pub subtasks: HashMap<TaskID, Vec<TaskID>>,
+    pub root: Vec<TaskID>,
     pub completed_root: Vec<TaskID>,
     pub tags: HashMap<String, Tag>,
     pub task_count: usize,
 }
 
 impl TodoistDataStore {
-    fn _global_pos_to_task(&self, selected: &mut usize, task_id: &str) -> Option<TaskID> {
+    fn _global_pos_to_task(&self, selected: &mut usize, task_id: TaskIDRef) -> Option<TaskID> {
         if *selected == 0 {
             return Some(task_id.to_string());
         }
@@ -38,8 +38,8 @@ impl TodoistDataStore {
     fn _task_to_global(
         &self,
         current_index: &mut usize,
-        to_find: &str,
-        curr: &str,
+        to_find: TaskIDRef,
+        curr: TaskIDRef,
     ) -> Option<()> {
         if to_find == curr {
             return Some(());
@@ -64,23 +64,23 @@ impl TodoistDataStore {
 }
 
 impl DataTaskStore for TodoistDataStore {
-    fn task_mut(&mut self, id: &str) -> Option<&mut Task> {
+    fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task> {
         return self.tasks.get_mut(id);
     }
 
-    fn task(&self, id: &str) -> Option<&Task> {
+    fn task(&self, id: TaskIDRef) -> Option<&Task> {
         return self.tasks.get(id);
     }
 
-    fn completed_task_mut(&mut self, id: &str) -> Option<&mut CompletedTask> {
+    fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask> {
         return self.completed_tasks.get_mut(id);
     }
 
-    fn completed_task(&self, id: &str) -> Option<&CompletedTask> {
+    fn completed_task(&self, id: TaskIDRef) -> Option<&CompletedTask> {
         return self.completed_tasks.get(id);
     }
 
-    fn delete_task(&mut self, id: &str) -> Option<Task> {
+    fn delete_task(&mut self, id: TaskIDRef) -> Option<Task> {
         self.root.retain(|f| f != id);
         self.subtasks
             .values_mut()
@@ -88,7 +88,7 @@ impl DataTaskStore for TodoistDataStore {
         self.tasks.remove(id)
     }
 
-    fn find_parent(&self, id: &str) -> Option<FindParentResult> {
+    fn find_parent(&self, id: TaskIDRef) -> Option<FindParentResult> {
         let parent = self
             .subtasks
             .iter()
@@ -106,7 +106,7 @@ impl DataTaskStore for TodoistDataStore {
     }
 
     // FIXME: might be able to wrap this in a &mut Vec<Task> perhaps?
-    fn subtasks_mut(&mut self, id: Option<&str>) -> Option<&mut Vec<TaskID>> {
+    fn subtasks_mut(&mut self, id: Option<TaskIDRef>) -> Option<&mut Vec<TaskID>> {
         if let Some(id) = id {
             return self.subtasks.get_mut(id);
         } else {
@@ -114,7 +114,7 @@ impl DataTaskStore for TodoistDataStore {
         }
     }
 
-    fn subtasks(&self, id: &str) -> Option<&Vec<TaskID>> {
+    fn subtasks(&self, id: TaskIDRef) -> Option<&Vec<TaskID>> {
         return self.subtasks.get(id);
     }
 
@@ -157,7 +157,7 @@ impl DataTaskStore for TodoistDataStore {
         }
     }
 
-    fn add_task(&mut self, task: Task, parent: Option<&str>) {
+    fn add_task(&mut self, task: Task, parent: Option<TaskIDRef>) {
         let parents = if let Some(parent_id) = parent {
             self.subtasks.get_mut(parent_id).unwrap()
         } else {
@@ -177,7 +177,7 @@ impl DataTaskStore for TodoistDataStore {
         // data_io::save_task_json(self);
     }
 
-    fn move_task(&mut self, id: &str, parent: Option<TaskID>, order: usize, global: Option<()>) {
+    fn move_task(&mut self, id: TaskIDRef, parent: Option<TaskID>, order: usize, global: Option<()>) {
         let hash_map = &mut self.subtasks;
         let subtasks = if let Some((_, subtasks)) = hash_map
             .iter_mut()
@@ -203,7 +203,7 @@ impl DataTaskStore for TodoistDataStore {
         }
     }
 
-    fn find_task_draw_size(&self, task_id: &str) -> usize {
+    fn find_task_draw_size(&self, task_id: TaskIDRef) -> usize {
         if let Some(task) = self.task(task_id) {
             return if !task.opened {
                 0
@@ -222,7 +222,7 @@ impl DataTaskStore for TodoistDataStore {
             .sum()
     }
 
-    fn complete_task(&mut self, id: &str, time_completed: NaiveDateTime) {
+    fn complete_task(&mut self, id: TaskIDRef, time_completed: NaiveDateTime) {
         self.root.retain(|f| f != id);
         self.subtasks
             .values_mut()
@@ -236,7 +236,7 @@ impl DataTaskStore for TodoistDataStore {
         }
     }
 
-    fn restore(&mut self, id: &str) {
+    fn restore(&mut self, id: TaskIDRef) {
         self.completed_root.retain(|f| f != id);
         self.subtasks
             .values_mut()
@@ -255,7 +255,7 @@ impl DataTaskStore for TodoistDataStore {
         &mut self.tags
     }
 
-    fn task_to_global_pos(&self, id: &str) -> Option<usize> {
+    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize> {
         let mut current_index = 0;
         for curr in &self.root {
             if let Some(()) = self._task_to_global(&mut current_index, id, curr) {

@@ -5,38 +5,39 @@ use chrono::NaiveDateTime;
 use crate::task::{CompletedTask, FindParentResult, Tag, Task};
 
 pub type TaskID = String;
+pub type TaskIDRef<'a> = &'a str;
 
 /// Handles how tasks are stored
 pub trait DataTaskStore {
     /// Returns this mutable task with this id.
-    fn task_mut(&mut self, id: &str) -> Option<&mut Task>;
+    fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task>;
 
     /// Returns the task with this id.
-    fn task(&self, id: &str) -> Option<&Task>;
+    fn task(&self, id: TaskIDRef) -> Option<&Task>;
 
     /// Returns this mutable completed task with this id.
-    fn completed_task_mut(&mut self, id: &str) -> Option<&mut CompletedTask>;
+    fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask>;
 
     /// Returns the completed task with this id.
-    fn completed_task(&self, id: &str) -> Option<&CompletedTask>;
+    fn completed_task(&self, id: TaskIDRef) -> Option<&CompletedTask>;
 
     /// Deletes the task with this id.
-    fn delete_task(&mut self, id: &str) -> Option<Task>;
+    fn delete_task(&mut self, id: TaskIDRef) -> Option<Task>;
 
     /// Gets the parent of this task with this id.
-    fn find_parent(&self, id: &str) -> Option<FindParentResult>;
+    fn find_parent(&self, id: TaskIDRef) -> Option<FindParentResult>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
     ///
     /// * `id` - The id to get, if None, will return global tasks
-    fn subtasks_mut(&mut self, id: Option<&str>) -> Option<&mut Vec<TaskID>>;
+    fn subtasks_mut(&mut self, id: Option<TaskIDRef>) -> Option<&mut Vec<TaskID>>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
     ///
     /// * `id` - The id to get, if None, will return global tasks
-    fn subtasks(&self, id: &str) -> Option<&Vec<TaskID>>;
+    fn subtasks(&self, id: TaskIDRef) -> Option<&Vec<TaskID>>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
@@ -58,7 +59,7 @@ pub trait DataTaskStore {
     /// Finds the task at the global positon
     fn global_pos_to_completed(&self, pos: usize) -> Option<TaskID>;
 
-    fn task_to_global_pos(&self, id: &str) -> Option<usize>;
+    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize>;
 
     fn delete_tag(&mut self, tag_id: &String);
 
@@ -69,7 +70,7 @@ pub trait DataTaskStore {
     ///
     /// * `task` - The task to be added.
     /// * `parent` - The parent of the task to be added.
-    fn add_task(&mut self, task: Task, parent: Option<&str>);
+    fn add_task(&mut self, task: Task, parent: Option<TaskIDRef>);
 
     /// Fetches data from the data source
     fn refresh(&mut self);
@@ -83,16 +84,16 @@ pub trait DataTaskStore {
     /// * `parent` - If specified, where the task should be moved to
     /// * `order` - What place should the task be placed within the order.
     ///
-    fn move_task(&mut self, id: &str, parent: Option<TaskID>, order: usize, global: Option<()>);
+    fn move_task(&mut self, id: TaskIDRef, parent: Option<TaskID>, order: usize, global: Option<()>);
     /// FIXME: global task moving?
 
-    fn find_task_draw_size(&self, task_id: &str) -> usize;
+    fn find_task_draw_size(&self, id: TaskIDRef) -> usize;
 
     fn find_tasks_draw_size(&self) -> usize;
 
-    fn complete_task(&mut self, id: &str, time_completed: NaiveDateTime);
+    fn complete_task(&mut self, id: TaskIDRef, time_completed: NaiveDateTime);
 
-    fn restore(&mut self, id: &str);
+    fn restore(&mut self, id: TaskIDRef);
 
     fn tags(&self) -> &HashMap<String, Tag>;
 
