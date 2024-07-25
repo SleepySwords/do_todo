@@ -11,8 +11,10 @@ use std::{
 // outside of them
 
 use crate::{
-    config::Config,
-    data::{data_store::DataTaskStore, json_data_store::JsonDataStore},
+    config::{Config, DataSource},
+    data::{
+        data_store::DataTaskStore, json_data_store::JsonDataStore, todoist::todoist_login::sync,
+    },
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
 };
@@ -86,11 +88,11 @@ where
     Default::default()
 }
 
-pub fn get_data(is_debug: bool) -> (Config, JsonDataStore) {
+pub fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
     let config_local_dir = dirs::config_local_dir();
     let data_local_dir = dirs::data_local_dir();
 
-    let theme = load_from_file(
+    let config = load_from_file(
         config_local_dir,
         CONFIG_FILE,
         serde_yaml::from_str::<Config>,
@@ -103,24 +105,30 @@ pub fn get_data(is_debug: bool) -> (Config, JsonDataStore) {
         data_local_dir
     };
 
-    let task_store = load_from_file(
-        dir,
-        DATA_FILE,
-        // NOTE: This doesn't work:
-        // serde_json::from_str::<TaskStore>,
-        |x| {
-            serde_json::from_str::<JSONVersion>(x)
-                .map(Into::<JsonDataStore>::into) // NOTE: we might do something similar as below
-                // if/when we introduce integers as ids again
-                // This is because for some reason, serde tags
-                // don't like int strings as keys
-                // See: https://github.com/serde-rs/serde/issues/2672
-                .or_else(|_| serde_json::from_str::<LegacyTaskStore>(x).map(|x| x.into()))
-        },
-        "task data",
-    );
+    // let tasks = sync();
+    let task_store: Box<dyn DataTaskStore> = match &config.data_source {
+        DataSource::Json => {
+            Box::new(load_from_file(
+                dir,
+                DATA_FILE,
+                // NOTE: This doesn't work:
+                // serde_json::from_str::<TaskStore>,
+                |x| {
+                    serde_json::from_str::<JSONVersion>(x)
+                        .map(Into::<JsonDataStore>::into) // NOTE: we might do something similar as below
+                        // if/when we introduce integers as ids again
+                        // This is because for some reason, serde tags
+                        // don't like int strings as keys
+                        // See: https://github.com/serde-rs/serde/issues/2672
+                        .or_else(|_| serde_json::from_str::<LegacyTaskStore>(x).map(|x| x.into()))
+                },
+                "task data",
+            ))
+        }
+        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth)),
+    };
 
-    (theme, task_store)
+    (config, task_store)
 }
 
 fn save_to_file<T, F, E>(local_dir: Option<PathBuf>, file_name: &str, ser_f: F, kind: &str)

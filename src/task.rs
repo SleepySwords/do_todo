@@ -7,7 +7,8 @@ use std::fmt::Display;
 
 use crate::{
     app::App,
-    config::{color_parser, Config}, data::data_store::TaskID,
+    config::{color_parser, Config},
+    data::data_store::TaskID,
 };
 
 #[derive(Deserialize, Serialize, Clone)]

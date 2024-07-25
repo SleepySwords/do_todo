@@ -5,7 +5,7 @@ use crate::{
         completed_list::CompletedListContext, status_line::StatusLine, task_list::TaskListContext,
     },
     config::Config,
-    data::{data_store::DataTaskStore},
+    data::data_store::DataTaskStore,
     error::AppError,
     framework::event::PostEvent,
 };
@@ -27,10 +27,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new<T: DataTaskStore + 'static>(theme: Config, task_data: T) -> App {
+    pub fn new(theme: Config, task_data: Box<dyn DataTaskStore>) -> App {
         App {
             config: theme,
-            task_store: Box::new(task_data),
+            task_store: task_data,
             status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
             mode: Mode::CurrentTasks,
             logs: vec![],

@@ -338,8 +338,9 @@ mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
+    use crate::data::json_data_store::JsonDataStore;
     use crate::framework::screen_manager::ScreenManager;
-    use crate::{app::App, input, task::TaskStore};
+    use crate::{app::App, input};
 
     pub fn input_char(character: char, screen_manager: &mut ScreenManager) {
         let result = input::key_event(
@@ -361,7 +362,7 @@ pub mod test {
         }
     }
 
-    pub fn setup(task_store: TaskStore) -> ScreenManager {
+    pub fn setup(task_store: JsonDataStore) -> ScreenManager {
         ScreenManager {
             overlays: vec![],
             app: App::new(crate::config::Config::default(), task_store),

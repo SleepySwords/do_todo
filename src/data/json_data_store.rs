@@ -98,7 +98,9 @@ impl DataTaskStore for JsonDataStore {
             .find(|(_, subs)| subs.contains(&id.to_string()))
             .map(|p| p.0);
         let local_index = if let Some(p) = parent {
-            self.subtasks.get(p).unwrap().iter().position(|t| t == id)
+            self.subtasks
+                .get(p)
+                .map_or(Some(0), |f| f.iter().position(|t| t == id))
         } else {
             self.root.iter().position(|t| t == id)
         };
@@ -143,6 +145,16 @@ impl DataTaskStore for JsonDataStore {
             .find_map(|f| self._global_pos_to_task(&mut pos, f));
     }
 
+    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize> {
+        let mut current_index = 0;
+        for curr in &self.root {
+            if let Some(()) = self._task_to_global(&mut current_index, id, curr) {
+                return Some(current_index);
+            }
+        }
+        None
+    }
+
     fn delete_tag(&mut self, tag_id: &String) {
         self.tags.remove(tag_id);
         for task in &mut self.tasks.values_mut() {
@@ -163,7 +175,7 @@ impl DataTaskStore for JsonDataStore {
 
     fn add_task(&mut self, task: Task, parent: Option<TaskIDRef>) {
         let parents = if let Some(parent_id) = parent {
-            self.subtasks.get_mut(parent_id).unwrap()
+            self.subtasks.entry(parent_id.to_string()).or_default()
         } else {
             &mut self.root
         };
@@ -269,15 +281,5 @@ impl DataTaskStore for JsonDataStore {
 
     fn tags_mut(&mut self) -> &mut HashMap<String, Tag> {
         &mut self.tags
-    }
-
-    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize> {
-        let mut current_index = 0;
-        for curr in &self.root {
-            if let Some(()) = self._task_to_global(&mut current_index, id, curr) {
-                return Some(current_index);
-            }
-        }
-        None
     }
 }

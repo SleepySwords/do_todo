@@ -4,7 +4,8 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    data::data_store::{DataTaskStore, TaskID, TaskIDRef}, task::{CompletedTask, FindParentResult, Tag, Task}
+    data::data_store::{DataTaskStore, TaskID, TaskIDRef},
+    task::{CompletedTask, FindParentResult, Tag, Task},
 };
 
 #[derive(Default, Clone, Deserialize, Serialize)]
@@ -140,6 +141,16 @@ impl DataTaskStore for TodoistDataStore {
             .find_map(|f| self._global_pos_to_task(&mut pos, f));
     }
 
+    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize> {
+        let mut current_index = 0;
+        for curr in &self.root {
+            if let Some(()) = self._task_to_global(&mut current_index, id, curr) {
+                return Some(current_index);
+            }
+        }
+        None
+    }
+
     fn delete_tag(&mut self, tag_id: &String) {
         self.tags.remove(tag_id);
         for task in &mut self.tasks.values_mut() {
@@ -151,7 +162,8 @@ impl DataTaskStore for TodoistDataStore {
     }
 
     fn sort(&mut self) {
-        self.root.sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
+        self.root
+            .sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
         for subtasks in self.subtasks.values_mut() {
             subtasks.sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
         }
@@ -177,7 +189,13 @@ impl DataTaskStore for TodoistDataStore {
         // data_io::save_task_json(self);
     }
 
-    fn move_task(&mut self, id: TaskIDRef, parent: Option<TaskID>, order: usize, global: Option<()>) {
+    fn move_task(
+        &mut self,
+        id: TaskIDRef,
+        parent: Option<TaskID>,
+        order: usize,
+        global: Option<()>,
+    ) {
         let hash_map = &mut self.subtasks;
         let subtasks = if let Some((_, subtasks)) = hash_map
             .iter_mut()
@@ -253,15 +271,5 @@ impl DataTaskStore for TodoistDataStore {
 
     fn tags_mut(&mut self) -> &mut HashMap<String, Tag> {
         &mut self.tags
-    }
-
-    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize> {
-        let mut current_index = 0;
-        for curr in &self.root {
-            if let Some(()) = self._task_to_global(&mut current_index, id, curr) {
-                return Some(current_index);
-            }
-        }
-        None
     }
 }

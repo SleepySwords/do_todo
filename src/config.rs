@@ -10,6 +10,12 @@ use tui::{
 use crate::framework::key::Key;
 
 #[derive(Deserialize, Serialize)]
+pub enum DataSource {
+    Json,
+    Todoist(String),
+}
+
+#[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
     #[serde(with = "color_parser")]
@@ -72,6 +78,8 @@ pub struct Config {
     pub closed_subtask: String,
     pub open_subtask: String,
 
+    pub data_source: DataSource,
+
     pub debug: bool,
 }
 
@@ -132,6 +140,7 @@ impl Default for Config {
             closed_subtask: String::from(" ▸  "),
             open_subtask: String::from(" ▾  "),
             debug: false,
+            data_source: DataSource::Json,
         }
     }
 }

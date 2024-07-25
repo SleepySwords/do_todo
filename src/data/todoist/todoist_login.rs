@@ -11,7 +11,7 @@ pub struct TodoistSync {
     pub items: Option<Vec<TodoistTask>>,
 }
 
-pub fn sync() -> TodoistDataStore {
+pub fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     let sync = Runtime::new().unwrap().block_on(async {
         let client = reqwest::Client::new();
         let mut params = HashMap::new();
@@ -19,10 +19,7 @@ pub fn sync() -> TodoistDataStore {
         params.insert("resource_types", "[\"all\"]");
         let hi = client
             .post("https://api.todoist.com/sync/v9/sync")
-            .header(
-                "Authorization",
-                "Bearer xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-            )
+            .header("Authorization", format!("Bearer {}", todoist_auth.into()))
             .form(&params);
 
         hi.send()
@@ -37,12 +34,12 @@ pub fn sync() -> TodoistDataStore {
     let mut root_tasks = Vec::new();
     let tasks: HashMap<String, Task> = sync
         .items
-        .unwrap_or_else(|| Vec::new())
+        .unwrap_or_default()
         .into_iter()
         .map(|f| {
             if let Some(ref parent_id) = f.parent_id {
                 println!("ok");
-                let subtasks = subtasks.entry(parent_id.clone()).or_insert_with(|| Vec::new());
+                let subtasks = subtasks.entry(parent_id.clone()).or_default();
                 subtasks.push(f.id.clone());
             } else {
                 root_tasks.push(f.id.clone());

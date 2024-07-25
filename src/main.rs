@@ -19,7 +19,6 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use data::todoist::todoist_login::sync;
 use error::AppError;
 use framework::{
     component::{Component, Drawer},
@@ -34,23 +33,21 @@ use tui::{
 };
 
 use std::{
-    env, error::Error, io::{self, Stdout}, time::Duration
+    error::Error,
+    io::{self, Stdout},
+    time::Duration,
 };
 
-use crate::{
-    app::App, screens::main_screen::MainScreen,
-};
+use crate::{app::App, screens::main_screen::MainScreen};
 
 fn main() -> Result<(), Box<dyn Error>> {
-
     #[cfg(debug_assertions)]
     let is_debug = true;
 
     #[cfg(not(debug_assertions))]
     let is_debug = false;
 
-    let (theme, tasks) = data_io::get_data(is_debug);
-    // let tasks = sync();
+    let (config, tasks) = data_io::get_data(is_debug);
 
     enable_raw_mode()?;
 
@@ -59,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let app = App::new(theme, tasks);
+    let app = App::new(config, tasks);
     let mut screen_manager = ScreenManager {
         app,
         overlays: vec![],

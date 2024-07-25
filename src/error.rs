@@ -31,7 +31,7 @@ pub enum AppError {
 }
 
 impl AppError {
-    pub fn invalid_state<T: Into<String>>(msg: T) -> AppError{
+    pub fn invalid_state<T: Into<String>>(msg: T) -> AppError {
         AppError::InvalidState(msg.into())
     }
 }
