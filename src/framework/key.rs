@@ -188,13 +188,9 @@ impl KeyBinding<'_> {
             function: None,
         }
     }
-    pub fn register_key<T: 'static>(
-        character: Key,
-        description: &str,
-        function: T,
-    ) -> KeyBinding<'_>
+    pub fn register_key<T>(character: Key, description: &str, function: T) -> KeyBinding<'_>
     where
-        T: Fn(&mut App) -> Result<PostEvent, AppError>,
+        T: Fn(&mut App) -> Result<PostEvent, AppError> + 'static,
     {
         KeyBinding {
             character,

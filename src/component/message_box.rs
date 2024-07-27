@@ -152,9 +152,9 @@ impl MessageBoxBuilder {
         self
     }
 
-    pub fn on_close<T: 'static>(mut self, callback: T) -> Self
+    pub fn on_close<T>(mut self, callback: T) -> Self
     where
-        T: Fn(&mut App) -> PostEvent,
+        T: Fn(&mut App) -> PostEvent + 'static,
     {
         self.on_close = Some(Box::new(callback));
         self

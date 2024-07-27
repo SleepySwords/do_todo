@@ -2,8 +2,6 @@ use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::Color;
 
-use std::usize;
-
 use crate::app::{App, Mode};
 use crate::config::Config;
 use crate::error::AppError;
@@ -338,8 +336,10 @@ mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
+    use crate::data::data_store::DataTaskStore;
     use crate::data::json_data_store::JsonDataStore;
     use crate::framework::screen_manager::ScreenManager;
+    use crate::task::Task;
     use crate::{app::App, input};
 
     pub fn input_char(character: char, screen_manager: &mut ScreenManager) {
@@ -365,7 +365,13 @@ pub mod test {
     pub fn setup(task_store: JsonDataStore) -> ScreenManager {
         ScreenManager {
             overlays: vec![],
-            app: App::new(crate::config::Config::default(), task_store),
+            app: App::new(crate::config::Config::default(), Box::new(task_store)),
         }
+    }
+
+    pub fn get_task_from_pos(task_store: &dyn DataTaskStore, pos: usize) -> &Task {
+        task_store
+            .task(&task_store.global_pos_to_task(pos).unwrap())
+            .unwrap()
     }
 }

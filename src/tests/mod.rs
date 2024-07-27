@@ -17,9 +17,9 @@ mod visual;
 fn assert_task_eq(app: &App, task_names: Vec<&str>) {
     assert_eq!(
         app.task_store
-            .tasks
+            .root_tasks()
             .iter()
-            .map(|f| f.title.clone())
+            .map(|f| app.task_store.task(f).unwrap().title.clone())
             .collect_vec(),
         task_names
     );

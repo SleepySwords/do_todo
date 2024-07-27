@@ -290,13 +290,9 @@ impl App {
         self.create_dialog_or_fuzzy("Edit a tag", tag_options)
     }
 
-    fn create_select_tag_colour<T: 'static>(
-        &mut self,
-        default_string: String,
-        callback: T,
-    ) -> PostEvent
+    fn create_select_tag_colour<T>(&mut self, default_string: String, callback: T) -> PostEvent
     where
-        T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone,
+        T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone + 'static,
     {
         let tag_colour = InputBoxBuilder::default()
             .fill(&default_string.clone())

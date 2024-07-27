@@ -42,7 +42,7 @@ impl CompletedList {
             .global_pos_to_completed(app.completed_list.selected_index)
         {
             app.task_store.restore(&completed_task);
-            if app.completed_list.selected_index >= app.task_store.completed_root_tasks().len() - 1
+            if app.completed_list.selected_index >= app.task_store.completed_root_tasks().len()
                 && !app.task_store.completed_root_tasks().is_empty()
             {
                 app.completed_list.selected_index -= 1;

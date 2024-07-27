@@ -1,3 +1,5 @@
+#![feature(is_sorted)]
+
 mod actions;
 mod app;
 mod component;
@@ -15,9 +17,7 @@ mod utils;
 
 use component::{logger::Logger, message_box::MessageBox, overlay::Overlay};
 use crossterm::{
-    event::{
-        self, DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers,
-    },
+    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -137,7 +137,7 @@ pub async fn start_app(
         })?;
 
         let tick = interval.tick();
-        let crossterm = event_stream.try_next().fuse();
+        let crossterm = &mut event_stream.try_next().fuse();
 
         tokio::select! {
             _ = tick => {

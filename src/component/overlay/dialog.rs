@@ -24,10 +24,10 @@ pub struct DialogAction<'a> {
 }
 
 impl<'a> DialogAction<'a> {
-    pub fn new<T, F: 'static>(name: T, function: F) -> DialogAction<'a>
+    pub fn new<T, F>(name: T, function: F) -> DialogAction<'a>
     where
         T: Into<Line<'a>>,
-        F: FnOnce(&mut App) -> PostEvent,
+        F: FnOnce(&mut App) -> PostEvent + 'static,
     {
         DialogAction {
             name: name.into(),
@@ -168,9 +168,9 @@ impl<'a> DialogBoxBuilder<'a> {
         }
     }
 
-    pub fn add_option<T, F: 'static>(mut self, line: T, function: F) -> Self
+    pub fn add_option<T, F>(mut self, line: T, function: F) -> Self
     where
-        F: FnOnce(&mut App) -> PostEvent,
+        F: FnOnce(&mut App) -> PostEvent + 'static,
         T: Into<Line<'a>>,
     {
         self.options.push(DialogAction {

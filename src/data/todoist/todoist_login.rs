@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use tokio::runtime::Runtime;
-
 use crate::task::Task;
 
 use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistTask};
@@ -21,7 +19,8 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         .header("Authorization", format!("Bearer {}", todoist_auth.into()))
         .form(&params);
 
-    let sync = hi.send()
+    let sync = hi
+        .send()
         .await
         .unwrap()
         .json::<TodoistSync>()

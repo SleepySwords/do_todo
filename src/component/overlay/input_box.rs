@@ -228,9 +228,9 @@ impl InputBoxBuilder {
         self
     }
 
-    pub fn on_submit<T: 'static>(mut self, callback: T) -> Self
+    pub fn on_submit<T>(mut self, callback: T) -> Self
     where
-        T: Fn(&mut App, String) -> PostEvent,
+        T: Fn(&mut App, String) -> PostEvent + 'static,
     {
         self.on_submit = Some(Box::new(callback));
         self

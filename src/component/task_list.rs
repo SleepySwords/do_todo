@@ -8,6 +8,7 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
+    data::data_store::TaskIDRef,
     framework::{
         component::{Component, Drawer},
         event::PostEvent,
@@ -40,7 +41,7 @@ impl TaskList {
 
     fn draw_task<'a>(
         app: &'a App,
-        task_id: &String,
+        task_id: TaskIDRef,
         nested_level: usize,
         task_index: &mut usize,
     ) -> Vec<Line<'a>> {

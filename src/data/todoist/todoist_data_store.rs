@@ -151,7 +151,7 @@ impl DataTaskStore for TodoistDataStore {
         None
     }
 
-    fn delete_tag(&mut self, tag_id: &String) {
+    fn delete_tag(&mut self, tag_id: TaskIDRef) {
         self.tags.remove(tag_id);
         for task in &mut self.tasks.values_mut() {
             task.tags.retain(|f| f != tag_id);

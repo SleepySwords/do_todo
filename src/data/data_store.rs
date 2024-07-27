@@ -61,7 +61,7 @@ pub trait DataTaskStore {
 
     fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize>;
 
-    fn delete_tag(&mut self, tag_id: &String);
+    fn delete_tag(&mut self, tag_id: TaskIDRef);
 
     /// Sorts all the task based on priority
     fn sort(&mut self);
