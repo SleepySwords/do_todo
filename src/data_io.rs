@@ -88,7 +88,7 @@ where
     Default::default()
 }
 
-pub fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
+pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
     let config_local_dir = dirs::config_local_dir();
     let data_local_dir = dirs::data_local_dir();
 
@@ -125,7 +125,7 @@ pub fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
                 "task data",
             ))
         }
-        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth)),
+        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth).await),
     };
 
     (config, task_store)

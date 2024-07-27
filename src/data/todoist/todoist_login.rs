@@ -11,24 +11,22 @@ pub struct TodoistSync {
     pub items: Option<Vec<TodoistTask>>,
 }
 
-pub fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
-    let sync = Runtime::new().unwrap().block_on(async {
-        let client = reqwest::Client::new();
-        let mut params = HashMap::new();
-        params.insert("sync_token", "*");
-        params.insert("resource_types", "[\"all\"]");
-        let hi = client
-            .post("https://api.todoist.com/sync/v9/sync")
-            .header("Authorization", format!("Bearer {}", todoist_auth.into()))
-            .form(&params);
+pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
+    let client = reqwest::Client::new();
+    let mut params = HashMap::new();
+    params.insert("sync_token", "*");
+    params.insert("resource_types", "[\"all\"]");
+    let hi = client
+        .post("https://api.todoist.com/sync/v9/sync")
+        .header("Authorization", format!("Bearer {}", todoist_auth.into()))
+        .form(&params);
 
-        hi.send()
-            .await
-            .unwrap()
-            .json::<TodoistSync>()
-            .await
-            .unwrap()
-    });
+    let sync = hi.send()
+        .await
+        .unwrap()
+        .json::<TodoistSync>()
+        .await
+        .unwrap();
 
     let mut subtasks: HashMap<String, Vec<String>> = HashMap::new();
     let mut root_tasks = Vec::new();

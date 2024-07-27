@@ -41,18 +41,17 @@ impl StatusLine {
     }
 }
 
+const SPINNER: [&str; 4] = ["-", "\\", "|", "/"];
+
 impl Component for StatusLine {
     // Should be able to do commands?!
     fn draw(&self, app: &App, drawer: &mut Drawer) {
-        let help = Text::styled(
-            self.status_line.clone()
-                + if app.task_list.auto_sort {
-                    " Auto sort is current enabled"
-                } else {
-                    ""
-                },
-            Style::default().fg(self.colour),
-        );
+        let mut status_line = self.status_line.clone();
+        if app.task_list.auto_sort {
+            status_line += " Auto sort is current enabled"
+        }
+        status_line += &format!(" {}", SPINNER[app.tick % SPINNER.len()]);
+        let help = Text::styled(status_line, Style::default().fg(self.colour));
         let paragraph = Paragraph::new(help);
         drawer.draw_widget(paragraph, self.draw_area);
     }

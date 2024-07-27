@@ -23,6 +23,8 @@ pub struct App {
     pub task_list: TaskListContext,
     pub completed_list: CompletedListContext,
 
+    pub tick: usize,
+
     should_shutdown: bool,
 }
 
@@ -36,6 +38,7 @@ impl App {
             logs: vec![],
             task_list: TaskListContext::default(),
             completed_list: CompletedListContext::default(),
+            tick: 0,
             should_shutdown: false,
         }
     }
