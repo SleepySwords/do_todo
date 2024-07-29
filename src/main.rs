@@ -100,8 +100,6 @@ pub async fn start_app(
     let var_name = Logger::default();
     let mut logger = var_name;
 
-    let (send, recv) = tokio::sync::mpsc::channel::<Event>(10);
-
     let mut interval = tokio::time::interval_at(Instant::now(), Duration::from_millis(100));
     let mut event_stream = EventStream::new();
 
@@ -193,57 +191,6 @@ pub async fn start_app(
                 }
             }
         }
-
-        // This function blocks
-        // if event::poll(Duration::from_millis(50))? {
-        //     match event::read()? {
-        //         Event::Key(key_event) => {
-        //             if key_event.code == KeyCode::Char('c')
-        //                 && key_event.modifiers.contains(KeyModifiers::CONTROL)
-        //             {
-        //                 return Ok(());
-        //             }
-        //             if !screen_manager.app.config.debug
-        //                 || logger
-        //                     .key_event(&mut screen_manager.app, key_event)
-        //                     .propegate_further
-        //             {
-        //                 let result = input::key_event(screen_manager, key_event);
-        //                 match result {
-        //                     Ok(post_event) => screen_manager.handle_post_event(post_event),
-        //                     Err(AppError::InvalidState(msg)) => {
-        //                         let prev_mode = screen_manager.app.mode;
-        //                         screen_manager.push_layer(MessageBox::new(
-        //                             "An error occured".to_string(),
-        //                             move |app| {
-        //                                 app.mode = prev_mode;
-        //                                 PostEvent::noop(false)
-        //                             },
-        //                             msg,
-        //                             Color::Red,
-        //                             0,
-        //                         ));
-        //                     }
-        //                     _ => {}
-        //                 }
-        //             }
-        //         }
-        //         Event::Mouse(mouse_event) => {
-        //             let post_event = Overlay::mouse_event(screen_manager, mouse_event);
-        //             let propegate = post_event.propegate_further;
-        //             screen_manager.handle_post_event(post_event);
-        //             if propegate {
-        //                 main_screen.mouse_event(&mut screen_manager.app, mouse_event);
-        //             }
-        //         }
-        //         Event::Resize(x, y) => {
-        //             screen_manager.app.println(format!("{} {}", x, y));
-        //         }
-        //         _ => {
-        //             println!("oakfe");
-        //         }
-        //     }
-        // }
     }
     Ok(())
 }

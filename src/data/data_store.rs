@@ -104,4 +104,6 @@ pub trait DataTaskStore {
     fn tags(&self) -> &HashMap<String, Tag>;
 
     fn tags_mut(&mut self) -> &mut HashMap<String, Tag>;
+
+    fn is_syncing(&self) -> bool;
 }

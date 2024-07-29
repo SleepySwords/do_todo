@@ -282,4 +282,8 @@ impl DataTaskStore for JsonDataStore {
     fn tags_mut(&mut self) -> &mut HashMap<String, Tag> {
         &mut self.tags
     }
+
+    fn is_syncing(&self) -> bool {
+        false
+    }
 }

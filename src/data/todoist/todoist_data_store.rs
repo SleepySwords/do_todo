@@ -1,14 +1,19 @@
-use std::{cmp, collections::HashMap};
+use std::{
+    cmp,
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc::Sender;
 
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
     task::{CompletedTask, FindParentResult, Tag, Task},
 };
 
-#[derive(Default, Clone, Deserialize, Serialize)]
+use super::todoist_command::{TodoistCommand, TodoistItemAddCommand};
+
 pub struct TodoistDataStore {
     pub tasks: HashMap<TaskID, Task>,
     pub completed_tasks: HashMap<TaskID, CompletedTask>,
@@ -17,6 +22,9 @@ pub struct TodoistDataStore {
     pub completed_root: Vec<TaskID>,
     pub tags: HashMap<String, Tag>,
     pub task_count: usize,
+
+    pub token: String,
+    pub currently_syncing: Arc<Mutex<bool>>,
 }
 
 impl TodoistDataStore {
@@ -177,8 +185,41 @@ impl DataTaskStore for TodoistDataStore {
         };
         let key = (self.task_count + 1).to_string();
         self.task_count += 1;
-        self.tasks.insert(key.clone(), task);
+        self.tasks.insert(key.clone(), task.clone());
         parents.push(key);
+
+        let command = TodoistCommand::ItemAdd {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            temp_id: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemAddCommand {
+                content: task.title.to_string(),
+            },
+        };
+
+        if let Ok(mut currently_syncing) = self.currently_syncing.lock() {
+            *currently_syncing = true;
+        }
+        let currently_syncing = self.currently_syncing.clone();
+        tokio::spawn(async move {
+            let client = reqwest::Client::new();
+            let mut params = HashMap::new();
+            // println!("{}", serde_json::to_string(&vec![command.clone()]).unwrap());
+            params.insert("commands", serde_json::to_string(&vec![command]).unwrap());
+            let sync = client
+                .post("https://api.todoist.com/sync/v9/sync")
+                .header(
+                    "Authorization",
+                    "Bearer a".to_string(),
+                )
+                .form(&params);
+
+            let sync = sync.send().await.unwrap().text().await.unwrap(); // FIXME: update temp
+                                                                         // things
+            if let Ok(mut currently_syncing) = currently_syncing.lock() {
+                *currently_syncing = false;
+            }
+            // println!("{:?}", sync);
+        });
     }
 
     fn refresh(&mut self) {
@@ -271,5 +312,9 @@ impl DataTaskStore for TodoistDataStore {
 
     fn tags_mut(&mut self) -> &mut HashMap<String, Tag> {
         &mut self.tags
+    }
+
+    fn is_syncing(&self) -> bool {
+        self.currently_syncing.lock().map_or(false, |f| *f)
     }
 }

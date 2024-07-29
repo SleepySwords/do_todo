@@ -17,6 +17,7 @@ use crate::{
     },
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
+    utils,
 };
 
 const DIR: &str = "dotodo";
@@ -89,8 +90,14 @@ where
 }
 
 pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
-    let config_local_dir = dirs::config_local_dir();
-    let data_local_dir = dirs::data_local_dir();
+    let (data_local_dir, config_local_dir) = if is_debug {
+        (
+            Some(std::env::current_dir().unwrap()),
+            Some(std::env::current_dir().unwrap()),
+        )
+    } else {
+        (dirs::data_local_dir(), dirs::config_local_dir())
+    };
 
     let config = load_from_file(
         config_local_dir,
@@ -99,17 +106,11 @@ pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
         "config",
     );
 
-    let dir = if is_debug {
-        Some(std::env::current_dir().unwrap())
-    } else {
-        data_local_dir
-    };
-
     // let tasks = sync();
     let task_store: Box<dyn DataTaskStore> = match &config.data_source {
         DataSource::Json => {
             Box::new(load_from_file(
-                dir,
+                data_local_dir,
                 DATA_FILE,
                 // NOTE: This doesn't work:
                 // serde_json::from_str::<TaskStore>,
@@ -171,7 +172,11 @@ pub fn save_config(config: &Config, task_store: Box<dyn DataTaskStore>) {
     task_store.save();
 
     save_to_file(
-        dirs::config_local_dir(),
+        if utils::IS_DEBUG {
+            Some(std::env::current_dir().unwrap())
+        } else {
+            dirs::config_local_dir()
+        },
         CONFIG_FILE,
         || serde_yaml::to_string(config),
         "config",

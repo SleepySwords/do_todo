@@ -1,6 +1,10 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use crate::task::Task;
+use crate::{data::todoist::todoist_command::TodoistCommand, task::Task};
 
 use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistTask};
 
@@ -10,16 +14,17 @@ pub struct TodoistSync {
 }
 
 pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
+    let token = todoist_auth.into();
     let client = reqwest::Client::new();
     let mut params = HashMap::new();
     params.insert("sync_token", "*");
     params.insert("resource_types", "[\"all\"]");
-    let hi = client
+    let sync = client
         .post("https://api.todoist.com/sync/v9/sync")
-        .header("Authorization", format!("Bearer {}", todoist_auth.into()))
+        .header("Authorization", format!("Bearer {}", &token))
         .form(&params);
 
-    let sync = hi
+    let sync = sync
         .send()
         .await
         .unwrap()
@@ -48,6 +53,10 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     println!("{:?}", subtasks);
     println!("{:?}", tasks);
 
+    // FIXME: use channels, we are required to do things sequentially.
+    let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(10);
+    let mutex = Arc::new(Mutex::new(false));
+
     TodoistDataStore {
         root: root_tasks,
         tasks,
@@ -56,5 +65,7 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         completed_root: Vec::new(),
         tags: HashMap::new(),
         task_count: 0,
+        token,
+        currently_syncing: mutex,
     }
 }

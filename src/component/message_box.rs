@@ -139,8 +139,9 @@ impl MessageBoxBuilder {
         self
     }
 
-    pub fn message(mut self, message: String) -> Self {
+    pub fn message<T: Into<String>>(mut self, message: T) -> Self {
         self.message = message
+            .into()
             .split('\n')
             .map(|f| f.to_string())
             .collect::<Vec<String>>();

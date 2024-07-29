@@ -50,7 +50,9 @@ impl Component for StatusLine {
         if app.task_list.auto_sort {
             status_line += " Auto sort is current enabled"
         }
-        status_line += &format!(" {}", SPINNER[app.tick % SPINNER.len()]);
+        if app.task_store.is_syncing() {
+            status_line += &format!(" {}", SPINNER[app.tick % SPINNER.len()]);
+        }
         let help = Text::styled(status_line, Style::default().fg(self.colour));
         let paragraph = Paragraph::new(help);
         drawer.draw_widget(paragraph, self.draw_area);
