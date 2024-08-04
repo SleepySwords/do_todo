@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Clone, Deserialize)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum TodoistCommand {
     #[serde(rename = "item_add")]
@@ -9,9 +11,32 @@ pub enum TodoistCommand {
         temp_id: String,
         args: TodoistItemAddCommand,
     },
+    #[serde(rename = "item_delete")]
+    ItemDelete {
+        uuid: String,
+        args: TodoistItemDeleteCommand,
+    },
 }
 
-#[derive(Serialize, Clone, Deserialize)]
+impl TodoistCommand {
+    pub fn update_id(&mut self, temp_id_mapping: &HashMap<String, String>) {
+        match self {
+            TodoistCommand::ItemDelete { args, .. } => {
+                if let Some(new_id) = temp_id_mapping.get(&args.id) {
+                    args.id = new_id.to_string();
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct TodoistItemAddCommand {
     pub content: String,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TodoistItemDeleteCommand {
+    pub id: String,
 }

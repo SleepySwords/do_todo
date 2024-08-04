@@ -1,10 +1,14 @@
 use std::{
     collections::HashMap,
+    hash::Hash,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
-use crate::{data::todoist::todoist_command::TodoistCommand, task::Task};
+use crate::{
+    data::todoist::{todoist_command::TodoistCommand, todoist_response::TodoistResponse},
+    task::Task,
+};
 
 use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistTask};
 
@@ -54,8 +58,46 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     println!("{:?}", tasks);
 
     // FIXME: use channels, we are required to do things sequentially.
-    let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(10);
+    let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(100);
     let mutex = Arc::new(Mutex::new(false));
+    let curr_syncing = mutex.clone();
+
+    let clone_token = token.clone();
+    tokio::spawn(async move {
+        // FIXME: update the tasks here.
+        // FIXME: add batching support (recv_many)
+        let mut temp_id_mapping = HashMap::new();
+
+        while let Some(mut command) = recv.recv().await {
+            if let Ok(mut currently_syncing) = curr_syncing.lock() {
+                *currently_syncing = true;
+            }
+
+            command.update_id(&temp_id_mapping);
+
+            let client = reqwest::Client::new();
+            let mut params = HashMap::new();
+            params.insert("commands", serde_json::to_string(&vec![command]).unwrap());
+            let sync = client
+                .post("https://api.todoist.com/sync/v9/sync")
+                .header("Authorization", format!("Bearer {}", clone_token))
+                .form(&params);
+
+            let response = sync
+                .send()
+                .await
+                .unwrap()
+                .json::<TodoistResponse>()
+                .await
+                .unwrap(); // FIXME: ew unwraps here!
+
+            temp_id_mapping.extend(response.temp_id_mapping.into_iter());
+
+            if let Ok(mut currently_syncing) = curr_syncing.lock() {
+                *currently_syncing = false;
+            }
+        }
+    });
 
     TodoistDataStore {
         root: root_tasks,
@@ -67,5 +109,6 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         task_count: 0,
         token,
         currently_syncing: mutex,
+        command_sender: send,
     }
 }

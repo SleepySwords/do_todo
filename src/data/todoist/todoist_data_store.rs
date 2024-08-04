@@ -12,7 +12,7 @@ use crate::{
     task::{CompletedTask, FindParentResult, Tag, Task},
 };
 
-use super::todoist_command::{TodoistCommand, TodoistItemAddCommand};
+use super::todoist_command::{TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand};
 
 pub struct TodoistDataStore {
     pub tasks: HashMap<TaskID, Task>,
@@ -25,6 +25,7 @@ pub struct TodoistDataStore {
 
     pub token: String,
     pub currently_syncing: Arc<Mutex<bool>>,
+    pub command_sender: Sender<TodoistCommand>,
 }
 
 impl TodoistDataStore {
@@ -94,6 +95,19 @@ impl DataTaskStore for TodoistDataStore {
         self.subtasks
             .values_mut()
             .for_each(|val| val.retain(|f| f != id));
+
+        let command = TodoistCommand::ItemDelete {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemDeleteCommand {
+                id: id.to_string(),
+            },
+        };
+
+        let sender = self.command_sender.clone();
+        tokio::spawn(async move {
+            sender.send(command).await.unwrap();
+        });
+
         self.tasks.remove(id)
     }
 
@@ -183,41 +197,22 @@ impl DataTaskStore for TodoistDataStore {
         } else {
             &mut self.root
         };
-        let key = (self.task_count + 1).to_string();
+        let key = uuid::Uuid::new_v4().to_string();
         self.task_count += 1;
         self.tasks.insert(key.clone(), task.clone());
-        parents.push(key);
+        parents.push(key.clone());
 
         let command = TodoistCommand::ItemAdd {
             uuid: uuid::Uuid::new_v4().to_string(),
-            temp_id: uuid::Uuid::new_v4().to_string(),
+            temp_id: key,
             args: TodoistItemAddCommand {
                 content: task.title.to_string(),
             },
         };
 
-        if let Ok(mut currently_syncing) = self.currently_syncing.lock() {
-            *currently_syncing = true;
-        }
-        let currently_syncing = self.currently_syncing.clone();
+        let sender = self.command_sender.clone();
         tokio::spawn(async move {
-            let client = reqwest::Client::new();
-            let mut params = HashMap::new();
-            // println!("{}", serde_json::to_string(&vec![command.clone()]).unwrap());
-            params.insert("commands", serde_json::to_string(&vec![command]).unwrap());
-            let sync = client
-                .post("https://api.todoist.com/sync/v9/sync")
-                .header(
-                    "Authorization",
-                    "Bearer a".to_string(),
-                )
-                .form(&params);
-
-            let sync = sync.send().await.unwrap().text().await.unwrap(); // FIXME: update temp
-                                                                         // things
-            if let Ok(mut currently_syncing) = currently_syncing.lock() {
-                *currently_syncing = false;
-            }
+            sender.send(command).await.unwrap();
             // println!("{:?}", sync);
         });
     }
