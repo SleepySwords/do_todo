@@ -1,8 +1,6 @@
 use std::{
     collections::HashMap,
-    hash::Hash,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 
 use crate::{

@@ -7,11 +7,7 @@ use crate::config::Config;
 use crate::error::AppError;
 use crate::framework::event::PostEvent;
 
-#[cfg(debug_assertions)]
-pub const IS_DEBUG: bool = true;
-
-#[cfg(not(debug_assertions))]
-pub const IS_DEBUG: bool = false;
+pub const IS_DEBUG: bool = cfg!(debug_assertions);
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
