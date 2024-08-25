@@ -13,6 +13,25 @@ use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistTask};
 #[derive(serde::Deserialize, Debug)]
 pub struct TodoistSync {
     pub items: Option<Vec<TodoistTask>>,
+    pub completed_info: Option<Vec<CompletedInfo>>,
+}
+
+#[derive(serde::Deserialize, Debug)]
+#[serde(untagged)]
+enum CompletedInfo {
+    ProjectCompletedInfo {
+        project_id: String,
+        completed_items: usize,
+        archived_sections: usize,
+    },
+    SectionCompletedInfo {
+        section_id: String,
+        completed_items: usize,
+    },
+    ItemCompletedInfo {
+        item_id: String,
+        completed_items: usize,
+    }
 }
 
 pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
@@ -54,6 +73,7 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
 
     println!("{:?}", subtasks);
     println!("{:?}", tasks);
+    println!("{:?}", sync.completed_info);
 
     // FIXME: use channels, we are required to do things sequentially.
     let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(100);
