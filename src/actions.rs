@@ -133,7 +133,7 @@ impl App {
             .title("Delete selected task")
             .add_option("Delete", move |app| {
                 let selected_index = &mut app.task_list.selected_index;
-                if let Some(task_to_delete) = app.task_store.global_pos_to_task(*selected_index) {
+                if let Some(task_to_delete) = app.task_store.cursor_to_task(*selected_index) {
                     app.task_store.delete_task(&task_to_delete);
                 }
 
@@ -156,7 +156,7 @@ impl App {
         let selected_index = &mut self.task_list.selected_index;
         let local = Local::now();
         let time_completed = local.naive_local();
-        if let Some(completed_task) = self.task_store.global_pos_to_task(*selected_index) {
+        if let Some(completed_task) = self.task_store.cursor_to_task(*selected_index) {
             self.task_store
                 .complete_task(&completed_task, time_completed);
             if *selected_index == self.task_store.find_tasks_draw_size()
@@ -172,7 +172,7 @@ impl App {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         let selected_index = self.task_list.selected_index;
-        let Some(task_id) = self.task_store.global_pos_to_task(selected_index) else {
+        let Some(task_id) = self.task_store.cursor_to_task(selected_index) else {
             // FIXME: should probs error?
             return Ok(PostEvent::noop(true));
         };
@@ -364,7 +364,7 @@ impl App {
 
         let Some(task_id) = self
             .task_store
-            .global_pos_to_task(self.task_list.selected_index)
+            .cursor_to_task(self.task_list.selected_index)
         else {
             return Ok(PostEvent::noop(true));
         };
@@ -375,7 +375,7 @@ impl App {
 
         if self.task_list.auto_sort {
             self.task_store.sort();
-            let Some(new_pos) = self.task_store.task_to_global_pos(&task_id) else {
+            let Some(new_pos) = self.task_store.task_to_cursor(&task_id) else {
                 return Ok(PostEvent::noop(false));
             };
             self.task_list.selected_index = new_pos;
@@ -385,7 +385,7 @@ impl App {
 
     pub fn create_add_subtask_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
-        let Some(task_id) = self.task_store.global_pos_to_task(index) else {
+        let Some(task_id) = self.task_store.cursor_to_task(index) else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
@@ -413,7 +413,7 @@ impl App {
 
         let Some(task_id) = self
             .task_store
-            .global_pos_to_task(self.task_list.selected_index)
+            .cursor_to_task(self.task_list.selected_index)
         else {
             todo!()
         };
@@ -442,7 +442,7 @@ impl App {
             || !autosort
         {
             self.task_store.move_task(&task_id, None, new_index, None);
-            self.task_list.selected_index = self.task_store.task_to_global_pos(&task_id).unwrap();
+            self.task_list.selected_index = self.task_store.task_to_cursor(&task_id).unwrap();
         }
 
         Ok(PostEvent::noop(false))
@@ -453,7 +453,7 @@ impl App {
 
         let Some(task_id) = self
             .task_store
-            .global_pos_to_task(self.task_list.selected_index)
+            .cursor_to_task(self.task_list.selected_index)
         else {
             return Err(AppError::invalid_state("Could not find task to move."));
         };
@@ -490,7 +490,7 @@ impl App {
             self.task_store.move_task(&task_id, None, new_index, None);
             self.task_list.selected_index = self
                 .task_store
-                .task_to_global_pos(&task_id)
+                .task_to_cursor(&task_id)
                 .ok_or_else(|| AppError::invalid_state("Did not find global position of task"))?;
         }
 
@@ -500,7 +500,7 @@ impl App {
     pub fn create_edit_selected_task_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
 
-        let Some(task_id) = self.task_store.global_pos_to_task(index) else {
+        let Some(task_id) = self.task_store.cursor_to_task(index) else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
@@ -529,7 +529,7 @@ impl App {
         }
         let Some(task_id) = self
             .task_store
-            .global_pos_to_task(self.task_list.selected_index)
+            .cursor_to_task(self.task_list.selected_index)
         else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
@@ -548,7 +548,7 @@ impl App {
         }
         let Some(task_id) = self
             .task_store
-            .global_pos_to_task(self.task_list.selected_index)
+            .cursor_to_task(self.task_list.selected_index)
         else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
@@ -563,7 +563,7 @@ impl App {
     pub fn move_subtask_level_up(&mut self) -> Result<PostEvent, AppError> {
         let selected_index = &mut self.task_list.selected_index;
 
-        let Some(task_id) = self.task_store.global_pos_to_task(*selected_index) else {
+        let Some(task_id) = self.task_store.cursor_to_task(*selected_index) else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
@@ -617,7 +617,7 @@ impl App {
 
         if self.task_list.auto_sort {
             self.task_store.sort();
-            if let Some(task_pos) = self.task_store.task_to_global_pos(&task_id) {
+            if let Some(task_pos) = self.task_store.task_to_cursor(&task_id) {
                 *selected_index = task_pos;
             }
         }
@@ -626,7 +626,7 @@ impl App {
 
     pub fn move_subtask_level_down(&mut self) -> Result<PostEvent, AppError> {
         let selected_index = &mut self.task_list.selected_index;
-        let Some(task_id) = self.task_store.global_pos_to_task(*selected_index) else {
+        let Some(task_id) = self.task_store.cursor_to_task(*selected_index) else {
             return Err(AppError::invalid_state("Task does not exist"));
         };
         let Some(FindParentResult { parent_id, .. }) = self.task_store.find_parent(&task_id) else {
@@ -664,7 +664,7 @@ impl App {
 
         if self.task_list.auto_sort {
             self.task_store.sort();
-            if let Some(task_pos) = self.task_store.task_to_global_pos(&task_id) {
+            if let Some(task_pos) = self.task_store.task_to_cursor(&task_id) {
                 *selected_index = task_pos;
             }
         }
@@ -674,7 +674,7 @@ impl App {
     pub fn create_due_date_dialog(&mut self) -> Result<PostEvent, AppError> {
         let Some(task_id) = self
             .task_store
-            .global_pos_to_task(self.task_list.selected_index)
+            .cursor_to_task(self.task_list.selected_index)
         else {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));

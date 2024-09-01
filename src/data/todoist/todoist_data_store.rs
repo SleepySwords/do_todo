@@ -9,7 +9,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
-    task::{CompletedTask, FindParentResult, Tag, Task},
+    task::{CompletedTask, FindParentResult, Tag, Task}, utils,
 };
 
 use super::todoist_command::{TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand};
@@ -26,51 +26,6 @@ pub struct TodoistDataStore {
     pub token: String,
     pub currently_syncing: Arc<Mutex<bool>>,
     pub command_sender: Sender<TodoistCommand>,
-}
-
-impl TodoistDataStore {
-    fn _global_pos_to_task(&self, selected: &mut usize, task_id: TaskIDRef) -> Option<TaskID> {
-        if *selected == 0 {
-            return Some(task_id.to_string());
-        }
-        *selected -= 1;
-
-        let task = self.task(task_id)?;
-        if !task.opened {
-            return None;
-        }
-        let subtasks = self.subtasks(task_id)?;
-        subtasks
-            .iter()
-            .find_map(|f| self._global_pos_to_task(selected, f))
-    }
-
-    fn _task_to_global(
-        &self,
-        current_index: &mut usize,
-        to_find: TaskIDRef,
-        curr: TaskIDRef,
-    ) -> Option<()> {
-        if to_find == curr {
-            return Some(());
-        }
-        *current_index += 1;
-        let t = self.task(curr)?;
-        if !t.opened {
-            return None;
-        }
-        if let Some(subtasks) = self.subtasks(curr) {
-            for task in subtasks {
-                if task == to_find {
-                    return Some(());
-                }
-                if let Some(()) = self._task_to_global(current_index, to_find, task) {
-                    return Some(());
-                }
-            }
-        }
-        None
-    }
 }
 
 impl DataTaskStore for TodoistDataStore {
@@ -98,9 +53,7 @@ impl DataTaskStore for TodoistDataStore {
 
         let command = TodoistCommand::ItemDelete {
             uuid: uuid::Uuid::new_v4().to_string(),
-            args: TodoistItemDeleteCommand {
-                id: id.to_string(),
-            },
+            args: TodoistItemDeleteCommand { id: id.to_string() },
         };
 
         let sender = self.command_sender.clone();
@@ -149,28 +102,16 @@ impl DataTaskStore for TodoistDataStore {
         &self.completed_root
     }
 
-    fn global_pos_to_task(&self, mut pos: usize) -> Option<TaskID> {
-        return self
-            .root
-            .iter()
-            .find_map(|f| self._global_pos_to_task(&mut pos, f));
+    fn cursor_to_task(&self, pos: usize) -> Option<TaskID> {
+        utils::task_position::cursor_to_task(self, pos)
     }
 
-    fn global_pos_to_completed(&self, mut pos: usize) -> Option<TaskID> {
-        return self
-            .completed_root_tasks()
-            .iter()
-            .find_map(|f| self._global_pos_to_task(&mut pos, f));
+    fn cursor_to_completed_task(&self, pos: usize) -> Option<TaskID> {
+        utils::task_position::cursor_to_completed_task(self, pos)
     }
 
-    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize> {
-        let mut current_index = 0;
-        for curr in &self.root {
-            if let Some(()) = self._task_to_global(&mut current_index, id, curr) {
-                return Some(current_index);
-            }
-        }
-        None
+    fn task_to_cursor(&self, id: TaskIDRef) -> Option<usize> {
+        utils::task_position::task_to_cursor(self, id)
     }
 
     fn delete_tag(&mut self, tag_id: TaskIDRef) {
@@ -241,18 +182,16 @@ impl DataTaskStore for TodoistDataStore {
         } else {
             &mut self.root
         };
+        subtasks.retain(|f| f != id);
         if let Some(p) = parent {
-            subtasks.retain(|f| f != id);
             if let Some(subtasks) = self.subtasks_mut(Some(&p)) {
                 subtasks.insert(order, id.to_string());
             } else {
                 self.subtasks.insert(p, vec![id.to_string()]);
             }
         } else if global.is_some() {
-            subtasks.retain(|f| f != id);
             self.root.insert(order, id.to_string());
         } else {
-            subtasks.retain(|f| f != id);
             subtasks.insert(order, id.to_string());
         }
     }

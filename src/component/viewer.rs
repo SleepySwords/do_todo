@@ -34,7 +34,7 @@ impl Viewer {
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.config;
         let index = app.task_list.selected_index;
-        let Some(task_id) = app.task_store.global_pos_to_task(index) else {
+        let Some(task_id) = app.task_store.cursor_to_task(index) else {
             return;
         };
         let Some(task) = app.task_store.task(&task_id) else {
@@ -97,7 +97,7 @@ impl Viewer {
         // FIXME: global tasks?
         let Some(task_id) = app
             .task_store
-            .global_pos_to_completed(app.completed_list.selected_index)
+            .cursor_to_completed_task(app.completed_list.selected_index)
         else {
             return;
         };

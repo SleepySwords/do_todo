@@ -30,36 +30,36 @@ pub trait DataTaskStore {
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
     ///
-    /// * `id` - The id to get, if None, will return global tasks
+    /// * `id` - The id to get, if None, will return root tasks
     fn subtasks_mut(&mut self, id: Option<TaskIDRef>) -> Option<&mut Vec<TaskID>>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
     ///
-    /// * `id` - The id to get, if None, will return global tasks
+    /// * `id` - The id to get, if None, will return root tasks
     fn subtasks(&self, id: TaskIDRef) -> Option<&Vec<TaskID>>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
     ///
-    /// * `id` - The id to get, if None, will return global tasks
+    /// * `id` - The id to get, if None, will return root tasks
     fn root_tasks(&self) -> &Vec<TaskID>;
 
     /// Returns the subtasks of a task if `id` is some
     /// Otherwise returns the global tasks.
     ///
-    /// * `id` - The id to get, if None, will return global tasks
+    /// * `id` - The id to get, if None, will return root tasks
     fn completed_root_tasks(&self) -> &Vec<TaskID>;
 
-    /// Finds the task at the global positon
+    /// Finds the task at the cursor
     // FIXME: Should this be a global interface?
     // This is not really related to the implementation at heart.
-    fn global_pos_to_task(&self, pos: usize) -> Option<TaskID>;
+    fn cursor_to_task(&self, pos: usize) -> Option<TaskID>;
 
-    /// Finds the task at the global positon
-    fn global_pos_to_completed(&self, pos: usize) -> Option<TaskID>;
+    /// Finds the task at the cursor
+    fn cursor_to_completed_task(&self, pos: usize) -> Option<TaskID>;
 
-    fn task_to_global_pos(&self, id: TaskIDRef) -> Option<usize>;
+    fn task_to_cursor(&self, id: TaskIDRef) -> Option<usize>;
 
     fn delete_tag(&mut self, tag_id: TaskIDRef);
 

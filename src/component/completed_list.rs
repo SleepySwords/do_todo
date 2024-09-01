@@ -39,7 +39,7 @@ impl CompletedList {
 
         if let Some(completed_task) = app
             .task_store
-            .global_pos_to_completed(app.completed_list.selected_index)
+            .cursor_to_completed_task(app.completed_list.selected_index)
         {
             app.task_store.restore(&completed_task);
             if app.completed_list.selected_index >= app.task_store.completed_root_tasks().len()

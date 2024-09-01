@@ -13,7 +13,7 @@ use crate::{
 const TEST_TASK_NAME: &str = "yay it works, test letters => abcdefghijklmnopqrstuvwxyz1234567890";
 
 fn get_task(i: usize, screen_manager: &ScreenManager) -> Option<&Task> {
-    let task_id = screen_manager.app.task_store.global_pos_to_task(i)?;
+    let task_id = screen_manager.app.task_store.cursor_to_task(i)?;
     return screen_manager.app.task_store.task(&task_id);
 }
 

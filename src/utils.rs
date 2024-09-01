@@ -201,6 +201,82 @@ pub fn str_to_colour(colour: &str) -> Result<Color, AppError> {
     }
 }
 
+pub mod task_position {
+    use crate::data::data_store::{DataTaskStore, TaskID, TaskIDRef};
+
+    fn find_task_id<T: DataTaskStore>(
+        store: &T,
+        pos: &mut usize,
+        task_id: TaskIDRef,
+    ) -> Option<TaskID> {
+        if *pos == 0 {
+            return Some(task_id.to_string());
+        }
+        *pos -= 1;
+
+        let task = store.task(task_id)?;
+        if !task.opened {
+            return None;
+        }
+
+        store
+            .subtasks(task_id)?
+            .iter()
+            .find_map(|subtask_id| find_task_id(store, pos, subtask_id))
+    }
+
+    pub fn cursor_to_task<T: DataTaskStore>(store: &T, mut pos: usize) -> Option<TaskID> {
+        store
+            .root_tasks()
+            .iter()
+            .find_map(|root_task_id| find_task_id(store, &mut pos, root_task_id))
+    }
+
+    pub fn cursor_to_completed_task<T: DataTaskStore>(store: &T, mut pos: usize) -> Option<TaskID> {
+        store
+            .completed_root_tasks()
+            .iter()
+            .find_map(|root_task_id| find_task_id(store, &mut pos, root_task_id))
+    }
+
+    fn find_cursor_position<T: DataTaskStore>(
+        store: &T,
+        current_index: &mut usize,
+        to_find: TaskIDRef,
+        curr: TaskIDRef,
+    ) -> Option<()> {
+        if to_find == curr {
+            return Some(());
+        }
+        *current_index += 1;
+        let t = store.task(curr)?;
+        if !t.opened {
+            return None;
+        }
+        if let Some(subtasks) = store.subtasks(curr) {
+            for task in subtasks {
+                if task == to_find {
+                    return Some(());
+                }
+                if let Some(()) = find_cursor_position(store, current_index, to_find, task) {
+                    return Some(());
+                }
+            }
+        }
+        None
+    }
+
+    pub fn task_to_cursor<T: DataTaskStore>(store: &T, id: TaskIDRef) -> Option<usize> {
+        let mut current_index = 0;
+        for curr in store.root_tasks() {
+            if let Some(()) = find_cursor_position(store, &mut current_index, id, curr) {
+                return Some(current_index);
+            }
+        }
+        None
+    }
+}
+
 pub(crate) mod ui {
     use tui::{
         prelude::Constraint,
@@ -373,7 +449,7 @@ pub mod test {
 
     pub fn get_task_from_pos(task_store: &dyn DataTaskStore, pos: usize) -> &Task {
         task_store
-            .task(&task_store.global_pos_to_task(pos).unwrap())
+            .task(&task_store.cursor_to_task(pos).unwrap())
             .unwrap()
     }
 }
