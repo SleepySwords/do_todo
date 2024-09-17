@@ -9,7 +9,8 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
-    task::{CompletedTask, FindParentResult, Tag, Task}, utils,
+    task::{CompletedTask, FindParentResult, Tag, Task},
+    utils,
 };
 
 use super::todoist_command::{TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand};

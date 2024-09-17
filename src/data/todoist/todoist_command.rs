@@ -20,13 +20,10 @@ pub enum TodoistCommand {
 
 impl TodoistCommand {
     pub fn update_id(&mut self, temp_id_mapping: &HashMap<String, String>) {
-        match self {
-            TodoistCommand::ItemDelete { args, .. } => {
-                if let Some(new_id) = temp_id_mapping.get(&args.id) {
-                    args.id = new_id.to_string();
-                }
+        if let TodoistCommand::ItemDelete { args, .. } = self {
+            if let Some(new_id) = temp_id_mapping.get(&args.id) {
+                args.id = new_id.to_string();
             }
-            _ => {}
         }
     }
 }

@@ -31,7 +31,7 @@ enum CompletedInfo {
     ItemCompletedInfo {
         item_id: String,
         completed_items: usize,
-    }
+    },
 }
 
 pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
