@@ -10,13 +10,13 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
-crossterm = { version = "0.27", features = ["serde", "event-stream"] }
+crossterm = { version = "0.28.1", features = ["serde", "event-stream"] }
 dirs = "5.0.0"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_yaml = "0.8"
 serde_json = "1.0"
-tui = { package = "ratatui", version = "0.26.0", features = ["serde"]}
-tui-textarea = { version = "0.4.0", features = ["crossterm", "ratatui"], default-features=false }
+tui = { package = "ratatui", version = "0.28.1", features = ["serde"]}
+tui-textarea = { version = "0.6.1", features = ["crossterm", "ratatui"], default-features=false }
 itertools = "0.10.5"
 lazy_static = "1.4.0"
 serde_with = "3.6.1"
