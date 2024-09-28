@@ -31,6 +31,7 @@ impl TodoistCommand {
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct TodoistItemAddCommand {
     pub content: String,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]

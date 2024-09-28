@@ -8,11 +8,11 @@ use crate::{
     task::Task,
 };
 
-use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistTask};
+use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistItem};
 
 #[derive(serde::Deserialize, Debug)]
 pub struct TodoistSync {
-    pub items: Option<Vec<TodoistTask>>,
+    pub items: Option<Vec<TodoistItem>>,
     pub completed_info: Option<Vec<CompletedInfo>>,
 }
 
@@ -125,7 +125,6 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         completed_root: Vec::new(),
         tags: HashMap::new(),
         task_count: 0,
-        token,
         currently_syncing: mutex,
         command_sender: send,
     }

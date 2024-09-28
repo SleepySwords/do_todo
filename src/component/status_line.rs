@@ -25,7 +25,7 @@ impl Default for StatusLine {
     fn default() -> Self {
         StatusLine {
             status_line: String::default(),
-            colour: Color::White,
+            colour: Color::Reset,
             draw_area: Rect::default(),
         }
     }
@@ -35,7 +35,7 @@ impl StatusLine {
     pub fn new(status_line: String) -> StatusLine {
         StatusLine {
             status_line,
-            colour: Color::White,
+            colour: Color::Reset,
             draw_area: Rect::default(),
         }
     }

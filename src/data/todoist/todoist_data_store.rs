@@ -24,12 +24,13 @@ pub struct TodoistDataStore {
     pub tags: HashMap<String, Tag>,
     pub task_count: usize,
 
-    pub token: String,
     pub currently_syncing: Arc<Mutex<bool>>,
     pub command_sender: Sender<TodoistCommand>,
 }
 
 impl DataTaskStore for TodoistDataStore {
+    // FIXME: replace task_mut with an edit_task
+    // If we use a shared string library tasks should be cheap to make.
     fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task> {
         return self.tasks.get_mut(id);
     }
@@ -83,6 +84,9 @@ impl DataTaskStore for TodoistDataStore {
     }
 
     // FIXME: might be able to wrap this in a &mut Vec<Task> perhaps?
+    // Similar to the comment above, if we make strings cheap, it will
+    // be relatively cheap to clone this and have this function replace the
+    // inner version.
     fn subtasks_mut(&mut self, id: Option<TaskIDRef>) -> Option<&mut Vec<TaskID>> {
         if let Some(id) = id {
             return self.subtasks.get_mut(id);
@@ -135,7 +139,8 @@ impl DataTaskStore for TodoistDataStore {
 
     fn add_task(&mut self, task: Task, parent: Option<TaskIDRef>) {
         let parents = if let Some(parent_id) = parent {
-            self.subtasks.get_mut(parent_id).unwrap()
+            // FIXME: consider writing ugly version that avoids a clone.
+            self.subtasks.entry(parent_id.to_string()).or_default()
         } else {
             &mut self.root
         };
@@ -149,6 +154,7 @@ impl DataTaskStore for TodoistDataStore {
             temp_id: key,
             args: TodoistItemAddCommand {
                 content: task.title.to_string(),
+                parent_id: parent.map(|f| f.to_string())
             },
         };
 
