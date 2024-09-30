@@ -75,7 +75,6 @@ impl InputBox {
 
 impl Component for InputBox {
     fn draw(&self, app: &App, drawer: &mut Drawer) {
-        let widget = self.text_area.widget();
         let boxes = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.config.selected_border_colour))
@@ -85,7 +84,7 @@ impl Component for InputBox {
 
         drawer.draw_widget(Clear, self.draw_area);
         drawer.draw_widget(boxes, self.draw_area);
-        drawer.draw_widget(widget, box_area);
+        drawer.draw_widget(&self.text_area, box_area);
     }
 
     fn key_event(&mut self, _app: &mut App, key_event: KeyEvent) -> PostEvent {

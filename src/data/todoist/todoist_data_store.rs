@@ -31,6 +31,9 @@ pub struct TodoistDataStore {
 impl DataTaskStore for TodoistDataStore {
     // FIXME: replace task_mut with an edit_task
     // If we use a shared string library tasks should be cheap to make.
+    //
+    //
+    // Actually, just assume we are always modifying the task.
     fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task> {
         return self.tasks.get_mut(id);
     }

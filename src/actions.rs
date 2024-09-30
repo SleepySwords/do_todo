@@ -389,7 +389,7 @@ impl App {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        let Some(task) = self.task_store.task_mut(&task_id) else {
+        let Some(task) = self.task_store.task(&task_id) else {
             return Ok(PostEvent::noop(false));
         };
         let add_input_dialog = InputBoxBuilder::default()
@@ -692,23 +692,23 @@ impl App {
                     .or_else(|_| NaiveDate::parse_from_str(&date_str, "%d/%m/%Y"))
                     .or_else(|_| NaiveDate::parse_from_str(&date_str, "%Y-%m-%d"));
 
-                if let Some(task) = app.task_store.task_mut(&task_id) {
-                    match date {
-                        Ok(due) => {
+                match date {
+                    Ok(due) => {
+                        if let Some(task) = app.task_store.task_mut(&task_id) {
                             task.due_date = Some(due);
                         }
-                        Err(err) => {
-                            let error_message = MessageBoxBuilder::default()
-                                .title("An error occured")
-                                .message(format!("Could not parse the date: {}", err))
-                                .colour(Color::Red)
-                                .on_close(|app| {
-                                    app.create_due_date_dialog()
-                                        .expect("Should always be ok...")
-                                })
-                                .build();
-                            return PostEvent::push_layer(error_message);
-                        }
+                    }
+                    Err(err) => {
+                        let error_message = MessageBoxBuilder::default()
+                            .title("An error occured")
+                            .message(format!("Could not parse the date: {}", err))
+                            .colour(Color::Red)
+                            .on_close(|app| {
+                                app.create_due_date_dialog()
+                                    .expect("Should always be ok...")
+                            })
+                            .build();
+                        return PostEvent::push_layer(error_message);
                     }
                 }
                 PostEvent::noop(false)

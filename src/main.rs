@@ -1,5 +1,3 @@
-#![feature(is_sorted)]
-
 mod actions;
 mod app;
 mod component;
@@ -105,7 +103,7 @@ pub async fn start_app(
 
     while !screen_manager.app.should_shutdown() {
         terminal.draw(|f| {
-            let draw_size = f.size();
+            let draw_size = f.area();
 
             let mut drawer = Drawer::new(f);
 
