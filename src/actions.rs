@@ -380,6 +380,7 @@ impl App {
             };
             self.task_list.selected_index = new_pos;
         }
+        self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
 
@@ -516,6 +517,7 @@ impl App {
                     return PostEvent::noop(false);
                 };
                 task.title = word.trim().to_string();
+                app.task_store.update_task(&task_id);
                 PostEvent::noop(false)
             })
             .use_vim(&self.config, VimMode::Normal)

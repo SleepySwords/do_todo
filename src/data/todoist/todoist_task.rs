@@ -5,6 +5,7 @@ pub struct TodoistItem {
     pub id: String,
     content: Option<String>,
     pub parent_id: Option<String>,
+    pub child_order: usize,
     description: String,
     collapsed: bool,
     priority: usize,
@@ -22,7 +23,6 @@ impl From<TodoistItem> for Task {
         }
     }
 }
-
 fn todoist_to_priority(priority: usize) -> Priority {
     match priority {
         2 => Priority::Low,

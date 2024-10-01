@@ -27,6 +27,10 @@ impl DataTaskStore for JsonDataStore {
         return self.tasks.get_mut(id);
     }
 
+    fn update_task(&mut self, _: TaskIDRef) {
+        // noop, we already update json data
+    }
+
     fn task(&self, id: TaskIDRef) -> Option<&Task> {
         return self.tasks.get(id);
     }

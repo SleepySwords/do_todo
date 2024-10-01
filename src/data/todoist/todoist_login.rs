@@ -3,6 +3,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use itertools::Itertools;
+
 use crate::{
     data::todoist::{todoist_command::TodoistCommand, todoist_response::TodoistResponse},
     task::Task,
@@ -55,6 +57,7 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
 
     let mut subtasks: HashMap<String, Vec<String>> = HashMap::new();
     let mut root_tasks = Vec::new();
+    println!("{:?}", sync.items);
     let tasks: HashMap<String, Task> = sync
         .items
         .unwrap_or_default()
@@ -65,11 +68,18 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
                 let subtasks = subtasks.entry(parent_id.clone()).or_default();
                 subtasks.push(f.id.clone());
             } else {
-                root_tasks.push(f.id.clone());
+                let position = root_tasks
+                    .iter()
+                    .position(|(child_order, _)| *child_order > f.child_order)
+                    .unwrap_or(root_tasks.len());
+
+                root_tasks.insert(position, (f.child_order, f.id.clone()));
             }
             (f.id.clone(), f.into())
         })
         .collect();
+
+    let root_tasks = root_tasks.into_iter().map(|(_, child)| child).collect_vec();
 
     println!("{:?}", subtasks);
     println!("{:?}", tasks);
@@ -101,15 +111,16 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
                 .header("Authorization", format!("Bearer {}", clone_token))
                 .form(&params);
 
-            let response = sync
-                .send()
-                .await
-                .unwrap()
-                .json::<TodoistResponse>()
-                .await
-                .unwrap(); // FIXME: ew unwraps here!
+            let response = sync.send().await.unwrap();
 
-            temp_id_mapping.extend(response.temp_id_mapping.into_iter());
+            // let text = response.text().await.unwrap();
+            // println!("{}", text);
+
+            let todoist_response = response.json::<TodoistResponse>().await.unwrap(); // FIXME: ew unwraps here!
+
+            // let todoist_response = serde_json::from_str::<TodoistResponse>(&text).unwrap();
+
+            temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
 
             if let Ok(mut currently_syncing) = curr_syncing.lock() {
                 *currently_syncing = false;

@@ -12,6 +12,9 @@ pub trait DataTaskStore {
     /// Returns this mutable task with this id.
     fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task>;
 
+    /// Notify the server that this task has been modified.
+    fn update_task(&mut self, id: TaskIDRef);
+
     /// Returns the task with this id.
     fn task(&self, id: TaskIDRef) -> Option<&Task>;
 

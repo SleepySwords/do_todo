@@ -13,7 +13,9 @@ use crate::{
     utils,
 };
 
-use super::todoist_command::{TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand};
+use super::todoist_command::{
+    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand, TodoistUpdateItem
+};
 
 pub struct TodoistDataStore {
     pub tasks: HashMap<TaskID, Task>,
@@ -36,6 +38,18 @@ impl DataTaskStore for TodoistDataStore {
     // Actually, just assume we are always modifying the task.
     fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task> {
         return self.tasks.get_mut(id);
+    }
+
+    fn update_task(&mut self, id: TaskIDRef) {
+        let command = TodoistCommand::ItemUpdate {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: task_to_todoist(id.to_string(), self.task(id).unwrap()),
+        };
+
+        let sender = self.command_sender.clone();
+        tokio::spawn(async move {
+            sender.send(command).await.unwrap();
+        });
     }
 
     fn task(&self, id: TaskIDRef) -> Option<&Task> {
@@ -157,7 +171,7 @@ impl DataTaskStore for TodoistDataStore {
             temp_id: key,
             args: TodoistItemAddCommand {
                 content: task.title.to_string(),
-                parent_id: parent.map(|f| f.to_string())
+                parent_id: parent.map(|f| f.to_string()),
             },
         };
 
@@ -204,6 +218,23 @@ impl DataTaskStore for TodoistDataStore {
         } else {
             subtasks.insert(order, id.to_string());
         }
+
+        let command = TodoistCommand::ItemReorder {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemReorderCommand {
+                items: vec![TodoistItemReorder {
+                    id: id.to_string(),
+                    child_order: order,
+                }],
+            },
+        };
+
+        // FIXME: this does not work for some reason.
+        let sender = self.command_sender.clone();
+        tokio::spawn(async move {
+            sender.send(command).await.unwrap();
+            // println!("{:?}", sync);
+        });
     }
 
     fn find_task_draw_size(&self, task_id: TaskIDRef) -> usize {

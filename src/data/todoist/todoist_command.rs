@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::task::{Priority, Task};
+
 #[derive(Serialize, Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum TodoistCommand {
@@ -15,6 +17,16 @@ pub enum TodoistCommand {
     ItemDelete {
         uuid: String,
         args: TodoistItemDeleteCommand,
+    },
+    #[serde(rename = "item_reorder")]
+    ItemReorder {
+        uuid: String,
+        args: TodoistItemReorderCommand,
+    },
+    #[serde(rename = "item_update")]
+    ItemUpdate {
+        uuid: String,
+        args: TodoistUpdateItem,
     },
 }
 
@@ -37,4 +49,40 @@ pub struct TodoistItemAddCommand {
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct TodoistItemDeleteCommand {
     pub id: String,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TodoistItemReorder {
+    pub id: String,
+    pub child_order: usize,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TodoistItemReorderCommand {
+    pub items: Vec<TodoistItemReorder>,
+}
+
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TodoistUpdateItem {
+    pub id: String,
+    pub content: Option<String>,
+    pub priority: usize,
+}
+
+pub fn task_to_todoist(id: String, task: &Task) -> TodoistUpdateItem {
+    return TodoistUpdateItem {
+        id,
+        content: Some(task.title.clone()),
+        priority: priority_to_todoist(task.priority),
+    }
+}
+
+pub fn priority_to_todoist(priority: Priority) -> usize {
+    match priority {
+        Priority::None => 1,
+        Priority::Low => 2,
+        Priority::Normal => 3,
+        Priority::High => 4,
+    }
 }
