@@ -401,6 +401,7 @@ impl App {
                     .add_task(Task::from_string(word.trim()), Some(&task_id));
                 if let Some(task) = app.task_store.task_mut(&task_id) {
                     task.opened = true;
+                    app.task_store.update_task(&task_id);
                     app.task_list.selected_index +=
                         app.task_store.subtasks(&task_id).map_or(0, |f| f.len());
                 }
@@ -540,6 +541,7 @@ impl App {
             return Ok(PostEvent::noop(true));
         };
         task.progress = !task.progress;
+        self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
 
@@ -559,6 +561,7 @@ impl App {
             return Ok(PostEvent::noop(true));
         };
         task.opened = !task.opened;
+        self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
 
@@ -611,6 +614,7 @@ impl App {
         };
         if !prev_task.opened {
             prev_task.opened = true;
+            self.task_store.update_task(&prev_task_id);
             // Have to remove the task when adding
             *selected_index += self.task_store.find_task_draw_size(&prev_task_id)
                 - self.task_store.find_task_draw_size(&task_id)
@@ -687,6 +691,7 @@ impl App {
                 if date_str.to_lowercase() == "none" {
                     if let Some(task) = app.task_store.task_mut(&task_id) {
                         task.due_date = None;
+                        app.task_store.update_task(&task_id);
                     }
                     return PostEvent::noop(false);
                 }
@@ -698,6 +703,7 @@ impl App {
                     Ok(due) => {
                         if let Some(task) = app.task_store.task_mut(&task_id) {
                             task.due_date = Some(due);
+                            app.task_store.update_task(&task_id);
                         }
                     }
                     Err(err) => {

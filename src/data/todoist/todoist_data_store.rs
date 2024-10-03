@@ -14,7 +14,8 @@ use crate::{
 };
 
 use super::todoist_command::{
-    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand, TodoistUpdateItem
+    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand,
+    TodoistItemReorder, TodoistItemReorderCommand, TodoistUpdateItem,
 };
 
 pub struct TodoistDataStore {
@@ -206,29 +207,34 @@ impl DataTaskStore for TodoistDataStore {
         } else {
             &mut self.root
         };
+        let previous_id = subtasks.get(order).map(|f| f.to_string());
+        let previous_position = subtasks.iter().position(|f| f == id);
         subtasks.retain(|f| f != id);
-        if let Some(p) = parent {
-            if let Some(subtasks) = self.subtasks_mut(Some(&p)) {
-                subtasks.insert(order, id.to_string());
-            } else {
-                self.subtasks.insert(p, vec![id.to_string()]);
-            }
+        let mutable_subtasks = if let Some(p) = parent {
+            self.subtasks.entry(p).or_insert(vec![])
         } else if global.is_some() {
-            self.root.insert(order, id.to_string());
+            &mut self.root
         } else {
-            subtasks.insert(order, id.to_string());
+            subtasks
+        };
+
+        mutable_subtasks.insert(order, id.to_string());
+        let mut items = vec![TodoistItemReorder {
+            id: id.to_string(),
+            child_order: order,
+        }];
+
+        if let (Some(previous_id), Some(previous_position)) = (previous_id, previous_position) {
+            items.push(TodoistItemReorder {
+                id: previous_id,
+                child_order: previous_position,
+            })
         }
 
         let command = TodoistCommand::ItemReorder {
             uuid: uuid::Uuid::new_v4().to_string(),
-            args: TodoistItemReorderCommand {
-                items: vec![TodoistItemReorder {
-                    id: id.to_string(),
-                    child_order: order,
-                }],
-            },
+            args: TodoistItemReorderCommand { items },
         };
-
         // FIXME: this does not work for some reason.
         let sender = self.command_sender.clone();
         tokio::spawn(async move {
