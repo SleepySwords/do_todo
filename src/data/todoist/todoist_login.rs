@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use std::time::Duration;
 use itertools::Itertools;
 
 use crate::{
@@ -96,35 +97,48 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         // FIXME: add batching support (recv_many)
         let mut temp_id_mapping = HashMap::new();
 
-        while let Some(mut command) = recv.recv().await {
+        let mut buffer = Vec::with_capacity(100);
+
+        while !recv.is_closed() {
+            let size = recv.recv_many(&mut buffer, 100).await;
             if let Ok(mut currently_syncing) = curr_syncing.lock() {
                 *currently_syncing = true;
             }
 
-            command.update_id(&temp_id_mapping);
+            for i in 0..size {
+                let command = &mut buffer[i];
 
-            let client = reqwest::Client::new();
-            let mut params = HashMap::new();
-            params.insert("commands", serde_json::to_string(&vec![command]).unwrap());
-            let sync = client
-                .post("https://api.todoist.com/sync/v9/sync")
-                .header("Authorization", format!("Bearer {}", clone_token))
-                .form(&params);
+                command.update_id(&temp_id_mapping);
+            }
 
-            let response = sync.send().await.unwrap();
+            if !buffer.is_empty() {
+                let client = reqwest::Client::new();
+                let mut params = HashMap::new();
+                params.insert("commands", serde_json::to_string(&buffer[..size]).unwrap());
+                let sync = client
+                    .post("https://api.todoist.com/sync/v9/sync")
+                    .header("Authorization", format!("Bearer {}", clone_token))
+                    .form(&params);
 
-            // let text = response.text().await.unwrap();
-            // println!("{}", text);
+                let response = sync.send().await.unwrap();
 
-            let todoist_response = response.json::<TodoistResponse>().await.unwrap(); // FIXME: ew unwraps here!
+                // let text = response.text().await.unwrap();
+                // println!("{}", text);
 
-            // let todoist_response = serde_json::from_str::<TodoistResponse>(&text).unwrap();
+                let todoist_response = response.json::<TodoistResponse>().await.unwrap(); // FIXME: ew unwraps here!
 
-            temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
+                // let todoist_response = serde_json::from_str::<TodoistResponse>(&text).unwrap();
+
+                temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
+            }
 
             if let Ok(mut currently_syncing) = curr_syncing.lock() {
                 *currently_syncing = false;
             }
+
+            buffer.clear();
+
+            tokio::time::sleep(Duration::from_secs(5)).await;
         }
     });
 

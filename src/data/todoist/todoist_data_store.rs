@@ -5,6 +5,7 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
+use itertools::Itertools;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -208,7 +209,6 @@ impl DataTaskStore for TodoistDataStore {
             &mut self.root
         };
         let previous_id = subtasks.get(order).map(|f| f.to_string());
-        let previous_position = subtasks.iter().position(|f| f == id);
         subtasks.retain(|f| f != id);
         let mutable_subtasks = if let Some(p) = parent {
             self.subtasks.entry(p).or_insert(vec![])
@@ -219,23 +219,43 @@ impl DataTaskStore for TodoistDataStore {
         };
 
         mutable_subtasks.insert(order, id.to_string());
-        let mut items = vec![TodoistItemReorder {
-            id: id.to_string(),
-            child_order: order,
-        }];
 
-        if let (Some(previous_id), Some(previous_position)) = (previous_id, previous_position) {
-            items.push(TodoistItemReorder {
-                id: previous_id,
-                child_order: previous_position,
+        // let previous_position = mutable_subtasks.iter().position(|f| {
+        //     if let Some(pos) = &previous_id {
+        //         if *pos == *f {
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // });
+
+        let items = mutable_subtasks
+            .iter()
+            .enumerate()
+            .map(|(order, id)| TodoistItemReorder {
+                id: id.to_string(),
+                child_order: order,
             })
-        }
+            .collect_vec();
+
+        // let mut items = vec![TodoistItemReorder {
+        //     id: id.to_string(),
+        //     child_order: order,
+        // }];
+        //
+        // // FIXME: does not work when looping
+        // if let (Some(previous_id), Some(previous_position)) = (previous_id, previous_position) {
+        //     items.push(TodoistItemReorder {
+        //         id: previous_id,
+        //         child_order: previous_position,
+        //     })
+        // }
+        // println!("{:?}", items);
 
         let command = TodoistCommand::ItemReorder {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemReorderCommand { items },
         };
-        // FIXME: this does not work for some reason.
         let sender = self.command_sender.clone();
         tokio::spawn(async move {
             sender.send(command).await.unwrap();
