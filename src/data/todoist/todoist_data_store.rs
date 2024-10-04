@@ -220,15 +220,8 @@ impl DataTaskStore for TodoistDataStore {
 
         mutable_subtasks.insert(order, id.to_string());
 
-        // let previous_position = mutable_subtasks.iter().position(|f| {
-        //     if let Some(pos) = &previous_id {
-        //         if *pos == *f {
-        //             return true;
-        //         }
-        //     }
-        //     return false;
-        // });
-
+        // FIXME: Revisit solution where you do not have to send everything
+        // expored in commit cdea3856a26840
         let items = mutable_subtasks
             .iter()
             .enumerate()
@@ -237,20 +230,6 @@ impl DataTaskStore for TodoistDataStore {
                 child_order: order,
             })
             .collect_vec();
-
-        // let mut items = vec![TodoistItemReorder {
-        //     id: id.to_string(),
-        //     child_order: order,
-        // }];
-        //
-        // // FIXME: does not work when looping
-        // if let (Some(previous_id), Some(previous_position)) = (previous_id, previous_position) {
-        //     items.push(TodoistItemReorder {
-        //         id: previous_id,
-        //         child_order: previous_position,
-        //     })
-        // }
-        // println!("{:?}", items);
 
         let command = TodoistCommand::ItemReorder {
             uuid: uuid::Uuid::new_v4().to_string(),
