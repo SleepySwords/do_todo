@@ -3,8 +3,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use std::time::Duration;
 use itertools::Itertools;
+use std::time::Duration;
 
 use crate::{
     data::todoist::{todoist_command::TodoistCommand, todoist_response::TodoistResponse},
@@ -56,18 +56,17 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         .await
         .unwrap();
 
-    let mut subtasks: HashMap<String, Vec<String>> = HashMap::new();
+    let mut subtasks: HashMap<String, Vec<(usize, String)>> = HashMap::new();
     let mut root_tasks = Vec::new();
-    println!("{:?}", sync.items);
     let tasks: HashMap<String, Task> = sync
         .items
         .unwrap_or_default()
         .into_iter()
         .map(|f| {
+            // FIXME: decide on one insertion sort, or quicksort after.
             if let Some(ref parent_id) = f.parent_id {
-                println!("ok");
                 let subtasks = subtasks.entry(parent_id.clone()).or_default();
-                subtasks.push(f.id.clone());
+                subtasks.push((f.child_order, f.id.clone()));
             } else {
                 let position = root_tasks
                     .iter()
@@ -80,11 +79,19 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         })
         .collect();
 
+    let subtasks = subtasks
+        .into_iter()
+        .map(|(id, vec)| {
+            (
+                id,
+                vec.into_iter()
+                    .sorted_by_key(|x| x.0)
+                    .map(|(_, subtask)| subtask)
+                    .collect_vec(),
+            )
+        })
+        .collect();
     let root_tasks = root_tasks.into_iter().map(|(_, child)| child).collect_vec();
-
-    println!("{:?}", subtasks);
-    println!("{:?}", tasks);
-    println!("{:?}", sync.completed_info);
 
     // FIXME: use channels, we are required to do things sequentially.
     let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(100);
@@ -94,7 +101,6 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     let clone_token = token.clone();
     tokio::spawn(async move {
         // FIXME: update the tasks here.
-        // FIXME: add batching support (recv_many)
         let mut temp_id_mapping = HashMap::new();
 
         let mut buffer = Vec::with_capacity(100);

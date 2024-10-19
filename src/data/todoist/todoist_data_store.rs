@@ -208,7 +208,6 @@ impl DataTaskStore for TodoistDataStore {
         } else {
             &mut self.root
         };
-        let previous_id = subtasks.get(order).map(|f| f.to_string());
         subtasks.retain(|f| f != id);
         let mutable_subtasks = if let Some(p) = parent {
             self.subtasks.entry(p).or_insert(vec![])

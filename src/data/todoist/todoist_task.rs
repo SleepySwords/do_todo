@@ -1,5 +1,7 @@
 use crate::task::{Priority, Task};
 
+use super::todoist_command::TodoistDue;
+
 #[derive(serde::Deserialize, Debug)]
 pub struct TodoistItem {
     pub id: String,
@@ -9,6 +11,7 @@ pub struct TodoistItem {
     description: String,
     collapsed: bool,
     priority: usize,
+    due: Option<TodoistDue>
 }
 
 impl From<TodoistItem> for Task {
@@ -18,7 +21,7 @@ impl From<TodoistItem> for Task {
             title: value.content.unwrap_or_else(|| String::from("")) + "\n" + &value.description,
             priority: todoist_to_priority(value.priority),
             tags: Vec::new(),
-            due_date: None,
+            due_date: value.due.map(|d| d.date),
             opened: !value.collapsed,
         }
     }

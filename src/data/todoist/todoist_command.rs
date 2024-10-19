@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::task::{Priority, Task};
@@ -62,20 +63,28 @@ pub struct TodoistItemReorderCommand {
     pub items: Vec<TodoistItemReorder>,
 }
 
-
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct TodoistUpdateItem {
     pub id: String,
     pub content: Option<String>,
+    pub collapsed: bool,
     pub priority: usize,
+    pub due: Option<TodoistDue>,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TodoistDue {
+    pub date: NaiveDate,
 }
 
 pub fn task_to_todoist(id: String, task: &Task) -> TodoistUpdateItem {
     return TodoistUpdateItem {
         id,
         content: Some(task.title.clone()),
+        collapsed: !task.opened,
         priority: priority_to_todoist(task.priority),
-    }
+        due: task.due_date.map(|date| TodoistDue { date }),
+    };
 }
 
 pub fn priority_to_todoist(priority: Priority) -> usize {
