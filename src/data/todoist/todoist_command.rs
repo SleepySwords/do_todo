@@ -29,6 +29,11 @@ pub enum TodoistCommand {
         uuid: String,
         args: TodoistUpdateItem,
     },
+    #[serde(rename = "item_complete")]
+    ItemComplete {
+        uuid: String,
+        args: TodoistItemCompleteCommand,
+    }
 }
 
 impl TodoistCommand {
@@ -70,6 +75,12 @@ pub struct TodoistUpdateItem {
     pub collapsed: bool,
     pub priority: usize,
     pub due: Option<TodoistDue>,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TodoistItemCompleteCommand {
+    pub id: String,
+    pub date_completed: Option<NaiveDate>
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]

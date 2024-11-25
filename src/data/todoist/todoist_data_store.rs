@@ -15,8 +15,8 @@ use crate::{
 };
 
 use super::todoist_command::{
-    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemDeleteCommand,
-    TodoistItemReorder, TodoistItemReorderCommand, TodoistUpdateItem,
+    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
+    TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand,
 };
 
 pub struct TodoistDataStore {
@@ -102,10 +102,6 @@ impl DataTaskStore for TodoistDataStore {
         })
     }
 
-    // FIXME: might be able to wrap this in a &mut Vec<Task> perhaps?
-    // Similar to the comment above, if we make strings cheap, it will
-    // be relatively cheap to clone this and have this function replace the
-    // inner version.
     fn subtasks_mut(&mut self, id: Option<TaskIDRef>) -> Option<&mut Vec<TaskID>> {
         if let Some(id) = id {
             return self.subtasks.get_mut(id);
@@ -237,7 +233,6 @@ impl DataTaskStore for TodoistDataStore {
         let sender = self.command_sender.clone();
         tokio::spawn(async move {
             sender.send(command).await.unwrap();
-            // println!("{:?}", sync);
         });
     }
 
@@ -272,6 +267,19 @@ impl DataTaskStore for TodoistDataStore {
             );
             self.completed_root.push(id.to_string());
         }
+
+        let command = TodoistCommand::ItemComplete {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemCompleteCommand {
+                id: id.to_string(),
+                date_completed: Some(time_completed.date()),
+            },
+        };
+
+        let sender = self.command_sender.clone();
+        tokio::spawn(async move {
+            sender.send(command).await.unwrap();
+        });
     }
 
     fn restore(&mut self, id: TaskIDRef) {
