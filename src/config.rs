@@ -78,6 +78,11 @@ pub struct Config {
     pub closed_subtask: String,
     pub open_subtask: String,
 
+    pub high_priority_display: String,
+    pub normal_priority_display: String,
+    pub low_priority_display: String,
+    pub none_priority_display: String,
+
     pub data_source: DataSource,
 
     pub debug: bool,
@@ -139,6 +144,12 @@ impl Default for Config {
             nested_padding: String::from(" │  "),
             closed_subtask: String::from(" ▸  "),
             open_subtask: String::from(" ▾  "),
+
+            high_priority_display: String::from("!!! "),
+            normal_priority_display: String::from("!!  "),
+            low_priority_display: String::from("!   "),
+            none_priority_display: String::from("    "),
+
             debug: false,
             data_source: DataSource::Json,
         }

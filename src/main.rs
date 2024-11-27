@@ -13,6 +13,7 @@ mod task;
 mod tests;
 mod utils;
 
+use chrono::NaiveTime;
 use component::{logger::Logger, message_box::MessageBox, overlay::Overlay};
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers},
@@ -26,7 +27,7 @@ use framework::{
     screen_manager::ScreenManager,
 };
 use futures::{FutureExt, TryStreamExt};
-use tokio::time::Instant;
+use tokio::{sync::mpsc::{self, Receiver}, time::Instant};
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Layout},
@@ -50,7 +51,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(debug_assertions))]
     let is_debug = false;
 
-    let (config, tasks) = data_io::get_data(is_debug).await;
+    let (tx, mut rx) = mpsc::channel::<(String, chrono::NaiveTime)>(32);
+    let (config, tasks) = data_io::get_data(tx, is_debug).await;
 
     enable_raw_mode()?;
 
@@ -65,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         overlays: vec![],
     };
 
-    let result = start_app(&mut screen_manager, &mut terminal).await;
+    let result = start_app(&mut screen_manager, &mut terminal, &mut rx).await;
 
     // Shutting down application
 
@@ -80,6 +82,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app = screen_manager.app;
     data_io::save_config(&app.config, app.task_store);
+    rx.close();
 
     if let Err(err) = result {
         eprintln!("{:?}", err);
@@ -92,11 +95,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 pub async fn start_app(
     screen_manager: &mut ScreenManager,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    log_reciever: &mut Receiver<(String, NaiveTime)>,
 ) -> io::Result<()> {
     let mut main_screen = MainScreen::new();
 
-    let var_name = Logger::default();
-    let mut logger = var_name;
+    let mut logger = Logger::default();
 
     let mut interval = tokio::time::interval_at(Instant::now(), Duration::from_millis(100));
     let mut event_stream = EventStream::new();
@@ -138,6 +141,9 @@ pub async fn start_app(
         tokio::select! {
             _ = tick => {
                 screen_manager.app.tick += 1;
+            }
+            Some((msg, _)) = log_reciever.recv() => {
+                screen_manager.app.println(msg);
             }
             Ok(Some(event)) = crossterm => {
                 match event {

@@ -86,7 +86,7 @@ impl TaskList {
             spans.push(sub_tasks);
         } else {
             let priority = Span::styled(
-                task.priority.short_hand(),
+                task.priority.short_hand(config),
                 style.fg(task.priority.colour(config)),
             );
             spans.push(priority);

@@ -10,10 +10,13 @@ use std::{
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
+use chrono::NaiveTime;
+use tokio::sync::mpsc::Sender;
+
 use crate::{
     config::{Config, DataSource},
     data::{
-        data_store::DataTaskStore, json_data_store::JsonDataStore, todoist::todoist_login::sync,
+        data_store::DataTaskStore, json_data_store::JsonDataStore, todoist::todoist_main::sync,
     },
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
@@ -89,7 +92,7 @@ where
     Default::default()
 }
 
-pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
+pub async fn get_data(log_sender: Sender<(String, NaiveTime)>, is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
     let (data_local_dir, config_local_dir) = if is_debug {
         (
             Some(std::env::current_dir().unwrap()),
@@ -126,7 +129,7 @@ pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
                 "task data",
             ))
         }
-        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth).await),
+        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth, log_sender).await),
     };
 
     (config, task_store)

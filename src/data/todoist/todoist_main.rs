@@ -3,41 +3,28 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use chrono::NaiveTime;
 use itertools::Itertools;
 use std::time::Duration;
+use tokio::sync::mpsc::Sender;
 
 use crate::{
-    data::todoist::{todoist_command::TodoistCommand, todoist_response::TodoistResponse},
-    task::Task,
+    data::todoist::{
+        todoist_command::TodoistCommand,
+        todoist_response::{
+            SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
+        },
+    },
+    task::{CompletedTask, Task},
 };
 
-use super::{todoist_data_store::TodoistDataStore, todoist_task::TodoistItem};
+use super::todoist_data_store::TodoistDataStore;
 
-#[derive(serde::Deserialize, Debug)]
-pub struct TodoistSync {
-    pub items: Option<Vec<TodoistItem>>,
-    pub completed_info: Option<Vec<CompletedInfo>>,
-}
-
-#[derive(serde::Deserialize, Debug)]
-#[serde(untagged)]
-enum CompletedInfo {
-    ProjectCompletedInfo {
-        project_id: String,
-        completed_items: usize,
-        archived_sections: usize,
-    },
-    SectionCompletedInfo {
-        section_id: String,
-        completed_items: usize,
-    },
-    ItemCompletedInfo {
-        item_id: String,
-        completed_items: usize,
-    },
-}
-
-pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
+pub async fn sync<T: Into<String>>(
+    todoist_auth: T,
+    log_sender: Sender<(String, NaiveTime)>,
+) -> TodoistDataStore {
+    println!("Attempting to connect to Todoist");
     let token = todoist_auth.into();
     let client = reqwest::Client::new();
     let mut params = HashMap::new();
@@ -48,13 +35,7 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         .header("Authorization", format!("Bearer {}", &token))
         .form(&params);
 
-    let sync = sync
-        .send()
-        .await
-        .unwrap()
-        .json::<TodoistSync>()
-        .await
-        .unwrap();
+    let sync: TodoistSync = sync.send().await.unwrap().json().await.unwrap();
 
     let mut subtasks: HashMap<String, Vec<(usize, String)>> = HashMap::new();
     let mut root_tasks = Vec::new();
@@ -93,6 +74,22 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         .collect();
     let root_tasks = root_tasks.into_iter().map(|(_, child)| child).collect_vec();
 
+    let completed_items = client
+        .post("https://api.todoist.com/sync/v9/completed/get_all")
+        .header("Authorization", format!("Bearer {}", &token))
+        .form(&params);
+
+    let completed_items: TodoistGetAllCompletedItemResponse =
+        completed_items.send().await.unwrap().json().await.unwrap();
+
+    let completed_tasks: HashMap<String, CompletedTask> = completed_items
+        .items
+        .into_iter()
+        .map(|f| (f.id.clone(), f.into()))
+        .collect();
+
+    let completed_root: Vec<String> = completed_tasks.keys().map(|f| f.clone()).collect_vec();
+
     // FIXME: use channels, we are required to do things sequentially.
     let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(100);
     let mutex = Arc::new(Mutex::new(false));
@@ -128,14 +125,34 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
 
                 let response = sync.send().await.unwrap();
 
-                // let text = response.text().await.unwrap();
-                // println!("{}", text);
+                let response = response.text().await.unwrap();
 
-                let todoist_response = response.json::<TodoistResponse>().await.unwrap(); // FIXME: ew unwraps here!
+                match serde_json::from_str::<TodoistResponse>(&response) {
+                    Ok(todoist_response) => {
+                        temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
 
-                // let todoist_response = serde_json::from_str::<TodoistResponse>(&text).unwrap();
-
-                temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
+                        for (sync_status_id, response) in todoist_response.sync_status {
+                            if let SyncStatus::Err(response) = response {
+                                log_sender
+                                    .send((
+                                        format!(
+                                            "Got an error(id = {}): {:?}",
+                                            sync_status_id, response
+                                        ),
+                                        NaiveTime::default(),
+                                    ))
+                                    .await
+                                    .expect("Cannot send a message to the log.");
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log_sender
+                            .send((e.to_string() + "\n" + &response, NaiveTime::default()))
+                            .await
+                            .expect("Cannot send a message to the log.");
+                    }
+                }
             }
 
             if let Ok(mut currently_syncing) = curr_syncing.lock() {
@@ -151,9 +168,9 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     TodoistDataStore {
         root: root_tasks,
         tasks,
-        completed_tasks: HashMap::new(),
+        completed_tasks,
         subtasks,
-        completed_root: Vec::new(),
+        completed_root,
         tags: HashMap::new(),
         task_count: 0,
         currently_syncing: mutex,

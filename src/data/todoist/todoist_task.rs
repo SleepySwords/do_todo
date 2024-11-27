@@ -1,4 +1,8 @@
-use crate::task::{Priority, Task};
+use std::str::FromStr;
+
+use chrono::DateTime;
+
+use crate::task::{CompletedTask, Priority, Task};
 
 use super::todoist_command::TodoistDue;
 
@@ -11,7 +15,7 @@ pub struct TodoistItem {
     description: String,
     collapsed: bool,
     priority: usize,
-    due: Option<TodoistDue>
+    due: Option<TodoistDue>,
 }
 
 impl From<TodoistItem> for Task {
@@ -26,6 +30,36 @@ impl From<TodoistItem> for Task {
         }
     }
 }
+
+#[derive(serde::Deserialize, Debug)]
+pub struct TodoistCompletedItem {
+    pub id: String,
+    pub task_id: Option<String>,
+    pub project_id: Option<String>,
+    pub section_id: Option<String>,
+    content: Option<String>,
+    completed_at: String,
+    note_count: usize,
+}
+
+impl From<TodoistCompletedItem> for CompletedTask {
+    fn from(value: TodoistCompletedItem) -> Self {
+        CompletedTask {
+            task: Task {
+                progress: false,
+                title: value.content.unwrap_or_else(|| String::from("")),
+                priority: Priority::None,
+                tags: Vec::new(),
+                due_date: None,
+                opened: false,
+            },
+            time_completed: DateTime::parse_from_rfc3339(&value.completed_at)
+                .unwrap()
+                .naive_utc(),
+        }
+    }
+}
+
 fn todoist_to_priority(priority: usize) -> Priority {
     match priority {
         2 => Priority::Low,

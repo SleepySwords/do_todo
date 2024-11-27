@@ -48,7 +48,7 @@ impl Task {
         app.task_store.tags().get(self.tags.first().unwrap())
     }
 
-    pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + '_ {
+    pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + 'a {
         self.tags
             .iter()
             .filter_map(|tag_index| return app.task_store.tags().get(tag_index))
@@ -115,12 +115,12 @@ impl Priority {
         }
     }
 
-    pub fn short_hand(&self) -> &str {
+    pub fn short_hand<'a>(&self, config: &'a Config) -> &'a str {
         match *self {
-            Priority::None => "    ",
-            Priority::High => "!!! ",
-            Priority::Normal => "!!  ",
-            Priority::Low => "!   ",
+            Priority::None => &config.none_priority_display,
+            Priority::High => &config.high_priority_display,
+            Priority::Normal => &config.normal_priority_display,
+            Priority::Low => &config.low_priority_display,
         }
     }
 }
