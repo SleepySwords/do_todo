@@ -1,11 +1,11 @@
 use std::{
+    cmp::Ordering,
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 
-use chrono::NaiveTime;
+use chrono::{Local, NaiveTime};
 use itertools::Itertools;
-use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -90,7 +90,6 @@ pub async fn sync<T: Into<String>>(
 
     let completed_root: Vec<String> = completed_tasks.keys().map(|f| f.clone()).collect_vec();
 
-    // FIXME: use channels, we are required to do things sequentially.
     let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(100);
     let mutex = Arc::new(Mutex::new(false));
     let curr_syncing = mutex.clone();
@@ -102,11 +101,30 @@ pub async fn sync<T: Into<String>>(
 
         let mut buffer = Vec::with_capacity(100);
 
+        let mut previous_time = Local::now();
+
         while !recv.is_closed() {
             let size = recv.recv_many(&mut buffer, 100).await;
             if let Ok(mut currently_syncing) = curr_syncing.lock() {
                 *currently_syncing = true;
             }
+
+            // FIXME: ew expects here....
+            let has_passed = previous_time.cmp(&Local::now()) == Ordering::Less;
+
+            if !has_passed {
+                tokio::time::sleep(
+                    previous_time
+                        .signed_duration_since(Local::now())
+                        .to_std()
+                        .expect("?"),
+                )
+                .await;
+            }
+
+            previous_time = Local::now()
+                .checked_add_signed(chrono::Duration::milliseconds(500))
+                .expect("?");
 
             for i in 0..size {
                 let command = &mut buffer[i];
@@ -160,8 +178,6 @@ pub async fn sync<T: Into<String>>(
             }
 
             buffer.clear();
-
-            tokio::time::sleep(Duration::from_secs(5)).await;
         }
     });
 

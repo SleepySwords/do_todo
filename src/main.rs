@@ -95,7 +95,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 pub async fn start_app(
     screen_manager: &mut ScreenManager,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    log_reciever: &mut Receiver<(String, NaiveTime)>,
+    log_reciever: &mut Receiver<(String, NaiveTime)>
 ) -> io::Result<()> {
     let mut main_screen = MainScreen::new();
 

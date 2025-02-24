@@ -2,7 +2,8 @@ use chrono::{Local, NaiveTime};
 
 use crate::{
     component::{
-        completed_list::CompletedListContext, status_line::StatusLine, task_list::TaskListContext,
+        completed_list::CompletedListContext, overlay::dialog::DialogBoxBuilder,
+        status_line::StatusLine, task_list::TaskListContext,
     },
     config::Config,
     data::data_store::DataTaskStore,
@@ -53,9 +54,23 @@ impl App {
         }
     }
 
+    // FIXME: why is this a result?
     pub fn shutdown(&mut self) -> Result<PostEvent, AppError> {
-        self.should_shutdown = true;
-        Ok(PostEvent::noop(false))
+        if self.task_store.is_syncing() {
+            Ok(PostEvent::push_layer(
+                DialogBoxBuilder::default()
+                    .title("Still currently syncing, do you still want to quit")
+                    .add_option("Yes", |app| {
+                        app.should_shutdown = true;
+                        PostEvent::noop(false)
+                    })
+                    .add_option("No", |_| PostEvent::noop(false))
+                    .build(),
+            ))
+        } else {
+            self.should_shutdown = true;
+            Ok(PostEvent::noop(false))
+        }
     }
 
     pub fn should_shutdown(&self) -> bool {

@@ -298,7 +298,7 @@ pub(crate) mod ui {
                 let cells = vec![Cell::from(title), Cell::from(text)];
                 Row::new(cells).height(height as u16).bottom_margin(1)
             }),
-            [Constraint::Percentage(20), Constraint::Max(width as u16)],
+            [Constraint::Percentage(20), Constraint::Length(width as u16)],
         )
     }
 

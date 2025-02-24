@@ -1,9 +1,9 @@
 use crossterm::event::KeyCode;
 use tui::{
-    layout::{Constraint, Rect},
+    layout::Rect,
     style::{Color, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Cell, Clear, Row, Table, TableState},
+    text::{Line, Span},
+    widgets::{Block, Borders, Clear, TableState},
 };
 
 use crate::{
