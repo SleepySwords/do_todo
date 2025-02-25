@@ -154,8 +154,10 @@ pub async fn sync<T: Into<String>>(
                                 log_sender
                                     .send((
                                         format!(
-                                            "Got an error(id = {}): {:?}",
-                                            sync_status_id, response
+                                            "Got an error(id = {}): {:?}, body: {:?}",
+                                            sync_status_id,
+                                            response,
+                                            serde_json::to_string(&buffer[..size]).unwrap()
                                         ),
                                         NaiveTime::default(),
                                     ))

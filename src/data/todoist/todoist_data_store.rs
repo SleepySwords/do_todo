@@ -10,13 +10,14 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
-    task::{CompletedTask, FindParentResult, Tag, Task},
+    task::{CompletedTask, FindParentResult, Priority, Tag, Task},
     utils,
 };
 
 use super::todoist_command::{
     task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
     TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand,
+    TodoistItemUncompleteCommand,
 };
 
 pub struct TodoistDataStore {
@@ -148,7 +149,9 @@ impl DataTaskStore for TodoistDataStore {
         self.root
             .sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
         for subtasks in self.subtasks.values_mut() {
-            subtasks.sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
+            subtasks.sort_by_key(|f| {
+                cmp::Reverse(self.tasks.get(f).map_or(Priority::None, |k| k.priority))
+            });
         }
     }
 
@@ -257,9 +260,6 @@ impl DataTaskStore for TodoistDataStore {
 
     fn complete_task(&mut self, id: TaskIDRef, time_completed: NaiveDateTime) {
         self.root.retain(|f| f != id);
-        self.subtasks
-            .values_mut()
-            .for_each(|subtasks| subtasks.retain(|f| f != id));
         if let Some(task) = self.tasks.remove(id) {
             self.completed_tasks.insert(
                 id.to_string(),
@@ -272,7 +272,7 @@ impl DataTaskStore for TodoistDataStore {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemCompleteCommand {
                 id: id.to_string(),
-                date_completed: Some(time_completed.date()),
+                date_completed: None,
             },
         };
 
@@ -284,13 +284,30 @@ impl DataTaskStore for TodoistDataStore {
 
     fn restore(&mut self, id: TaskIDRef) {
         self.completed_root.retain(|f| f != id);
-        self.subtasks
-            .values_mut()
-            .for_each(|subtasks| subtasks.retain(|f| f != id));
         if let Some(task) = self.completed_tasks.remove(id) {
             self.tasks.insert(id.to_string(), task.task);
-            self.root.push(id.to_string());
+            if let Some(parent_id) = self.find_parent(id).and_then(|f| f.parent_id) {
+                let subtasks = self
+                    .subtasks
+                    .get_mut(&parent_id)
+                    .expect("Find parent guarentees this exist.");
+                //FIXME: is there a move funciton?
+                subtasks.retain(|f| f != id);
+                subtasks.push(id.to_string());
+            } else {
+                self.root.push(id.to_string());
+            }
         }
+
+        let command = TodoistCommand::ItemUncomplete {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemUncompleteCommand { id: id.to_string() },
+        };
+
+        let sender = self.command_sender.clone();
+        tokio::spawn(async move {
+            sender.send(command).await.unwrap();
+        });
     }
 
     fn tags(&self) -> &HashMap<String, Tag> {

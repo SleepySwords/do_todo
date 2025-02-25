@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::task::{Priority, Task};
 
+// FIXME: try to clean this up using magic serde
 #[derive(Serialize, Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum TodoistCommand {
@@ -33,6 +34,11 @@ pub enum TodoistCommand {
     ItemComplete {
         uuid: String,
         args: TodoistItemCompleteCommand,
+    },
+    #[serde(rename = "item_uncomplete")]
+    ItemUncomplete {
+        uuid: String,
+        args: TodoistItemUncompleteCommand,
     }
 }
 
@@ -80,7 +86,13 @@ pub struct TodoistUpdateItem {
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct TodoistItemCompleteCommand {
     pub id: String,
+    // FIXME: This is required to be in the RFC3339 format to work
     pub date_completed: Option<NaiveDate>
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TodoistItemUncompleteCommand {
+    pub id: String,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
