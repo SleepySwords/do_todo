@@ -20,11 +20,16 @@ use crate::{
 
 use super::todoist_data_store::TodoistDataStore;
 
-pub async fn sync<T: Into<String>>(
+pub async fn get_initial_tasks<T: Into<String>>(
     todoist_auth: T,
-    log_sender: Sender<(String, NaiveTime)>,
-) -> TodoistDataStore {
-    println!("Attempting to connect to Todoist");
+) -> (
+    Vec<String>,
+    HashMap<String, Task>,
+    Vec<String>,
+    HashMap<String, CompletedTask>,
+    HashMap<String, Vec<String>>,
+    String,
+) {
     let token = todoist_auth.into();
     let client = reqwest::Client::new();
     let mut params = HashMap::new();
@@ -85,16 +90,42 @@ pub async fn sync<T: Into<String>>(
     let completed_tasks: HashMap<String, CompletedTask> = completed_items
         .items
         .into_iter()
-        .map(|f| (f.id.clone(), f.into()))
+        .map(|f| (f.task_id.clone().expect("awf"), f.into()))
         .collect();
 
     let completed_root: Vec<String> = completed_tasks.keys().map(|f| f.clone()).collect_vec();
+
+    return (
+        root_tasks,
+        tasks,
+        completed_root,
+        completed_tasks,
+        subtasks,
+        sync.sync_token,
+    );
+}
+
+pub async fn process_command() {
+
+}
+
+pub async fn sync<T: Into<String>>(
+    todoist_auth: T,
+    log_sender: Sender<(String, NaiveTime)>,
+) -> TodoistDataStore {
+    println!("Attempting to connect to Todoist");
+
+    let token = todoist_auth.into();
+
+    let (root_tasks, tasks, completed_root, completed_tasks, subtasks, sync_token) =
+        get_initial_tasks(&token).await;
 
     let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(100);
     let mutex = Arc::new(Mutex::new(false));
     let curr_syncing = mutex.clone();
 
-    let clone_token = token.clone();
+    let mut previous_token = sync_token;
+
     tokio::spawn(async move {
         // FIXME: update the tasks here.
         let mut temp_id_mapping = HashMap::new();
@@ -138,7 +169,7 @@ pub async fn sync<T: Into<String>>(
                 params.insert("commands", serde_json::to_string(&buffer[..size]).unwrap());
                 let sync = client
                     .post("https://api.todoist.com/sync/v9/sync")
-                    .header("Authorization", format!("Bearer {}", clone_token))
+                    .header("Authorization", format!("Bearer {}", token))
                     .form(&params);
 
                 let response = sync.send().await.unwrap();
@@ -165,6 +196,29 @@ pub async fn sync<T: Into<String>>(
                                     .expect("Cannot send a message to the log.");
                             }
                         }
+
+                        let mut params = HashMap::new();
+                        params.insert("sync_token", previous_token);
+                        params.insert("resource_types", "[\"all\"]".to_string());
+                        let sync = client
+                            .post("https://api.todoist.com/sync/v9/sync")
+                            .header("Authorization", format!("Bearer {}", &token))
+                            .form(&params)
+                            .send()
+                            .await
+                            .unwrap()
+                            .text()
+                            .await
+                            .unwrap();
+
+                        previous_token = todoist_response.sync_token;
+                        log_sender
+                            .send((
+                                format!("Got an sync request: {:?}", sync,),
+                                NaiveTime::default(),
+                            ))
+                            .await
+                            .expect("Cannot send a message to the log.");
                     }
                     Err(e) => {
                         log_sender

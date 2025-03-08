@@ -20,6 +20,8 @@ use super::todoist_command::{
     TodoistItemUncompleteCommand,
 };
 
+// FIXME: we can seperate this into the state and the sender. This seperates them and we can use an
+// arc mutex without changing too much of the existing code
 pub struct TodoistDataStore {
     pub tasks: HashMap<TaskID, Task>,
     pub completed_tasks: HashMap<TaskID, CompletedTask>,
@@ -33,6 +35,15 @@ pub struct TodoistDataStore {
     pub command_sender: Sender<TodoistCommand>,
 }
 
+impl TodoistDataStore {
+    pub fn send_command(&self, command: TodoistCommand) {
+        let sender = self.command_sender.clone();
+        tokio::spawn(async move {
+            sender.send(command).await.unwrap();
+        });
+    }
+}
+
 impl DataTaskStore for TodoistDataStore {
     // FIXME: replace task_mut with an edit_task
     // If we use a shared string library tasks should be cheap to make.
@@ -44,14 +55,9 @@ impl DataTaskStore for TodoistDataStore {
     }
 
     fn update_task(&mut self, id: TaskIDRef) {
-        let command = TodoistCommand::ItemUpdate {
+        self.send_command(TodoistCommand::ItemUpdate {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: task_to_todoist(id.to_string(), self.task(id).unwrap()),
-        };
-
-        let sender = self.command_sender.clone();
-        tokio::spawn(async move {
-            sender.send(command).await.unwrap();
         });
     }
 
@@ -73,14 +79,9 @@ impl DataTaskStore for TodoistDataStore {
             .values_mut()
             .for_each(|val| val.retain(|f| f != id));
 
-        let command = TodoistCommand::ItemDelete {
+        self.send_command(TodoistCommand::ItemDelete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemDeleteCommand { id: id.to_string() },
-        };
-
-        let sender = self.command_sender.clone();
-        tokio::spawn(async move {
-            sender.send(command).await.unwrap();
         });
 
         self.tasks.remove(id)
@@ -167,19 +168,13 @@ impl DataTaskStore for TodoistDataStore {
         self.tasks.insert(key.clone(), task.clone());
         parents.push(key.clone());
 
-        let command = TodoistCommand::ItemAdd {
+        self.send_command(TodoistCommand::ItemAdd {
             uuid: uuid::Uuid::new_v4().to_string(),
             temp_id: key,
             args: TodoistItemAddCommand {
                 content: task.title.to_string(),
                 parent_id: parent.map(|f| f.to_string()),
             },
-        };
-
-        let sender = self.command_sender.clone();
-        tokio::spawn(async move {
-            sender.send(command).await.unwrap();
-            // println!("{:?}", sync);
         });
     }
 
@@ -229,13 +224,9 @@ impl DataTaskStore for TodoistDataStore {
             })
             .collect_vec();
 
-        let command = TodoistCommand::ItemReorder {
+        self.send_command(TodoistCommand::ItemReorder {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemReorderCommand { items },
-        };
-        let sender = self.command_sender.clone();
-        tokio::spawn(async move {
-            sender.send(command).await.unwrap();
         });
     }
 
@@ -268,17 +259,12 @@ impl DataTaskStore for TodoistDataStore {
             self.completed_root.push(id.to_string());
         }
 
-        let command = TodoistCommand::ItemComplete {
+        self.send_command(TodoistCommand::ItemComplete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemCompleteCommand {
                 id: id.to_string(),
                 date_completed: None,
             },
-        };
-
-        let sender = self.command_sender.clone();
-        tokio::spawn(async move {
-            sender.send(command).await.unwrap();
         });
     }
 
@@ -299,14 +285,9 @@ impl DataTaskStore for TodoistDataStore {
             }
         }
 
-        let command = TodoistCommand::ItemUncomplete {
+        self.send_command(TodoistCommand::ItemUncomplete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemUncompleteCommand { id: id.to_string() },
-        };
-
-        let sender = self.command_sender.clone();
-        tokio::spawn(async move {
-            sender.send(command).await.unwrap();
         });
     }
 

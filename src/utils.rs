@@ -1,7 +1,6 @@
 use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::Color;
-use tui::widgets::Block;
 
 use crate::app::{App, Mode};
 use crate::config::Config;

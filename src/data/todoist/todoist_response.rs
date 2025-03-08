@@ -8,6 +8,7 @@ use super::todoist_task::{TodoistCompletedItem, TodoistItem};
 pub struct TodoistResponse {
     pub temp_id_mapping: HashMap<String, String>,
     pub sync_status: HashMap<String, SyncStatus>,
+    pub sync_token: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -25,25 +26,7 @@ pub struct TodoistError {
 #[derive(serde::Deserialize, Debug)]
 pub struct TodoistSync {
     pub items: Option<Vec<TodoistItem>>,
-    pub completed_info: Option<Vec<CompletedInfo>>,
-}
-
-#[derive(serde::Deserialize, Debug)]
-#[serde(untagged)]
-enum CompletedInfo {
-    ProjectCompletedInfo {
-        project_id: String,
-        completed_items: usize,
-        archived_sections: usize,
-    },
-    SectionCompletedInfo {
-        section_id: String,
-        completed_items: usize,
-    },
-    ItemCompletedInfo {
-        item_id: String,
-        completed_items: usize,
-    },
+    pub sync_token: String,
 }
 
 #[derive(serde::Deserialize, Debug)]
