@@ -1,4 +1,3 @@
-use chrono::{Local, NaiveTime};
 
 use crate::{
     component::{
@@ -19,8 +18,6 @@ pub struct App {
 
     pub mode: Mode,
 
-    pub logs: Vec<(String, NaiveTime)>,
-
     pub task_list: TaskListContext,
     pub completed_list: CompletedListContext,
 
@@ -36,7 +33,6 @@ impl App {
             task_store: task_data,
             status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
             mode: Mode::CurrentTasks,
-            logs: vec![],
             task_list: TaskListContext::default(),
             completed_list: CompletedListContext::default(),
             tick: 0,
@@ -75,11 +71,6 @@ impl App {
 
     pub fn should_shutdown(&self) -> bool {
         self.should_shutdown
-    }
-
-    // Perhaps should use a static variable.
-    pub fn println(&mut self, line: String) {
-        self.logs.push((line, Local::now().time()));
     }
 }
 

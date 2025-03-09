@@ -1,3 +1,5 @@
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+
 mod actions;
 mod app;
 mod component;
@@ -27,7 +29,11 @@ use framework::{
     screen_manager::ScreenManager,
 };
 use futures::{FutureExt, TryStreamExt};
-use tokio::{sync::mpsc::{self, Receiver}, time::Instant};
+use tokio::{
+    sync::mpsc::{self, Receiver},
+    time::Instant,
+};
+use tracing_subscriber::Registry;
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Layout},
@@ -51,8 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(debug_assertions))]
     let is_debug = false;
 
-    let (tx, mut rx) = mpsc::channel::<(String, chrono::NaiveTime)>(32);
-    let (config, tasks) = data_io::get_data(tx, is_debug).await;
+    let (config, tasks) = data_io::get_data( is_debug).await;
 
     enable_raw_mode()?;
 
@@ -67,7 +72,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         overlays: vec![],
     };
 
-    let result = start_app(&mut screen_manager, &mut terminal, &mut rx).await;
+    let result = start_app(&mut screen_manager, &mut terminal).await;
 
     // Shutting down application
 
@@ -82,7 +87,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app = screen_manager.app;
     data_io::save_config(&app.config, app.task_store);
-    rx.close();
 
     if let Err(err) = result {
         eprintln!("{:?}", err);
@@ -95,11 +99,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 pub async fn start_app(
     screen_manager: &mut ScreenManager,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    log_reciever: &mut Receiver<(String, NaiveTime)>
 ) -> io::Result<()> {
     let mut main_screen = MainScreen::new();
 
     let mut logger = Logger::default();
+
+    let subscriber = Registry::default().with(logger.clone());
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
+
+    tracing::info!("Hello, UI Logger!");
+    tracing::warn!("Something might be wrong...");
 
     let mut interval = tokio::time::interval_at(Instant::now(), Duration::from_millis(100));
     let mut event_stream = EventStream::new();
@@ -141,9 +150,6 @@ pub async fn start_app(
         tokio::select! {
             _ = tick => {
                 screen_manager.app.tick += 1;
-            }
-            Some((msg, _)) = log_reciever.recv() => {
-                screen_manager.app.println(msg);
             }
             Ok(Some(event)) = crossterm => {
                 match event {
@@ -187,7 +193,7 @@ pub async fn start_app(
                         }
                     }
                     Event::Resize(x, y) => {
-                        screen_manager.app.println(format!("{} {}", x, y));
+                        tracing::debug!("{} {}", x, y);
                     }
                     _ => {
                         println!("oakfe");

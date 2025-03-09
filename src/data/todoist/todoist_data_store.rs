@@ -6,7 +6,7 @@ use std::{
 
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use tokio::sync::mpsc::Sender;
+use tokio::{sync::mpsc::Sender, task};
 
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
@@ -38,8 +38,8 @@ pub struct TodoistDataStore {
 impl TodoistDataStore {
     pub fn send_command(&self, command: TodoistCommand) {
         let sender = self.command_sender.clone();
-        tokio::spawn(async move {
-            sender.send(command).await.unwrap();
+        task::block_in_place(move || {
+            sender.blocking_send(command).unwrap();
         });
     }
 }

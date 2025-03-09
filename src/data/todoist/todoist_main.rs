@@ -4,9 +4,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{Local, NaiveTime};
+use chrono::Local;
 use itertools::Itertools;
-use tokio::sync::mpsc::Sender;
 
 use crate::{
     data::todoist::{
@@ -105,14 +104,7 @@ pub async fn get_initial_tasks<T: Into<String>>(
     );
 }
 
-pub async fn process_command() {
-
-}
-
-pub async fn sync<T: Into<String>>(
-    todoist_auth: T,
-    log_sender: Sender<(String, NaiveTime)>,
-) -> TodoistDataStore {
+pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     println!("Attempting to connect to Todoist");
 
     let token = todoist_auth.into();
@@ -182,18 +174,12 @@ pub async fn sync<T: Into<String>>(
 
                         for (sync_status_id, response) in todoist_response.sync_status {
                             if let SyncStatus::Err(response) = response {
-                                log_sender
-                                    .send((
-                                        format!(
-                                            "Got an error(id = {}): {:?}, body: {:?}",
-                                            sync_status_id,
-                                            response,
-                                            serde_json::to_string(&buffer[..size]).unwrap()
-                                        ),
-                                        NaiveTime::default(),
-                                    ))
-                                    .await
-                                    .expect("Cannot send a message to the log.");
+                                tracing::error!(
+                                    "Got an error(id = {}): {:?}, body: {:?}",
+                                    sync_status_id,
+                                    response,
+                                    serde_json::to_string(&buffer[..size]).unwrap()
+                                );
                             }
                         }
 
@@ -212,19 +198,10 @@ pub async fn sync<T: Into<String>>(
                             .unwrap();
 
                         previous_token = todoist_response.sync_token;
-                        log_sender
-                            .send((
-                                format!("Got an sync request: {:?}", sync,),
-                                NaiveTime::default(),
-                            ))
-                            .await
-                            .expect("Cannot send a message to the log.");
+                        tracing::info!("Got an sync request: {:?}", sync)
                     }
                     Err(e) => {
-                        log_sender
-                            .send((e.to_string() + "\n" + &response, NaiveTime::default()))
-                            .await
-                            .expect("Cannot send a message to the log.");
+                        tracing::error!("{}", e.to_string() + "\n" + &response);
                     }
                 }
             }

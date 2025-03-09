@@ -92,7 +92,7 @@ where
     Default::default()
 }
 
-pub async fn get_data(log_sender: Sender<(String, NaiveTime)>, is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
+pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
     let (data_local_dir, config_local_dir) = if is_debug {
         (
             Some(std::env::current_dir().unwrap()),
@@ -129,7 +129,7 @@ pub async fn get_data(log_sender: Sender<(String, NaiveTime)>, is_debug: bool) -
                 "task data",
             ))
         }
-        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth, log_sender).await),
+        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth).await),
     };
 
     (config, task_store)
