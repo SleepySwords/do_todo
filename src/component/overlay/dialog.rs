@@ -87,12 +87,7 @@ impl Component for DialogBox<'_> {
                 return PostEvent::noop(false);
             }
         }
-        utils::handle_key_movement(
-            &app.config,
-            key_event,
-            &mut self.index,
-            self.options.len(),
-        );
+        utils::handle_key_movement(&app.config, key_event, &mut self.index, self.options.len());
         match key_code {
             KeyCode::Enter => return PostEvent::pop_layer(Some(AppEvent::Submit)),
             KeyCode::Esc => return PostEvent::pop_layer(Some(AppEvent::Cancel)),

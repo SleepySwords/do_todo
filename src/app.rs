@@ -1,4 +1,3 @@
-
 use crate::{
     component::{
         completed_list::CompletedListContext, overlay::dialog::DialogBoxBuilder,

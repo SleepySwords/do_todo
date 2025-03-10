@@ -14,7 +14,7 @@ pub struct TodoistResponse {
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
 pub enum SyncStatus {
-    Ok(String),
+    Ok(()),
     Err(TodoistError),
 }
 

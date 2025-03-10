@@ -37,11 +37,7 @@ impl<S: Subscriber> Layer<S> for Logger {
         metadata.level() <= &Level::DEBUG
     }
 
-    fn on_event(
-        &self,
-        event: &tracing::Event<'_>,
-        _: tracing_subscriber::layer::Context<'_, S>,
-    ) {
+    fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
         let mut log_msg = String::new();
         let _ = std::fmt::write(&mut log_msg, format_args!("{}: ", event.metadata().level()));
 

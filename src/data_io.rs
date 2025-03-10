@@ -10,9 +10,6 @@ use std::{
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
-use chrono::NaiveTime;
-use tokio::sync::mpsc::Sender;
-
 use crate::{
     config::{Config, DataSource},
     data::{

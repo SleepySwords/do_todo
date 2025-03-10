@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use chrono::DateTime;
 
 use crate::task::{CompletedTask, Priority, Task};
@@ -39,7 +37,6 @@ pub struct TodoistCompletedItem {
     pub section_id: Option<String>,
     content: Option<String>,
     completed_at: String,
-    note_count: usize,
 }
 
 impl From<TodoistCompletedItem> for CompletedTask {

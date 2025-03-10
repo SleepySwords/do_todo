@@ -10,41 +10,41 @@ use crate::task::{Priority, Task};
 #[serde(tag = "type")]
 pub enum TodoistCommand {
     #[serde(rename = "item_add")]
-    ItemAdd {
+    Add {
         uuid: String,
         temp_id: String,
         args: TodoistItemAddCommand,
     },
     #[serde(rename = "item_delete")]
-    ItemDelete {
+    Delete {
         uuid: String,
         args: TodoistItemDeleteCommand,
     },
     #[serde(rename = "item_reorder")]
-    ItemReorder {
+    Reorder {
         uuid: String,
         args: TodoistItemReorderCommand,
     },
     #[serde(rename = "item_update")]
-    ItemUpdate {
+    Update {
         uuid: String,
         args: TodoistUpdateItem,
     },
     #[serde(rename = "item_complete")]
-    ItemComplete {
+    Complete {
         uuid: String,
         args: TodoistItemCompleteCommand,
     },
     #[serde(rename = "item_uncomplete")]
-    ItemUncomplete {
+    Uncomplete {
         uuid: String,
         args: TodoistItemUncompleteCommand,
-    }
+    },
 }
 
 impl TodoistCommand {
     pub fn update_id(&mut self, temp_id_mapping: &HashMap<String, String>) {
-        if let TodoistCommand::ItemDelete { args, .. } = self {
+        if let TodoistCommand::Delete { args, .. } = self {
             if let Some(new_id) = temp_id_mapping.get(&args.id) {
                 args.id = new_id.to_string();
             }
@@ -87,7 +87,7 @@ pub struct TodoistUpdateItem {
 pub struct TodoistItemCompleteCommand {
     pub id: String,
     // FIXME: This is required to be in the RFC3339 format to work
-    pub date_completed: Option<NaiveDate>
+    pub date_completed: Option<NaiveDate>,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
@@ -101,13 +101,13 @@ pub struct TodoistDue {
 }
 
 pub fn task_to_todoist(id: String, task: &Task) -> TodoistUpdateItem {
-    return TodoistUpdateItem {
+    TodoistUpdateItem {
         id,
         content: Some(task.title.clone()),
         collapsed: !task.opened,
         priority: priority_to_todoist(task.priority),
         due: task.due_date.map(|date| TodoistDue { date }),
-    };
+    }
 }
 
 pub fn priority_to_todoist(priority: Priority) -> usize {

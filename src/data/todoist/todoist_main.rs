@@ -6,6 +6,7 @@ use std::{
 
 use chrono::Local;
 use itertools::Itertools;
+use tokio::join;
 
 use crate::{
     data::todoist::{
@@ -39,7 +40,17 @@ pub async fn get_initial_tasks<T: Into<String>>(
         .header("Authorization", format!("Bearer {}", &token))
         .form(&params);
 
-    let sync: TodoistSync = sync.send().await.unwrap().json().await.unwrap();
+    let completed_items = client
+        .post("https://api.todoist.com/sync/v9/completed/get_all")
+        .header("Authorization", format!("Bearer {}", &token))
+        .form(&params);
+
+    let (Ok(completed_items), Ok(sync)) = join!(completed_items.send(), sync.send()) else {
+        panic!("A connection error occured");
+    };
+
+    let sync: TodoistSync = sync.json().await.unwrap();
+    let completed_items: TodoistGetAllCompletedItemResponse = completed_items.json().await.unwrap();
 
     let mut subtasks: HashMap<String, Vec<(usize, String)>> = HashMap::new();
     let mut root_tasks = Vec::new();
@@ -48,17 +59,11 @@ pub async fn get_initial_tasks<T: Into<String>>(
         .unwrap_or_default()
         .into_iter()
         .map(|f| {
-            // FIXME: decide on one insertion sort, or quicksort after.
             if let Some(ref parent_id) = f.parent_id {
                 let subtasks = subtasks.entry(parent_id.clone()).or_default();
                 subtasks.push((f.child_order, f.id.clone()));
             } else {
-                let position = root_tasks
-                    .iter()
-                    .position(|(child_order, _)| *child_order > f.child_order)
-                    .unwrap_or(root_tasks.len());
-
-                root_tasks.insert(position, (f.child_order, f.id.clone()));
+                root_tasks.push((f.child_order, f.id.clone()));
             }
             (f.id.clone(), f.into())
         })
@@ -76,15 +81,11 @@ pub async fn get_initial_tasks<T: Into<String>>(
             )
         })
         .collect();
-    let root_tasks = root_tasks.into_iter().map(|(_, child)| child).collect_vec();
-
-    let completed_items = client
-        .post("https://api.todoist.com/sync/v9/completed/get_all")
-        .header("Authorization", format!("Bearer {}", &token))
-        .form(&params);
-
-    let completed_items: TodoistGetAllCompletedItemResponse =
-        completed_items.send().await.unwrap().json().await.unwrap();
+    let root_tasks = root_tasks
+        .into_iter()
+        .sorted_by_key(|x| x.0)
+        .map(|(_, child)| child)
+        .collect_vec();
 
     let completed_tasks: HashMap<String, CompletedTask> = completed_items
         .items
@@ -92,16 +93,16 @@ pub async fn get_initial_tasks<T: Into<String>>(
         .map(|f| (f.task_id.clone().expect("awf"), f.into()))
         .collect();
 
-    let completed_root: Vec<String> = completed_tasks.keys().map(|f| f.clone()).collect_vec();
+    let completed_root: Vec<String> = completed_tasks.keys().cloned().collect_vec();
 
-    return (
+    (
         root_tasks,
         tasks,
         completed_root,
         completed_tasks,
         subtasks,
         sync.sync_token,
-    );
+    )
 }
 
 pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
@@ -124,7 +125,7 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
 
         let mut buffer = Vec::with_capacity(100);
 
-        let mut previous_time = Local::now();
+        let mut send_time = Local::now();
 
         while !recv.is_closed() {
             let size = recv.recv_many(&mut buffer, 100).await;
@@ -132,26 +133,23 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
                 *currently_syncing = true;
             }
 
-            // FIXME: ew expects here....
-            let has_passed = previous_time.cmp(&Local::now()) == Ordering::Less;
+            let has_passed = send_time.cmp(&Local::now()) == Ordering::Less;
 
             if !has_passed {
                 tokio::time::sleep(
-                    previous_time
+                    send_time
                         .signed_duration_since(Local::now())
                         .to_std()
-                        .expect("?"),
+                        .expect("`send_time` is less than the current time when it should not be."),
                 )
                 .await;
             }
 
-            previous_time = Local::now()
+            send_time = Local::now()
                 .checked_add_signed(chrono::Duration::milliseconds(500))
-                .expect("?");
+                .expect("Send time date is out of range");
 
-            for i in 0..size {
-                let command = &mut buffer[i];
-
+            for command in buffer.iter_mut().take(size) {
                 command.update_id(&temp_id_mapping);
             }
 
@@ -164,7 +162,17 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
                     .header("Authorization", format!("Bearer {}", token))
                     .form(&params);
 
-                let response = sync.send().await.unwrap();
+                let response = match sync.send().await {
+                    Ok(response) => response,
+                    Err(err) => {
+                        tracing::error!("Could not send the command because: {}", err);
+
+                        if let Ok(mut currently_syncing) = curr_syncing.lock() {
+                            *currently_syncing = false;
+                        }
+                        continue;
+                    }
+                };
 
                 let response = response.text().await.unwrap();
 

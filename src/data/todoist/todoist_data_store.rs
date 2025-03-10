@@ -55,7 +55,7 @@ impl DataTaskStore for TodoistDataStore {
     }
 
     fn update_task(&mut self, id: TaskIDRef) {
-        self.send_command(TodoistCommand::ItemUpdate {
+        self.send_command(TodoistCommand::Update {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: task_to_todoist(id.to_string(), self.task(id).unwrap()),
         });
@@ -79,7 +79,7 @@ impl DataTaskStore for TodoistDataStore {
             .values_mut()
             .for_each(|val| val.retain(|f| f != id));
 
-        self.send_command(TodoistCommand::ItemDelete {
+        self.send_command(TodoistCommand::Delete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemDeleteCommand { id: id.to_string() },
         });
@@ -168,7 +168,7 @@ impl DataTaskStore for TodoistDataStore {
         self.tasks.insert(key.clone(), task.clone());
         parents.push(key.clone());
 
-        self.send_command(TodoistCommand::ItemAdd {
+        self.send_command(TodoistCommand::Add {
             uuid: uuid::Uuid::new_v4().to_string(),
             temp_id: key,
             args: TodoistItemAddCommand {
@@ -204,7 +204,7 @@ impl DataTaskStore for TodoistDataStore {
         };
         subtasks.retain(|f| f != id);
         let mutable_subtasks = if let Some(p) = parent {
-            self.subtasks.entry(p).or_insert(vec![])
+            self.subtasks.entry(p).or_default()
         } else if global.is_some() {
             &mut self.root
         } else {
@@ -224,7 +224,7 @@ impl DataTaskStore for TodoistDataStore {
             })
             .collect_vec();
 
-        self.send_command(TodoistCommand::ItemReorder {
+        self.send_command(TodoistCommand::Reorder {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemReorderCommand { items },
         });
@@ -251,6 +251,9 @@ impl DataTaskStore for TodoistDataStore {
 
     fn complete_task(&mut self, id: TaskIDRef, time_completed: NaiveDateTime) {
         self.root.retain(|f| f != id);
+        self.subtasks
+            .values_mut()
+            .for_each(|subtasks| subtasks.retain(|f| f != id));
         if let Some(task) = self.tasks.remove(id) {
             self.completed_tasks.insert(
                 id.to_string(),
@@ -259,7 +262,7 @@ impl DataTaskStore for TodoistDataStore {
             self.completed_root.push(id.to_string());
         }
 
-        self.send_command(TodoistCommand::ItemComplete {
+        self.send_command(TodoistCommand::Complete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemCompleteCommand {
                 id: id.to_string(),
@@ -285,7 +288,7 @@ impl DataTaskStore for TodoistDataStore {
             }
         }
 
-        self.send_command(TodoistCommand::ItemUncomplete {
+        self.send_command(TodoistCommand::Uncomplete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemUncompleteCommand { id: id.to_string() },
         });

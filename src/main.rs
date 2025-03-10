@@ -15,7 +15,6 @@ mod task;
 mod tests;
 mod utils;
 
-use chrono::NaiveTime;
 use component::{logger::Logger, message_box::MessageBox, overlay::Overlay};
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers},
@@ -29,10 +28,7 @@ use framework::{
     screen_manager::ScreenManager,
 };
 use futures::{FutureExt, TryStreamExt};
-use tokio::{
-    sync::mpsc::{self, Receiver},
-    time::Instant,
-};
+use tokio::time::Instant;
 use tracing_subscriber::Registry;
 use tui::{
     backend::CrosstermBackend,
@@ -57,7 +53,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(debug_assertions))]
     let is_debug = false;
 
-    let (config, tasks) = data_io::get_data( is_debug).await;
+    let (config, tasks) = data_io::get_data(is_debug).await;
 
     enable_raw_mode()?;
 
