@@ -40,6 +40,7 @@ pub enum TodoistCommand {
         uuid: String,
         args: TodoistItemUncompleteCommand,
     },
+    Refresh
 }
 
 impl TodoistCommand {

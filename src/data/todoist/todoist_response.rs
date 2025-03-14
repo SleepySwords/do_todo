@@ -14,12 +14,14 @@ pub struct TodoistResponse {
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
 pub enum SyncStatus {
-    Ok(()),
+    #[allow(dead_code)]
+    Ok(String),
     Err(TodoistError),
 }
 
 #[derive(serde::Deserialize, Debug)]
 pub struct TodoistError {
+    #[allow(dead_code)]
     error: String,
 }
 

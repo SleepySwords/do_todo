@@ -9,7 +9,7 @@ use tracing_subscriber::{
 use tui::{
     layout::Rect,
     style::{Color, Style},
-    text::Line,
+    text::Text,
     widgets::{Block, Borders, Clear, List, ListState},
 };
 
@@ -55,18 +55,8 @@ impl Component for Logger {
     fn draw(&self, app: &crate::app::App, drawer: &mut Drawer) {
         if self.opened {
             let style = Style::default().fg(Color::Red);
-            // let mut rows = app
-            //     .logs
-            //     .iter()
-            //     .map(|(msg, time)| (time.to_string().into(), Line::raw(msg)))
-            //     .collect::<Vec<(Span, Line)>>();
 
             let logs = self.logs.lock().unwrap();
-
-            let rows = logs
-                .iter()
-                .map(|msg| Line::raw(msg.trim()))
-                .collect::<Vec<Line>>();
 
             let border_block = Block::default()
                 .borders(Borders::ALL)
@@ -74,11 +64,16 @@ impl Component for Logger {
                 .title("Logger")
                 .border_style(style);
 
+            let rows = logs
+                .iter()
+                .map(|msg| {
+                    utils::wrap::wrap_text(msg.as_str(), border_block.inner(self.draw_area).width)
+                })
+                .collect::<Vec<Text>>();
+
             // Add multiline support.
             let mut list_state = ListState::default();
-            if !rows.is_empty() {
-                list_state.select(Some(rows.len() - 1));
-            }
+            list_state.select_last();
             let list = List::new(rows);
             let list = list.block(border_block);
             drawer.draw_widget(Clear, self.draw_area);

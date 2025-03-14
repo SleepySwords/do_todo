@@ -105,6 +105,32 @@ pub async fn get_initial_tasks<T: Into<String>>(
     )
 }
 
+pub async fn handle_sync<T: Into<String>>(
+    data_store: &mut TodoistDataStore,
+    todoist_auth: T,
+    sync_token: &str,
+) {
+    let token = todoist_auth.into();
+    let client = reqwest::Client::new();
+    let mut params = HashMap::new();
+    params.insert("sync_token", sync_token);
+    params.insert("resource_types", "[\"all\"]");
+    let sync = client
+        .post("https://api.todoist.com/sync/v9/sync")
+        .header("Authorization", format!("Bearer {}", &token))
+        .form(&params);
+
+    let todoist_sync: TodoistSync = sync.send().await.unwrap().json().await.unwrap();
+
+    if let Some(items) = todoist_sync.items {
+        for item in items.into_iter() {
+            if let Some(task) = data_store.tasks.get_mut(item.id.as_str()) {
+                *task = item.into();
+            }
+        }
+    }
+}
+
 pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     println!("Attempting to connect to Todoist");
 
@@ -209,7 +235,7 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
                         tracing::info!("Got an sync request: {:?}", sync)
                     }
                     Err(e) => {
-                        tracing::error!("{}", e.to_string() + "\n" + &response);
+                        tracing::error!("{}", e.to_string() + "\n " + &response);
                     }
                 }
             }

@@ -103,8 +103,7 @@ pub async fn start_app(
     let subscriber = Registry::default().with(logger.clone());
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
 
-    tracing::info!("Hello, UI Logger!");
-    tracing::warn!("Something might be wrong...");
+    tracing::info!("Todoist Logger is active");
 
     let mut interval = tokio::time::interval_at(Instant::now(), Duration::from_millis(100));
     let mut event_stream = EventStream::new();

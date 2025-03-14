@@ -35,6 +35,17 @@ pub struct TodoistDataStore {
     pub command_sender: Sender<TodoistCommand>,
 }
 
+pub struct TodoistState {
+    pub tasks: HashMap<TaskID, Task>,
+    pub completed_tasks: HashMap<TaskID, CompletedTask>,
+    pub subtasks: HashMap<TaskID, Vec<TaskID>>,
+    pub root: Vec<TaskID>,
+    pub completed_root: Vec<TaskID>,
+    pub tags: HashMap<String, Tag>,
+    pub task_count: usize,
+    pub currently_syncing: Arc<Mutex<bool>>,
+}
+
 impl TodoistDataStore {
     pub fn send_command(&self, command: TodoistCommand) {
         let sender = self.command_sender.clone();
@@ -179,7 +190,7 @@ impl DataTaskStore for TodoistDataStore {
     }
 
     fn refresh(&mut self) {
-        todo!()
+        self.send_command(TodoistCommand::Refresh);
     }
 
     fn save(&self) {

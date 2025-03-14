@@ -34,10 +34,6 @@ futures-util = "0.3.30"
 futures = "0.3.30"
 
 
-# Using textwrap for now until tui-rs implements more general wrapping for widgets such as Tables.
-# This somewhat limits styling capabilities, as the wrapping is applied to strings, not tui::text::Text
-# However it should be fine with the current use case
-textwrap = { version = "0.15" }
 unicode-segmentation = "1.10.0"
 
 thiserror = "1.0.48"

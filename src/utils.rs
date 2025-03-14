@@ -318,15 +318,15 @@ pub(crate) mod ui {
     }
 }
 
-mod wrap {
+pub mod wrap {
     use tui::text::{Line, Span, Text};
     use unicode_segmentation::UnicodeSegmentation;
 
     // FIX: This can be replaced when https://github.com/ratatui-org/ratatui/issues/293 is merged
-    pub fn wrap_text(line: Line, width: u16) -> Text {
+    pub fn wrap_text<'a, T: Into<Line<'a>>>(line: T, width: u16) -> Text<'a> {
         let mut text = Text::default();
         let mut queue = Vec::new();
-        for span in &line.spans {
+        for span in &line.into().spans {
             let mut content = String::new();
             let style = span.style;
             for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
