@@ -1,3 +1,5 @@
+use crate::data::data_store::DataTaskStore;
+
 use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
 use itertools::Itertools;
@@ -185,9 +187,9 @@ impl App {
                 tag_options.push(DialogAction::new(
                     tag.name.to_owned().fg(tag.colour),
                     move |app| {
-                        if let Some(task) = app.task_store.task_mut(&moved_name) {
+                        app.task_store.modify_task(&moved_name, |task: &mut Task| {
                             task.flip_tag(moved);
-                        };
+                        });
                         PostEvent::noop(false)
                     },
                 ));
@@ -212,9 +214,9 @@ impl App {
                             },
                         );
                         if app.task_store.find_tasks_draw_size() > selected_index {
-                            if let Some(task) = app.task_store.task_mut(&new_task) {
+                            app.task_store.modify_task(&new_task, |task: &mut Task| {
                                 task.flip_tag(tag_id);
-                            }
+                            });
                         }
                         Ok(PostEvent::noop(false))
                     })
@@ -224,13 +226,14 @@ impl App {
             PostEvent::push_layer(tag_menu)
         }));
 
+        let new_task = task_id.clone();
         if !self.task_store.root_tasks().is_empty() && self.mode == Mode::CurrentTasks {
             tag_options.push(DialogAction::new(
                 String::from("Clear all tags"),
                 move |app| {
-                    if let Some(task) = app.task_store.task_mut(&task_id) {
+                    app.task_store.modify_task(&new_task, |task: &mut Task| {
                         task.tags.clear();
-                    };
+                    });
                     PostEvent::noop(false)
                 },
             ));
@@ -368,10 +371,13 @@ impl App {
         else {
             return Ok(PostEvent::noop(true));
         };
-        let Some(task) = self.task_store.task_mut(&task_id) else {
-            return Ok(PostEvent::noop(true));
-        };
-        task.priority = task.priority.next_priority();
+
+        self.task_store.modify_task(
+            &task_id,
+            (|task| {
+                task.priority = task.priority.next_priority();
+            }),
+        );
 
         if self.task_list.auto_sort {
             self.task_store.sort();
@@ -399,12 +405,15 @@ impl App {
             .on_submit(move |app, word| {
                 app.task_store
                     .add_task(Task::from_string(word.trim()), Some(&task_id));
-                if let Some(task) = app.task_store.task_mut(&task_id) {
-                    task.opened = true;
-                    app.task_store.update_task(&task_id);
-                    app.task_list.selected_index +=
-                        app.task_store.subtasks(&task_id).map_or(0, |f| f.len());
-                }
+                app.task_store.modify_task(
+                    &task_id,
+                    (|task| {
+                        task.opened = true;
+                    }),
+                );
+                app.task_store.update_task(&task_id);
+                app.task_list.selected_index +=
+                    app.task_store.subtasks(&task_id).map_or(0, |f| f.len());
                 PostEvent::noop(false)
             });
         Ok(PostEvent::push_layer(add_input_dialog.build()))
@@ -514,10 +523,12 @@ impl App {
             .use_vim(&self.config, VimMode::Normal)
             .fill(task.title.as_str())
             .on_submit(move |app, word| {
-                let Some(task) = app.task_store.task_mut(&task_id) else {
-                    return PostEvent::noop(false);
-                };
-                task.title = word.trim().to_string();
+                app.task_store.modify_task(
+                    &task_id,
+                    (move |task| {
+                        task.title = word.trim().to_string();
+                    }),
+                );
                 app.task_store.update_task(&task_id);
                 PostEvent::noop(false)
             })
@@ -537,10 +548,12 @@ impl App {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        let Some(task) = self.task_store.task_mut(&task_id) else {
-            return Ok(PostEvent::noop(true));
-        };
-        task.progress = !task.progress;
+        self.task_store.modify_task(
+            &task_id,
+            (|task| {
+                task.progress = !task.progress;
+            }),
+        );
         self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
@@ -557,10 +570,9 @@ impl App {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        let Some(task) = self.task_store.task_mut(&task_id) else {
-            return Ok(PostEvent::noop(true));
-        };
-        task.opened = !task.opened;
+        self.task_store.modify_task(&task_id, |task| {
+            task.opened = !task.opened;
+        });
         self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
@@ -609,17 +621,24 @@ impl App {
         self.task_store
             .move_task(&task_id, Some(prev_task_id.to_string()), order, None);
 
-        let Some(prev_task) = self.task_store.task_mut(&prev_task_id) else {
-            return Ok(PostEvent::noop(false));
-        };
-        if !prev_task.opened {
-            prev_task.opened = true;
-            self.task_store.update_task(&prev_task_id);
-            // Have to remove the task when adding
-            *selected_index += self.task_store.find_task_draw_size(&prev_task_id)
-                - self.task_store.find_task_draw_size(&task_id)
-                - 1;
+        let result = self.task_store.modify_task(&prev_task_id, |prev_task| {
+            if !prev_task.opened {
+                prev_task.opened = true;
+                // Have to remove the task when adding
+                true
+            } else {
+                false
+            }
+        });
+
+        if let Some(f) = result {
+            if f {
+                *selected_index += self.task_store.find_task_draw_size(&prev_task_id)
+                    - self.task_store.find_task_draw_size(&task_id)
+                    - 1;
+            }
         }
+        self.task_store.update_task(&prev_task_id);
 
         if self.task_list.auto_sort {
             self.task_store.sort();
@@ -689,10 +708,10 @@ impl App {
             .title("Add date or specify \"none\" to remove".to_string())
             .on_submit(move |app, date_str| {
                 if date_str.to_lowercase() == "none" {
-                    if let Some(task) = app.task_store.task_mut(&task_id) {
+                    app.task_store.modify_task(&task_id, |task| {
                         task.due_date = None;
-                        app.task_store.update_task(&task_id);
-                    }
+                    });
+                    app.task_store.update_task(&task_id);
                     return PostEvent::noop(false);
                 }
                 let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y")
@@ -701,10 +720,10 @@ impl App {
 
                 match date {
                     Ok(due) => {
-                        if let Some(task) = app.task_store.task_mut(&task_id) {
+                        app.task_store.modify_task(&task_id, |task| {
                             task.due_date = Some(due);
-                            app.task_store.update_task(&task_id);
-                        }
+                        });
+                        app.task_store.update_task(&task_id);
                     }
                     Err(err) => {
                         let error_message = MessageBoxBuilder::default()

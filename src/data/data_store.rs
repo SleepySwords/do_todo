@@ -1,16 +1,27 @@
 use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
+use enum_dispatch::enum_dispatch;
 
 use crate::task::{CompletedTask, FindParentResult, Tag, Task};
+
+use super::json_data_store::JsonDataStore;
+use super::todoist::todoist_data_store::TodoistDataStore;
 
 pub type TaskID = String;
 pub type TaskIDRef<'a> = &'a str;
 
+#[enum_dispatch]
+pub enum DataTaskStoreKind {
+    Json(JsonDataStore),
+    Todoist(TodoistDataStore)
+}
+
 /// Handles how tasks are stored
+#[enum_dispatch(DataTaskStoreKind)]
 pub trait DataTaskStore {
     /// Returns this mutable task with this id.
-    fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task>;
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F>;
 
     /// Notify the server that this task has been modified.
     fn update_task(&mut self, id: TaskIDRef);

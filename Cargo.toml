@@ -33,6 +33,7 @@ serde_urlencoded = "0.7.1"
 futures-util = "0.3.30"
 futures = "0.3.30"
 
+enum_dispatch = "0.3.13"
 
 unicode-segmentation = "1.10.0"
 

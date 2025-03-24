@@ -4,14 +4,14 @@ use crate::{
         status_line::StatusLine, task_list::TaskListContext,
     },
     config::Config,
-    data::data_store::DataTaskStore,
+    data::data_store::{DataTaskStore, DataTaskStoreKind},
     error::AppError,
     framework::event::PostEvent,
 };
 
 pub struct App {
     pub config: Config,
-    pub task_store: Box<dyn DataTaskStore>,
+    pub task_store: DataTaskStoreKind,
 
     pub status_line: StatusLine,
 
@@ -26,7 +26,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(theme: Config, task_data: Box<dyn DataTaskStore>) -> App {
+    pub fn new(theme: Config, task_data: DataTaskStoreKind) -> App {
         App {
             config: theme,
             task_store: task_data,

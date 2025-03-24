@@ -258,5 +258,6 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
         task_count: 0,
         currently_syncing: mutex,
         command_sender: send,
+        todoist_state: Default::default(),
     }
 }

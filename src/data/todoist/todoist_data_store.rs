@@ -32,9 +32,11 @@ pub struct TodoistDataStore {
     pub task_count: usize,
 
     pub currently_syncing: Arc<Mutex<bool>>,
+    pub todoist_state: Arc<Mutex<TodoistState>>,
     pub command_sender: Sender<TodoistCommand>,
 }
 
+#[derive(Default)]
 pub struct TodoistState {
     pub tasks: HashMap<TaskID, Task>,
     pub completed_tasks: HashMap<TaskID, CompletedTask>,
@@ -43,6 +45,7 @@ pub struct TodoistState {
     pub completed_root: Vec<TaskID>,
     pub tags: HashMap<String, Tag>,
     pub task_count: usize,
+
     pub currently_syncing: Arc<Mutex<bool>>,
 }
 
@@ -56,13 +59,9 @@ impl TodoistDataStore {
 }
 
 impl DataTaskStore for TodoistDataStore {
-    // FIXME: replace task_mut with an edit_task
-    // If we use a shared string library tasks should be cheap to make.
-    //
-    //
-    // Actually, just assume we are always modifying the task.
-    fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task> {
-        return self.tasks.get_mut(id);
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F> {
+        self.tasks.get_mut(id).map(|f| closure(f))
+        // Some(closure(self.todoist_state.lock().ok()?.tasks.get_mut(id)?))
     }
 
     fn update_task(&mut self, id: TaskIDRef) {

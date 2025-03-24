@@ -23,8 +23,8 @@ pub struct JsonDataStore {
 }
 
 impl DataTaskStore for JsonDataStore {
-    fn task_mut(&mut self, id: TaskIDRef) -> Option<&mut Task> {
-        return self.tasks.get_mut(id);
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F> {
+        self.tasks.get_mut(id).map(|f| closure(f))
     }
 
     fn update_task(&mut self, _: TaskIDRef) {

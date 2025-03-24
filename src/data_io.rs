@@ -13,7 +13,7 @@ use std::{
 use crate::{
     config::{Config, DataSource},
     data::{
-        data_store::DataTaskStore, json_data_store::JsonDataStore, todoist::todoist_main::sync,
+        data_store::{DataTaskStore, DataTaskStoreKind}, json_data_store::JsonDataStore, todoist::todoist_main::sync,
     },
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
@@ -89,7 +89,7 @@ where
     Default::default()
 }
 
-pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
+pub async fn get_data(is_debug: bool) -> (Config, DataTaskStoreKind) {
     let (data_local_dir, config_local_dir) = if is_debug {
         (
             Some(std::env::current_dir().unwrap()),
@@ -107,9 +107,9 @@ pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
     );
 
     // let tasks = sync();
-    let task_store: Box<dyn DataTaskStore> = match &config.data_source {
+    let task_store: DataTaskStoreKind = match &config.data_source {
         DataSource::Json => {
-            Box::new(load_from_file(
+            DataTaskStoreKind::Json(load_from_file(
                 data_local_dir,
                 DATA_FILE,
                 // NOTE: This doesn't work:
@@ -126,7 +126,7 @@ pub async fn get_data(is_debug: bool) -> (Config, Box<dyn DataTaskStore>) {
                 "task data",
             ))
         }
-        DataSource::Todoist(todoist_auth) => Box::new(sync(todoist_auth).await),
+        DataSource::Todoist(todoist_auth) => DataTaskStoreKind::Todoist(sync(todoist_auth).await),
     };
 
     (config, task_store)
@@ -168,7 +168,7 @@ where
     }
 }
 
-pub fn save_config(config: &Config, task_store: Box<dyn DataTaskStore>) {
+pub fn save_config(config: &Config, task_store: DataTaskStoreKind) {
     task_store.save();
 
     save_to_file(
