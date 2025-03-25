@@ -59,7 +59,7 @@ impl Viewer {
                     Style::default().fg(task.priority.colour(theme)),
                 )),
             ),
-            (Span::raw("Tags"), tag_names(app, task)),
+            (Span::raw("Tags"), tag_names(app, &task)),
         ];
 
         if let Some(due_date) = task.due_date {

@@ -1,3 +1,4 @@
+use crate::utils::ARef;
 use std::{cmp, collections::HashMap};
 
 use chrono::NaiveDateTime;
@@ -23,7 +24,11 @@ pub struct JsonDataStore {
 }
 
 impl DataTaskStore for JsonDataStore {
-    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F> {
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(
+        &mut self,
+        id: TaskIDRef,
+        closure: T,
+    ) -> Option<F> {
         self.tasks.get_mut(id).map(|f| closure(f))
     }
 
@@ -31,8 +36,8 @@ impl DataTaskStore for JsonDataStore {
         // noop, we already update json data
     }
 
-    fn task(&self, id: TaskIDRef) -> Option<&Task> {
-        return self.tasks.get(id);
+    fn task(&self, id: TaskIDRef) -> Option<ARef> {
+        return self.tasks.get(id).map(|f| ARef::Ref(f));
     }
 
     fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask> {

@@ -372,12 +372,9 @@ impl App {
             return Ok(PostEvent::noop(true));
         };
 
-        self.task_store.modify_task(
-            &task_id,
-            (|task| {
-                task.priority = task.priority.next_priority();
-            }),
-        );
+        self.task_store.modify_task(&task_id, |task| {
+            task.priority = task.priority.next_priority();
+        });
 
         if self.task_list.auto_sort {
             self.task_store.sort();
@@ -405,12 +402,9 @@ impl App {
             .on_submit(move |app, word| {
                 app.task_store
                     .add_task(Task::from_string(word.trim()), Some(&task_id));
-                app.task_store.modify_task(
-                    &task_id,
-                    (|task| {
-                        task.opened = true;
-                    }),
-                );
+                app.task_store.modify_task(&task_id, |task| {
+                    task.opened = true;
+                });
                 app.task_store.update_task(&task_id);
                 app.task_list.selected_index +=
                     app.task_store.subtasks(&task_id).map_or(0, |f| f.len());
@@ -498,6 +492,9 @@ impl App {
             .ok_or_else(|| AppError::invalid_state("Subtasks are not found in parent"))?;
 
         if task.priority == task_above.priority || !autosort {
+            drop(task);
+            drop(task_above);
+
             self.task_store.move_task(&task_id, None, new_index, None);
             self.task_list.selected_index = self
                 .task_store
@@ -523,12 +520,9 @@ impl App {
             .use_vim(&self.config, VimMode::Normal)
             .fill(task.title.as_str())
             .on_submit(move |app, word| {
-                app.task_store.modify_task(
-                    &task_id,
-                    (move |task| {
-                        task.title = word.trim().to_string();
-                    }),
-                );
+                app.task_store.modify_task(&task_id, move |task| {
+                    task.title = word.trim().to_string();
+                });
                 app.task_store.update_task(&task_id);
                 PostEvent::noop(false)
             })
@@ -548,12 +542,9 @@ impl App {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        self.task_store.modify_task(
-            &task_id,
-            (|task| {
-                task.progress = !task.progress;
-            }),
-        );
+        self.task_store.modify_task(&task_id, |task| {
+            task.progress = !task.progress;
+        });
         self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }

@@ -94,7 +94,7 @@ impl TaskList {
         }
 
         let content = Span::styled(
-            task.title.split('\n').next().unwrap(),
+            task.title.split('\n').next().unwrap().to_string(),
             style.fg(if Self::is_task_selected(app, task_index) {
                 config.selected_task_colour
             } else {
@@ -130,6 +130,7 @@ impl TaskList {
                     })
                     .collect_vec();
                 (drawn_tasks).insert(0, Line::from(spans));
+                drop(task);
                 return drawn_tasks;
             }
         }

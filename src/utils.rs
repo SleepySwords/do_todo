@@ -1,4 +1,7 @@
+use std::ops::Deref;
+
 use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
+use futures::lock::MutexGuard;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::Color;
 
@@ -6,8 +9,25 @@ use crate::app::{App, Mode};
 use crate::config::Config;
 use crate::error::AppError;
 use crate::framework::event::PostEvent;
+use crate::task::Task;
 
 pub const IS_DEBUG: bool = cfg!(debug_assertions);
+
+pub enum ARef<'a> {
+    Mutex(MutexGuard<'a, Task>),
+    Ref(&'a Task),
+}
+
+impl Deref for ARef<'_> {
+    type Target = Task;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            ARef::Mutex(a) => a,
+            ARef::Ref(a) => a,
+        }
+    }
+}
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {

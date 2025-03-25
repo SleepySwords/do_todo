@@ -34,6 +34,7 @@ futures-util = "0.3.30"
 futures = "0.3.30"
 
 enum_dispatch = "0.3.13"
+parking_lot = "0.12.3"
 
 unicode-segmentation = "1.10.0"
 

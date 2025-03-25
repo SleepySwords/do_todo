@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 use enum_dispatch::enum_dispatch;
 
 use crate::task::{CompletedTask, FindParentResult, Tag, Task};
+use crate::utils::ARef;
 
 use super::json_data_store::JsonDataStore;
 use super::todoist::todoist_data_store::TodoistDataStore;
@@ -27,7 +28,7 @@ pub trait DataTaskStore {
     fn update_task(&mut self, id: TaskIDRef);
 
     /// Returns the task with this id.
-    fn task(&self, id: TaskIDRef) -> Option<&Task>;
+    fn task(&self, id: TaskIDRef) -> Option<ARef>;
 
     /// Returns this mutable completed task with this id.
     fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask>;

@@ -1,6 +1,7 @@
 use std::{
     cmp,
     collections::HashMap,
+    ops::Deref,
     sync::{Arc, Mutex},
 };
 
@@ -11,7 +12,7 @@ use tokio::{sync::mpsc::Sender, task};
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
     task::{CompletedTask, FindParentResult, Priority, Tag, Task},
-    utils,
+    utils::{self, ARef},
 };
 
 use super::todoist_command::{
@@ -59,7 +60,11 @@ impl TodoistDataStore {
 }
 
 impl DataTaskStore for TodoistDataStore {
-    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F> {
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(
+        &mut self,
+        id: TaskIDRef,
+        closure: T,
+    ) -> Option<F> {
         self.tasks.get_mut(id).map(|f| closure(f))
         // Some(closure(self.todoist_state.lock().ok()?.tasks.get_mut(id)?))
     }
@@ -67,12 +72,12 @@ impl DataTaskStore for TodoistDataStore {
     fn update_task(&mut self, id: TaskIDRef) {
         self.send_command(TodoistCommand::Update {
             uuid: uuid::Uuid::new_v4().to_string(),
-            args: task_to_todoist(id.to_string(), self.task(id).unwrap()),
+            args: task_to_todoist(id.to_string(), &self.task(id).unwrap()),
         });
     }
 
-    fn task(&self, id: TaskIDRef) -> Option<&Task> {
-        return self.tasks.get(id);
+    fn task(&self, id: TaskIDRef) -> Option<ARef> {
+        return self.tasks.get(id).map(|f| ARef::Ref(f));
     }
 
     fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask> {
