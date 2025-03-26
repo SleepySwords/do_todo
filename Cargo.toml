@@ -1,6 +1,6 @@
 [package]
 name = "dotodo"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 description = "Do your todos!"
 repository = "https://github.com/SleepySwords/do_todo/"
