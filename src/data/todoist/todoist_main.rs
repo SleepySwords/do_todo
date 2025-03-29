@@ -6,13 +6,18 @@ use std::{
 
 use chrono::Local;
 use itertools::Itertools;
-use tokio::join;
+use tokio::{join, sync::mpsc::Sender};
+use tracing::info;
 
 use crate::{
-    data::todoist::{
-        todoist_command::TodoistCommand,
-        todoist_response::{
-            SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
+    data::{
+        self,
+        data_store::DataTaskStore,
+        todoist::{
+            todoist_command::TodoistCommand,
+            todoist_response::{
+                SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
+            },
         },
     },
     task::{CompletedTask, Task},
@@ -105,33 +110,77 @@ pub async fn get_initial_tasks<T: Into<String>>(
     )
 }
 
-pub async fn handle_sync<T: Into<String>>(
-    data_store: &mut TodoistDataStore,
-    todoist_auth: T,
-    sync_token: &str,
-) {
-    let token = todoist_auth.into();
-    let client = reqwest::Client::new();
-    let mut params = HashMap::new();
-    params.insert("sync_token", sync_token);
-    params.insert("resource_types", "[\"all\"]");
-    let sync = client
-        .post("https://api.todoist.com/sync/v9/sync")
-        .header("Authorization", format!("Bearer {}", &token))
-        .form(&params);
+pub type TaskSync = (TodoistSync, HashMap<String, String>);
 
-    let todoist_sync: TodoistSync = sync.send().await.unwrap().json().await.unwrap();
+pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_mapping): TaskSync) {
+    // let token = todoist_auth.into();
+    // let client = reqwest::Client::new();
+    // let mut params = HashMap::new();
+    // params.insert("sync_token", sync_token);
+    // params.insert("resource_types", "[\"all\"]");
+    // let sync = client
+    //     .post("https://api.todoist.com/sync/v9/sync")
+    //     .header("Authorization", format!("Bearer {}", &token))
+    //     .form(&params);
+    //
+    // let todoist_sync: TodoistSync = sync.send().await.unwrap().json().await.unwrap();
+
+    // FIXME: it might be better to map the todoist sync actual ids to temp ids?
+    for (temp_id, actual_id) in temp_id_mapping.iter() {
+        if let Some(v) = data_store.tasks.remove(temp_id) {
+            data_store.tasks.insert(actual_id.to_string(), v);
+        }
+
+        for (_, k) in data_store.subtasks.iter_mut() {
+            if let Some(position) = k.iter().position(|a| temp_id == a) {
+                k[position] = actual_id.to_string();
+            }
+        }
+
+        if let Some(position) = data_store.root.iter().position(|a| temp_id == a) {
+            data_store.root[position] = actual_id.to_string();
+        }
+    }
 
     if let Some(items) = todoist_sync.items {
         for item in items.into_iter() {
+            info!("{:?}", item);
+            if "" == item.content.as_str() {
+                data_store.root.retain(|f| *f != item.id);
+                data_store.subtasks
+                    .values_mut()
+                    .for_each(|val| val.retain(|f| *f != item.id));
+
+                data_store.tasks.remove(&item.id);
+
+                continue;
+            }
+
             if let Some(task) = data_store.tasks.get_mut(item.id.as_str()) {
                 *task = item.into();
+            } else {
+                let child = item.child_order;
+                let parent_id = item.parent_id.clone();
+                let subtasks = if let Some(parent_id) = parent_id {
+                    data_store
+                        .subtasks
+                        .entry(parent_id)
+                        .or_insert_with(|| Vec::new())
+                } else {
+                    &mut data_store.root
+                };
+
+                subtasks.insert(child, item.id.clone());
+                data_store.tasks.insert(item.id.clone(), item.into());
             }
         }
     }
 }
 
-pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
+pub async fn sync<T: Into<String>>(
+    todoist_auth: T,
+    sync_send: Sender<TaskSync>,
+) -> TodoistDataStore {
     println!("Attempting to connect to Todoist");
 
     let token = todoist_auth.into();
@@ -232,6 +281,12 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
                             .unwrap();
 
                         previous_token = todoist_response.sync_token;
+                        sync_send
+                            .send((
+                                serde_json::from_str::<TodoistSync>(&sync).unwrap(),
+                                temp_id_mapping.clone(),
+                            ))
+                            .await;
                         tracing::info!("Got an sync request: {:?}", sync)
                     }
                     Err(e) => {
@@ -249,15 +304,14 @@ pub async fn sync<T: Into<String>>(todoist_auth: T) -> TodoistDataStore {
     });
 
     TodoistDataStore {
-        root: root_tasks,
         tasks,
         completed_tasks,
         subtasks,
+        root: root_tasks,
         completed_root,
         tags: HashMap::new(),
         task_count: 0,
         currently_syncing: mutex,
         command_sender: send,
-        todoist_state: Default::default(),
     }
 }

@@ -6,7 +6,10 @@ use std::{
 
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use tokio::{sync::mpsc::Sender, task};
+use tokio::{
+    sync::mpsc::Sender,
+    task,
+};
 
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
@@ -15,10 +18,10 @@ use crate::{
 };
 
 use super::todoist_command::{
-    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
-    TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand,
-    TodoistItemUncompleteCommand,
-};
+        task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
+        TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand,
+        TodoistItemUncompleteCommand,
+    };
 
 // FIXME: we can seperate this into the state and the sender. This seperates them and we can use an
 // arc mutex without changing too much of the existing code
@@ -32,21 +35,7 @@ pub struct TodoistDataStore {
     pub task_count: usize,
 
     pub currently_syncing: Arc<Mutex<bool>>,
-    pub todoist_state: Arc<Mutex<TodoistState>>,
     pub command_sender: Sender<TodoistCommand>,
-}
-
-#[derive(Default)]
-pub struct TodoistState {
-    pub tasks: HashMap<TaskID, Task>,
-    pub completed_tasks: HashMap<TaskID, CompletedTask>,
-    pub subtasks: HashMap<TaskID, Vec<TaskID>>,
-    pub root: Vec<TaskID>,
-    pub completed_root: Vec<TaskID>,
-    pub tags: HashMap<String, Tag>,
-    pub task_count: usize,
-
-    pub currently_syncing: Arc<Mutex<bool>>,
 }
 
 impl TodoistDataStore {
@@ -59,7 +48,11 @@ impl TodoistDataStore {
 }
 
 impl DataTaskStore for TodoistDataStore {
-    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F> {
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(
+        &mut self,
+        id: TaskIDRef,
+        closure: T,
+    ) -> Option<F> {
         self.tasks.get_mut(id).map(|f| closure(f))
         // Some(closure(self.todoist_state.lock().ok()?.tasks.get_mut(id)?))
     }

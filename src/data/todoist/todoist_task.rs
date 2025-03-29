@@ -7,7 +7,7 @@ use super::todoist_command::TodoistDue;
 #[derive(serde::Deserialize, Debug)]
 pub struct TodoistItem {
     pub id: String,
-    content: Option<String>,
+    pub content: String,
     pub parent_id: Option<String>,
     pub child_order: usize,
     description: String,
@@ -20,7 +20,7 @@ impl From<TodoistItem> for Task {
     fn from(value: TodoistItem) -> Self {
         Task {
             progress: false,
-            title: value.content.unwrap_or_else(|| String::from("")) + "\n" + &value.description,
+            title: value.content + "\n" + &value.description,
             priority: todoist_to_priority(value.priority),
             tags: Vec::new(),
             due_date: value.due.map(|d| d.date),

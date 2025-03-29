@@ -1,3 +1,4 @@
+use data::{data_store::DataTaskStoreKind, todoist::{todoist_main::{handle_sync, TaskSync}, todoist_response::TodoistSync}};
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 
 mod actions;
@@ -28,7 +29,7 @@ use framework::{
     screen_manager::ScreenManager,
 };
 use futures::{FutureExt, TryStreamExt};
-use tokio::time::Instant;
+use tokio::{sync::mpsc::Receiver, time::Instant};
 use tracing_subscriber::Registry;
 use tui::{
     backend::CrosstermBackend,
@@ -53,7 +54,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(debug_assertions))]
     let is_debug = false;
 
-    let (config, tasks) = data_io::get_data(is_debug).await;
+    let (config, tasks, rx) = data_io::get_data(is_debug).await;
 
     enable_raw_mode()?;
 
@@ -68,7 +69,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         overlays: vec![],
     };
 
-    let result = start_app(&mut screen_manager, &mut terminal).await;
+    let result = start_app(&mut screen_manager, &mut terminal, rx).await;
 
     // Shutting down application
 
@@ -95,6 +96,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 pub async fn start_app(
     screen_manager: &mut ScreenManager,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    mut rx: Receiver<TaskSync>,
 ) -> io::Result<()> {
     let mut main_screen = MainScreen::new();
 
@@ -145,6 +147,11 @@ pub async fn start_app(
         tokio::select! {
             _ = tick => {
                 screen_manager.app.tick += 1;
+            }
+            Some(sync) = rx.recv() => {
+                if let DataTaskStoreKind::Todoist(todoist) = &mut screen_manager.app.task_store {
+                    handle_sync(todoist, sync);
+                }
             }
             Ok(Some(event)) = crossterm => {
                 match event {

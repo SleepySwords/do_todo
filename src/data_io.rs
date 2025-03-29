@@ -10,10 +10,12 @@ use std::{
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
+use tokio::sync::mpsc::Receiver;
+
 use crate::{
     config::{Config, DataSource},
     data::{
-        data_store::{DataTaskStore, DataTaskStoreKind}, json_data_store::JsonDataStore, todoist::todoist_main::sync,
+        data_store::{DataTaskStore, DataTaskStoreKind}, json_data_store::JsonDataStore, todoist::{todoist_main::{sync, TaskSync}, todoist_response::TodoistSync},
     },
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
@@ -89,7 +91,8 @@ where
     Default::default()
 }
 
-pub async fn get_data(is_debug: bool) -> (Config, DataTaskStoreKind) {
+// FIXME: make the receiver optional
+pub async fn get_data(is_debug: bool) -> (Config, DataTaskStoreKind, Receiver<TaskSync>) {
     let (data_local_dir, config_local_dir) = if is_debug {
         (
             Some(std::env::current_dir().unwrap()),
@@ -105,6 +108,7 @@ pub async fn get_data(is_debug: bool) -> (Config, DataTaskStoreKind) {
         serde_yaml::from_str::<Config>,
         "config",
     );
+    let (send, recv) = tokio::sync::mpsc::channel::<TaskSync>(100);
 
     // let tasks = sync();
     let task_store: DataTaskStoreKind = match &config.data_source {
@@ -126,10 +130,10 @@ pub async fn get_data(is_debug: bool) -> (Config, DataTaskStoreKind) {
                 "task data",
             ))
         }
-        DataSource::Todoist(todoist_auth) => DataTaskStoreKind::Todoist(sync(todoist_auth).await),
+        DataSource::Todoist(todoist_auth) => DataTaskStoreKind::Todoist(sync(todoist_auth, send).await),
     };
 
-    (config, task_store)
+    (config, task_store, recv)
 }
 
 fn save_to_file<T, F, E>(local_dir: Option<PathBuf>, file_name: &str, ser_f: F, kind: &str)
