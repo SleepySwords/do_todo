@@ -1,4 +1,4 @@
-use crate::data::data_store::DataTaskStore;
+use crate::{data::data_store::DataTaskStore, utils::task_position::cursor_to_completed_task};
 use tui::{
     layout::Rect,
     style::{Color, Style},
@@ -38,9 +38,8 @@ impl CompletedList {
             return;
         }
 
-        if let Some(completed_task) = app
-            .task_store
-            .cursor_to_completed_task(app.completed_list.selected_index)
+        if let Some(completed_task) =
+            cursor_to_completed_task(&app.task_store, app.completed_list.selected_index)
         {
             app.task_store.restore(&completed_task);
             if app.completed_list.selected_index >= app.task_store.completed_root_tasks().len()

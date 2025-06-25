@@ -1,4 +1,7 @@
-use crate::data::data_store::DataTaskStore;
+use crate::{
+    data::data_store::DataTaskStore,
+    utils::task_position::{cursor_to_completed_task, cursor_to_task},
+};
 use chrono::Local;
 use tui::{
     layout::{Constraint, Rect},
@@ -35,7 +38,7 @@ impl Viewer {
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.config;
         let index = app.task_list.selected_index;
-        let Some(task_id) = app.task_store.cursor_to_task(index) else {
+        let Some(task_id) = cursor_to_task(&app.task_store, index) else {
             return;
         };
         let Some(task) = app.task_store.task(&task_id) else {
@@ -95,10 +98,8 @@ impl Viewer {
         draw_area: Rect,
         drawer: &mut Drawer,
     ) {
-        // FIXME: global tasks?
-        let Some(task_id) = app
-            .task_store
-            .cursor_to_completed_task(app.completed_list.selected_index)
+        let Some(task_id) =
+            cursor_to_completed_task(&app.task_store, app.completed_list.selected_index)
         else {
             return;
         };

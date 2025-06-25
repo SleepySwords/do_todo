@@ -23,8 +23,12 @@ pub struct JsonDataStore {
 }
 
 impl DataTaskStore for JsonDataStore {
-    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F> {
-        self.tasks.get_mut(id).map(|f| closure(f))
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(
+        &mut self,
+        id: TaskIDRef,
+        closure: T,
+    ) -> Option<F> {
+        self.tasks.get_mut(id).map(closure)
     }
 
     fn update_task(&mut self, _: TaskIDRef) {
@@ -89,18 +93,6 @@ impl DataTaskStore for JsonDataStore {
 
     fn completed_root_tasks(&self) -> &Vec<TaskID> {
         &self.completed_root
-    }
-
-    fn cursor_to_task(&self, pos: usize) -> Option<TaskID> {
-        utils::task_position::cursor_to_task(self, pos)
-    }
-
-    fn cursor_to_completed_task(&self, pos: usize) -> Option<TaskID> {
-        utils::task_position::cursor_to_completed_task(self, pos)
-    }
-
-    fn task_to_cursor(&self, id: TaskIDRef) -> Option<usize> {
-        utils::task_position::task_to_cursor(self, id)
     }
 
     fn delete_tag(&mut self, tag_id: TaskIDRef) {

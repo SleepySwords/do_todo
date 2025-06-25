@@ -56,6 +56,7 @@ pub struct Config {
     pub flip_progress_key: Key,
     pub change_priority_key: Key,
     pub restore_key: Key,
+    pub refresh_key: Key,
 
     pub tasks_menu_key: Key,
     pub completed_tasks_menu_key: Key,
@@ -125,6 +126,7 @@ impl Default for Config {
             add_subtask_key: Key::new(KeyCode::Char('A'), KeyModifiers::NONE),
             change_priority_key: Key::new(KeyCode::Char('p'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
+            refresh_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
             tasks_menu_key: Key::new(KeyCode::Char('1'), KeyModifiers::NONE),
             completed_tasks_menu_key: Key::new(KeyCode::Char('2'), KeyModifiers::NONE),

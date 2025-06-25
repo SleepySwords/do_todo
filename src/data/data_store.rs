@@ -14,14 +14,15 @@ pub type TaskIDRef<'a> = &'a str;
 #[enum_dispatch]
 pub enum DataTaskStoreKind {
     Json(JsonDataStore),
-    Todoist(TodoistDataStore)
+    Todoist(TodoistDataStore),
 }
 
 /// Handles how tasks are stored
 #[enum_dispatch(DataTaskStoreKind)]
 pub trait DataTaskStore {
     /// Returns this mutable task with this id.
-    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T) -> Option<F>;
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(&mut self, id: TaskIDRef, closure: T)
+        -> Option<F>;
 
     /// Notify the server that this task has been modified.
     fn update_task(&mut self, id: TaskIDRef);
@@ -64,16 +65,6 @@ pub trait DataTaskStore {
     ///
     /// * `id` - The id to get, if None, will return root tasks
     fn completed_root_tasks(&self) -> &Vec<TaskID>;
-
-    /// Finds the task at the cursor
-    // FIXME: Should this be a global interface?
-    // This is not really related to the implementation at heart.
-    fn cursor_to_task(&self, pos: usize) -> Option<TaskID>;
-
-    /// Finds the task at the cursor
-    fn cursor_to_completed_task(&self, pos: usize) -> Option<TaskID>;
-
-    fn task_to_cursor(&self, id: TaskIDRef) -> Option<usize>;
 
     fn delete_tag(&mut self, tag_id: TaskIDRef);
 

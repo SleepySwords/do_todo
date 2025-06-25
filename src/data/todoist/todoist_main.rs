@@ -1,25 +1,21 @@
 use std::{
     cmp::Ordering,
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex}, usize,
 };
 
 use chrono::Local;
 use itertools::Itertools;
 use tokio::{join, sync::mpsc::Sender};
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
-    data::{
-        self,
-        data_store::DataTaskStore,
-        todoist::{
-            todoist_command::TodoistCommand,
-            todoist_response::{
-                SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
-            },
+    data::{data_store::DataTaskStore, todoist::{
+        todoist_command::TodoistCommand,
+        todoist_response::{
+            SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
         },
-    },
+    }},
     task::{CompletedTask, Task},
 };
 
@@ -113,18 +109,6 @@ pub async fn get_initial_tasks<T: Into<String>>(
 pub type TaskSync = (TodoistSync, HashMap<String, String>);
 
 pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_mapping): TaskSync) {
-    // let token = todoist_auth.into();
-    // let client = reqwest::Client::new();
-    // let mut params = HashMap::new();
-    // params.insert("sync_token", sync_token);
-    // params.insert("resource_types", "[\"all\"]");
-    // let sync = client
-    //     .post("https://api.todoist.com/sync/v9/sync")
-    //     .header("Authorization", format!("Bearer {}", &token))
-    //     .form(&params);
-    //
-    // let todoist_sync: TodoistSync = sync.send().await.unwrap().json().await.unwrap();
-
     // FIXME: it might be better to map the todoist sync actual ids to temp ids?
     for (temp_id, actual_id) in temp_id_mapping.iter() {
         if let Some(v) = data_store.tasks.remove(temp_id) {
@@ -144,10 +128,10 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
 
     if let Some(items) = todoist_sync.items {
         for item in items.into_iter() {
-            info!("{:?}", item);
             if "" == item.content.as_str() {
                 data_store.root.retain(|f| *f != item.id);
-                data_store.subtasks
+                data_store
+                    .subtasks
                     .values_mut()
                     .for_each(|val| val.retain(|f| *f != item.id));
 
@@ -165,13 +149,21 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
                     data_store
                         .subtasks
                         .entry(parent_id)
-                        .or_insert_with(|| Vec::new())
+                        .or_insert_with(Vec::new)
                 } else {
                     &mut data_store.root
                 };
 
-                subtasks.insert(child, item.id.clone());
-                data_store.tasks.insert(item.id.clone(), item.into());
+                if child <= subtasks.len() {
+                    subtasks.insert(child, item.id.clone());
+                    data_store.tasks.insert(item.id.clone(), item.into());
+                } else {
+                    tracing::error!(
+                        "Child order {} is less than the total subtask length {}",
+                        child,
+                        subtasks.len()
+                    )
+                }
             }
         }
     }
@@ -225,72 +217,117 @@ pub async fn sync<T: Into<String>>(
                 .expect("Send time date is out of range");
 
             for command in buffer.iter_mut().take(size) {
-                command.update_id(&temp_id_mapping);
+                if let TodoistCommand::Send(command) = command {
+                    command.update_id(&temp_id_mapping);
+                }
             }
 
             if !buffer.is_empty() {
                 let client = reqwest::Client::new();
                 let mut params = HashMap::new();
-                params.insert("commands", serde_json::to_string(&buffer[..size]).unwrap());
-                let sync = client
-                    .post("https://api.todoist.com/sync/v9/sync")
-                    .header("Authorization", format!("Bearer {}", token))
-                    .form(&params);
 
-                let response = match sync.send().await {
-                    Ok(response) => response,
-                    Err(err) => {
-                        tracing::error!("Could not send the command because: {}", err);
-
-                        if let Ok(mut currently_syncing) = curr_syncing.lock() {
-                            *currently_syncing = false;
+                let commands = buffer[..size]
+                    .iter()
+                    .flat_map(|f| {
+                        if let TodoistCommand::Send(command) = f {
+                            Some(command)
+                        } else {
+                            None
                         }
-                        continue;
-                    }
-                };
+                    })
+                    .collect_vec();
 
-                let response = response.text().await.unwrap();
+                let should_refresh = buffer[..size].contains(&TodoistCommand::Refresh);
+                debug!(should_refresh);
 
-                match serde_json::from_str::<TodoistResponse>(&response) {
-                    Ok(todoist_response) => {
-                        temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
+                if should_refresh {
+                    let mut params = HashMap::new();
+                    params.insert("sync_token", previous_token);
+                    params.insert("resource_types", "[\"all\"]".to_string());
+                    let sync = client
+                        .post("https://api.todoist.com/sync/v9/sync")
+                        .header("Authorization", format!("Bearer {}", &token))
+                        .form(&params)
+                        .send()
+                        .await
+                        .unwrap()
+                        .text()
+                        .await
+                        .unwrap();
 
-                        for (sync_status_id, response) in todoist_response.sync_status {
-                            if let SyncStatus::Err(response) = response {
-                                tracing::error!(
-                                    "Got an error(id = {}): {:?}, body: {:?}",
-                                    sync_status_id,
-                                    response,
-                                    serde_json::to_string(&buffer[..size]).unwrap()
-                                );
+                    let json = serde_json::from_str::<TodoistSync>(&sync).unwrap();
+
+                    previous_token = json.sync_token;
+
+                    let _ = sync_send
+                        .send((
+                            serde_json::from_str::<TodoistSync>(&sync).unwrap(),
+                            temp_id_mapping.clone(),
+                        ))
+                        .await;
+                    tracing::info!("Got an sync request: {:?}", sync)
+                } else {
+                    params.insert("commands", serde_json::to_string(&commands).unwrap());
+                    let sync = client
+                        .post("https://api.todoist.com/sync/v9/sync")
+                        .header("Authorization", format!("Bearer {}", token))
+                        .form(&params);
+
+                    let response = match sync.send().await {
+                        Ok(response) => response,
+                        Err(err) => {
+                            tracing::error!("Could not send the command because: {}", err);
+
+                            if let Ok(mut currently_syncing) = curr_syncing.lock() {
+                                *currently_syncing = false;
                             }
+                            continue;
                         }
+                    };
 
-                        let mut params = HashMap::new();
-                        params.insert("sync_token", previous_token);
-                        params.insert("resource_types", "[\"all\"]".to_string());
-                        let sync = client
-                            .post("https://api.todoist.com/sync/v9/sync")
-                            .header("Authorization", format!("Bearer {}", &token))
-                            .form(&params)
-                            .send()
-                            .await
-                            .unwrap()
-                            .text()
-                            .await
-                            .unwrap();
+                    let response = response.text().await.unwrap();
 
-                        previous_token = todoist_response.sync_token;
-                        sync_send
-                            .send((
-                                serde_json::from_str::<TodoistSync>(&sync).unwrap(),
-                                temp_id_mapping.clone(),
-                            ))
-                            .await;
-                        tracing::info!("Got an sync request: {:?}", sync)
-                    }
-                    Err(e) => {
-                        tracing::error!("{}", e.to_string() + "\n " + &response);
+                    match serde_json::from_str::<TodoistResponse>(&response) {
+                        Ok(todoist_response) => {
+                            temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
+
+                            for (sync_status_id, response) in todoist_response.sync_status {
+                                if let SyncStatus::Err(response) = response {
+                                    tracing::error!(
+                                        "Got an error(id = {}): {:?}, body: {:?}",
+                                        sync_status_id,
+                                        response,
+                                        serde_json::to_string(&commands).unwrap()
+                                    );
+                                }
+                            }
+
+                            let mut params = HashMap::new();
+                            params.insert("sync_token", previous_token);
+                            params.insert("resource_types", "[\"all\"]".to_string());
+                            let sync = client
+                                .post("https://api.todoist.com/sync/v9/sync")
+                                .header("Authorization", format!("Bearer {}", &token))
+                                .form(&params)
+                                .send()
+                                .await
+                                .unwrap()
+                                .text()
+                                .await
+                                .unwrap();
+
+                            previous_token = todoist_response.sync_token;
+                            let _ = sync_send
+                                .send((
+                                    serde_json::from_str::<TodoistSync>(&sync).unwrap(),
+                                    temp_id_mapping.clone(),
+                                ))
+                                .await;
+                            tracing::info!("Got an sync request: {:?}", sync)
+                        }
+                        Err(e) => {
+                            tracing::error!("{}", e.to_string() + "\n " + &response);
+                        }
                     }
                 }
             }

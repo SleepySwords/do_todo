@@ -1,4 +1,7 @@
-use data::{data_store::DataTaskStoreKind, todoist::{todoist_main::{handle_sync, TaskSync}, todoist_response::TodoistSync}};
+use data::{
+    data_store::DataTaskStoreKind,
+    todoist::todoist_main::{handle_sync, TaskSync},
+};
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 
 mod actions;

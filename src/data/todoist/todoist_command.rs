@@ -6,9 +6,15 @@ use serde::{Deserialize, Serialize};
 use crate::task::{Priority, Task};
 
 // FIXME: try to clean this up using magic serde
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[serde(tag = "type")]
+#[derive(PartialEq)]
 pub enum TodoistCommand {
+    Send(TodoistSendCommand),
+    Refresh,
+}
+
+#[derive(Serialize, Clone, PartialEq, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum TodoistSendCommand {
     #[serde(rename = "item_add")]
     Add {
         uuid: String,
@@ -40,12 +46,11 @@ pub enum TodoistCommand {
         uuid: String,
         args: TodoistItemUncompleteCommand,
     },
-    Refresh
 }
 
-impl TodoistCommand {
+impl TodoistSendCommand {
     pub fn update_id(&mut self, temp_id_mapping: &HashMap<String, String>) {
-        if let TodoistCommand::Delete { args, .. } = self {
+        if let TodoistSendCommand::Delete { args, .. } = self {
             if let Some(new_id) = temp_id_mapping.get(&args.id) {
                 args.id = new_id.to_string();
             }
@@ -54,28 +59,33 @@ impl TodoistCommand {
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistItemAddCommand {
     pub content: String,
     pub parent_id: Option<String>,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistItemDeleteCommand {
     pub id: String,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistItemReorder {
     pub id: String,
     pub child_order: usize,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistItemReorderCommand {
     pub items: Vec<TodoistItemReorder>,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistUpdateItem {
     pub id: String,
     pub content: Option<String>,
@@ -85,6 +95,7 @@ pub struct TodoistUpdateItem {
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistItemCompleteCommand {
     pub id: String,
     // FIXME: This is required to be in the RFC3339 format to work
@@ -92,11 +103,13 @@ pub struct TodoistItemCompleteCommand {
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistItemUncompleteCommand {
     pub id: String,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
 pub struct TodoistDue {
     pub date: NaiveDate,
 }

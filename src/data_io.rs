@@ -1,21 +1,23 @@
 use std::{
     fs,
-    io::Write,
-    io::{stdin, stdout},
+    io::{stdin, stdout, Write},
     path::PathBuf,
-    process::exit,
+    process::exit, sync::Arc,
 };
 
 // TODOs:
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
+use futures::lock::Mutex;
 use tokio::sync::mpsc::Receiver;
 
 use crate::{
     config::{Config, DataSource},
     data::{
-        data_store::{DataTaskStore, DataTaskStoreKind}, json_data_store::JsonDataStore, todoist::{todoist_main::{sync, TaskSync}, todoist_response::TodoistSync},
+        data_store::{DataTaskStore, DataTaskStoreKind},
+        json_data_store::JsonDataStore,
+        todoist::todoist_main::{sync, TaskSync},
     },
     error::AppError,
     storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
@@ -130,7 +132,9 @@ pub async fn get_data(is_debug: bool) -> (Config, DataTaskStoreKind, Receiver<Ta
                 "task data",
             ))
         }
-        DataSource::Todoist(todoist_auth) => DataTaskStoreKind::Todoist(sync(todoist_auth, send).await),
+        DataSource::Todoist(todoist_auth) => {
+            DataTaskStoreKind::Todoist(sync(todoist_auth, send).await)
+        }
     };
 
     (config, task_store, recv)

@@ -6,22 +6,18 @@ use std::{
 
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use tokio::{
-    sync::mpsc::Sender,
-    task,
-};
+use tokio::{sync::mpsc::Sender, task};
 
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
     task::{CompletedTask, FindParentResult, Priority, Tag, Task},
-    utils,
 };
 
 use super::todoist_command::{
-        task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
-        TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand,
-        TodoistItemUncompleteCommand,
-    };
+    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
+    TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand,
+    TodoistItemUncompleteCommand, TodoistSendCommand,
+};
 
 // FIXME: we can seperate this into the state and the sender. This seperates them and we can use an
 // arc mutex without changing too much of the existing code
@@ -39,7 +35,11 @@ pub struct TodoistDataStore {
 }
 
 impl TodoistDataStore {
-    pub fn send_command(&self, command: TodoistCommand) {
+    pub fn send_command(&self, command: TodoistSendCommand) {
+        self.command(TodoistCommand::Send(command));
+    }
+
+    pub fn command(&self, command: TodoistCommand) {
         let sender = self.command_sender.clone();
         task::block_in_place(move || {
             sender.blocking_send(command).unwrap();
@@ -53,12 +53,12 @@ impl DataTaskStore for TodoistDataStore {
         id: TaskIDRef,
         closure: T,
     ) -> Option<F> {
-        self.tasks.get_mut(id).map(|f| closure(f))
+        self.tasks.get_mut(id).map(closure)
         // Some(closure(self.todoist_state.lock().ok()?.tasks.get_mut(id)?))
     }
 
     fn update_task(&mut self, id: TaskIDRef) {
-        self.send_command(TodoistCommand::Update {
+        self.send_command(TodoistSendCommand::Update {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: task_to_todoist(id.to_string(), self.task(id).unwrap()),
         });
@@ -82,7 +82,7 @@ impl DataTaskStore for TodoistDataStore {
             .values_mut()
             .for_each(|val| val.retain(|f| f != id));
 
-        self.send_command(TodoistCommand::Delete {
+        self.send_command(TodoistSendCommand::Delete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemDeleteCommand { id: id.to_string() },
         });
@@ -127,18 +127,6 @@ impl DataTaskStore for TodoistDataStore {
         &self.completed_root
     }
 
-    fn cursor_to_task(&self, pos: usize) -> Option<TaskID> {
-        utils::task_position::cursor_to_task(self, pos)
-    }
-
-    fn cursor_to_completed_task(&self, pos: usize) -> Option<TaskID> {
-        utils::task_position::cursor_to_completed_task(self, pos)
-    }
-
-    fn task_to_cursor(&self, id: TaskIDRef) -> Option<usize> {
-        utils::task_position::task_to_cursor(self, id)
-    }
-
     fn delete_tag(&mut self, tag_id: TaskIDRef) {
         self.tags.remove(tag_id);
         for task in &mut self.tasks.values_mut() {
@@ -171,7 +159,7 @@ impl DataTaskStore for TodoistDataStore {
         self.tasks.insert(key.clone(), task.clone());
         parents.push(key.clone());
 
-        self.send_command(TodoistCommand::Add {
+        self.send_command(TodoistSendCommand::Add {
             uuid: uuid::Uuid::new_v4().to_string(),
             temp_id: key,
             args: TodoistItemAddCommand {
@@ -182,7 +170,7 @@ impl DataTaskStore for TodoistDataStore {
     }
 
     fn refresh(&mut self) {
-        self.send_command(TodoistCommand::Refresh);
+        self.command(TodoistCommand::Refresh)
     }
 
     fn save(&self) {
@@ -216,8 +204,6 @@ impl DataTaskStore for TodoistDataStore {
 
         mutable_subtasks.insert(order, id.to_string());
 
-        // FIXME: Revisit solution where you do not have to send everything
-        // expored in commit cdea3856a26840
         let items = mutable_subtasks
             .iter()
             .enumerate()
@@ -227,7 +213,7 @@ impl DataTaskStore for TodoistDataStore {
             })
             .collect_vec();
 
-        self.send_command(TodoistCommand::Reorder {
+        self.send_command(TodoistSendCommand::Reorder {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemReorderCommand { items },
         });
@@ -265,7 +251,7 @@ impl DataTaskStore for TodoistDataStore {
             self.completed_root.push(id.to_string());
         }
 
-        self.send_command(TodoistCommand::Complete {
+        self.send_command(TodoistSendCommand::Complete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemCompleteCommand {
                 id: id.to_string(),
@@ -291,7 +277,7 @@ impl DataTaskStore for TodoistDataStore {
             }
         }
 
-        self.send_command(TodoistCommand::Uncomplete {
+        self.send_command(TodoistSendCommand::Uncomplete {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemUncompleteCommand { id: id.to_string() },
         });
