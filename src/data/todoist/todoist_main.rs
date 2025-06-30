@@ -1,22 +1,29 @@
 use std::{
     cmp::Ordering,
     collections::HashMap,
-    sync::{Arc, Mutex}, usize,
+    sync::{Arc, Mutex},
+    usize,
 };
 
 use chrono::Local;
 use itertools::Itertools;
+use serde_json::Value;
 use tokio::{join, sync::mpsc::Sender};
 use tracing::{debug, info};
 
 use crate::{
-    data::{data_store::DataTaskStore, todoist::{
-        todoist_command::TodoistCommand,
-        todoist_response::{
-            SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
+    data::{
+        self,
+        data_store::DataTaskStore,
+        todoist::{
+            todoist_command::TodoistCommand,
+            todoist_response::{
+                SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
+            },
         },
-    }},
+    },
     task::{CompletedTask, Task},
+    utils::task_position::cursor_to_task,
 };
 
 use super::todoist_data_store::TodoistDataStore;
@@ -126,8 +133,15 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
         }
     }
 
-    if let Some(items) = todoist_sync.items {
+    if let Some(mut items) = todoist_sync.items {
+        // The way child order is done is as a cursor like thing.
+        // Must sort by the child order and then append each to the subtasks.
+        items.sort_by_key(|f| f.child_order);
+        let is_move = items.get(0).map(|f| f.child_order).is_some_and(|f| f == 0);
         for item in items.into_iter() {
+            if item.completed_at.is_some() {
+                continue;
+            }
             if "" == item.content.as_str() {
                 data_store.root.retain(|f| *f != item.id);
                 data_store
@@ -140,10 +154,34 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
                 continue;
             }
 
+            // Either we are inserting at the very start or this is a move
+            // which in that case every item is sent
+            if is_move && item.child_order == 0 {
+                data_store.root.clear();
+            }
+
             if let Some(task) = data_store.tasks.get_mut(item.id.as_str()) {
+                let parent_id = item.parent_id.clone();
+                if task.opened && is_move {
+                    if let Some(subtasks) = data_store.subtasks.get_mut(&item.id) {
+                        subtasks.clear();
+                    }
+                }
+
+                tracing::debug!(
+                    "Not equal {:?} {:?}",
+                    parent_id,
+                    data_store.find_parent(&item.id).and_then(|f| f.parent_id)
+                );
+                if is_move
+                    || parent_id != data_store.find_parent(&item.id).and_then(|f| f.parent_id)
+                {
+                    data_store.append_internal(&item.id, parent_id, Some(()));
+                }
+
+                let task = data_store.tasks.get_mut(item.id.as_str()).unwrap();
                 *task = item.into();
             } else {
-                let child = item.child_order;
                 let parent_id = item.parent_id.clone();
                 let subtasks = if let Some(parent_id) = parent_id {
                     data_store
@@ -153,17 +191,9 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
                 } else {
                     &mut data_store.root
                 };
+                subtasks.push(item.id.clone());
 
-                if child <= subtasks.len() {
-                    subtasks.insert(child, item.id.clone());
-                    data_store.tasks.insert(item.id.clone(), item.into());
-                } else {
-                    tracing::error!(
-                        "Child order {} is less than the total subtask length {}",
-                        child,
-                        subtasks.len()
-                    )
-                }
+                data_store.tasks.insert(item.id.clone(), item.into());
             }
         }
     }
@@ -265,7 +295,11 @@ pub async fn sync<T: Into<String>>(
                             temp_id_mapping.clone(),
                         ))
                         .await;
-                    tracing::info!("Got an sync request: {:?}", sync)
+                    if let Ok(sync_req) = &serde_json::from_str::<Value>(&sync)
+                        .and_then(|f| serde_json::to_string_pretty(&f))
+                    {
+                        tracing::info!("Got an sync request: {}", sync_req)
+                    }
                 } else {
                     params.insert("commands", serde_json::to_string(&commands).unwrap());
                     let sync = client

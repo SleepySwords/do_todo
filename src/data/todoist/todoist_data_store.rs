@@ -45,6 +45,30 @@ impl TodoistDataStore {
             sender.blocking_send(command).unwrap();
         });
     }
+
+    pub fn append_internal(&mut self, id: TaskIDRef, parent: Option<TaskID>, global: Option<()>) {
+        let hash_map = &mut self.subtasks;
+        let subtasks = if let Some((_, subtasks)) = hash_map
+            .iter_mut()
+            .find(|(_, subtasks)| subtasks.contains(&id.to_string()))
+        {
+            subtasks
+        } else {
+            &mut self.root
+        };
+        subtasks.retain(|f| f != id);
+        let mutable_subtasks = if let Some(p) = parent {
+            self.subtasks.entry(p).or_default()
+        } else if global.is_some() {
+            &mut self.root
+        } else {
+            subtasks
+        };
+
+        mutable_subtasks.push(id.to_string());
+
+        return;
+    }
 }
 
 impl DataTaskStore for TodoistDataStore {

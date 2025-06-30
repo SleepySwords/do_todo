@@ -1,4 +1,4 @@
-use chrono::DateTime;
+use chrono::{DateTime, NaiveDate};
 
 use crate::task::{CompletedTask, Priority, Task};
 
@@ -14,6 +14,7 @@ pub struct TodoistItem {
     collapsed: bool,
     priority: usize,
     due: Option<TodoistDue>,
+    pub completed_at: Option<String>
 }
 
 impl From<TodoistItem> for Task {

@@ -2,7 +2,7 @@ use data::{
     data_store::DataTaskStoreKind,
     todoist::todoist_main::{handle_sync, TaskSync},
 };
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::{fmt::Layer, prelude::__tracing_subscriber_SubscriberExt};
 
 mod actions;
 mod app;
@@ -105,7 +105,10 @@ pub async fn start_app(
 
     let mut logger = Logger::default();
 
-    let subscriber = Registry::default().with(logger.clone());
+    let logfile = tracing_appender::rolling::hourly(dirs::data_dir().unwrap().join("dotodo").to_str().unwrap(), "logs");
+    let logfile_layer = Layer::default().with_writer(logfile);
+
+    let subscriber = Registry::default().with(logger.clone()).with(logfile_layer);
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
 
     tracing::info!("Todoist Logger is active");
