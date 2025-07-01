@@ -14,7 +14,7 @@ pub struct TodoistItem {
     is_collapsed: bool,
     priority: usize,
     due: Option<TodoistDue>,
-    pub completed_at: Option<String>
+    pub completed_at: Option<String>,
 }
 
 impl From<TodoistItem> for Task {

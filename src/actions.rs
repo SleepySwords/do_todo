@@ -509,12 +509,9 @@ impl App {
             .use_vim(&self.config, VimMode::Normal)
             .fill(task.title.as_str())
             .on_submit(move |app, word| {
-                app.task_store.modify_task(
-                    &task_id,
-                    move |task| {
-                        task.title = word.trim().to_string();
-                    },
-                );
+                app.task_store.modify_task(&task_id, move |task| {
+                    task.title = word.trim().to_string();
+                });
                 app.task_store.update_task(&task_id);
                 PostEvent::noop(false)
             })
@@ -531,12 +528,9 @@ impl App {
             // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        self.task_store.modify_task(
-            &task_id,
-            |task| {
-                task.progress = !task.progress;
-            },
-        );
+        self.task_store.modify_task(&task_id, |task| {
+            task.progress = !task.progress;
+        });
         self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }

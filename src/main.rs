@@ -105,7 +105,10 @@ pub async fn start_app(
 
     let mut logger = Logger::default();
 
-    let logfile = tracing_appender::rolling::hourly(dirs::data_dir().unwrap().join("dotodo").to_str().unwrap(), "logs");
+    let logfile = tracing_appender::rolling::hourly(
+        dirs::data_dir().unwrap().join("dotodo").to_str().unwrap(),
+        "logs",
+    );
     let logfile_layer = Layer::default().with_writer(logfile);
 
     let subscriber = Registry::default().with(logger.clone()).with(logfile_layer);

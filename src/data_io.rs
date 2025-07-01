@@ -2,14 +2,13 @@ use std::{
     fs,
     io::{stdin, stdout, Write},
     path::PathBuf,
-    process::exit, sync::Arc,
+    process::exit,
 };
 
 // TODOs:
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
-use futures::lock::Mutex;
 use tokio::sync::mpsc::Receiver;
 
 use crate::{

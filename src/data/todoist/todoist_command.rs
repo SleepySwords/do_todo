@@ -64,22 +64,19 @@ impl TodoistSendCommand {
     }
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistItemAddCommand {
     pub content: String,
     pub parent_id: Option<String>,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistItemDeleteCommand {
     pub id: String,
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistItemMoveCommand {
     pub id: String,
     pub parent_id: Option<String>,
@@ -87,21 +84,18 @@ pub struct TodoistItemMoveCommand {
     pub project_id: Option<String>,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistItemReorder {
     pub id: String,
     pub child_order: usize,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistItemReorderCommand {
     pub items: Vec<TodoistItemReorder>,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistUpdateItem {
     pub id: String,
     pub content: Option<String>,
@@ -110,22 +104,19 @@ pub struct TodoistUpdateItem {
     pub due: Option<TodoistDue>,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistItemCompleteCommand {
     pub id: String,
     // FIXME: This is required to be in the RFC3339 format to work
     pub date_completed: Option<NaiveDate>,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistItemUncompleteCommand {
     pub id: String,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
 pub struct TodoistDue {
     pub date: NaiveDate,
 }

@@ -68,8 +68,6 @@ impl TodoistDataStore {
         };
 
         mutable_subtasks.push(id.to_string());
-
-        return;
     }
 }
 
@@ -249,19 +247,17 @@ impl DataTaskStore for TodoistDataStore {
                     project_id: None,
                 },
             });
-        } else {
-            if let Some(inbox) = &self.inbox_project {
-                self.send_command(TodoistSendCommand::Move {
-                    uuid: uuid::Uuid::new_v4().to_string(),
-                    args: TodoistItemMoveCommand {
-                        id: id.to_string(),
-                        parent_id: None,
-                        section_id: None,
-                        project_id: Some(inbox.to_string()),
-                    },
-                });
-                tracing::debug!("Sent move to the inbox: {}", inbox);
-            }
+        } else if let Some(inbox) = &self.inbox_project {
+            self.send_command(TodoistSendCommand::Move {
+                uuid: uuid::Uuid::new_v4().to_string(),
+                args: TodoistItemMoveCommand {
+                    id: id.to_string(),
+                    parent_id: None,
+                    section_id: None,
+                    project_id: Some(inbox.to_string()),
+                },
+            });
+            tracing::debug!("Sent move to the inbox: {}", inbox);
         }
         self.send_command(TodoistSendCommand::Reorder {
             uuid: uuid::Uuid::new_v4().to_string(),

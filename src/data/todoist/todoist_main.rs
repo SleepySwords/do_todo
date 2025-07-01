@@ -6,7 +6,7 @@ use std::{
     usize,
 };
 
-use chrono::{Local, Months, NaiveDate};
+use chrono::{Local, Months};
 use itertools::Itertools;
 use serde_json::Value;
 use tokio::{join, sync::mpsc::Sender};
@@ -17,7 +17,9 @@ use crate::{
         data_store::DataTaskStore,
         todoist::{
             todoist_command::TodoistCommand,
-            todoist_response::{SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync},
+            todoist_response::{
+                SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
+            },
         },
     },
     task::{CompletedTask, Task},
@@ -156,7 +158,7 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
         // The way child order is done is as a cursor like thing.
         // Must sort by the child order and then append each to the subtasks.
         items.sort_by_key(|f| f.child_order);
-        let is_move = items.get(0).map(|f| f.child_order).is_some_and(|f| f == 0);
+        let is_move = items.first().map(|f| f.child_order).is_some_and(|f| f == 0);
         for item in items.into_iter() {
             if item.completed_at.is_some() {
                 continue;
@@ -206,7 +208,7 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
                     data_store
                         .subtasks
                         .entry(parent_id)
-                        .or_insert_with(Vec::new)
+                        .or_default()
                 } else {
                     &mut data_store.root
                 };
