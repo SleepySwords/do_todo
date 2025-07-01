@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use crate::task::{Priority, Task};
 
@@ -46,6 +47,11 @@ pub enum TodoistSendCommand {
         uuid: String,
         args: TodoistItemUncompleteCommand,
     },
+    #[serde(rename = "item_move")]
+    Move {
+        uuid: String,
+        args: TodoistItemMoveCommand,
+    },
 }
 
 impl TodoistSendCommand {
@@ -71,6 +77,16 @@ pub struct TodoistItemDeleteCommand {
     pub id: String,
 }
 
+#[skip_serializing_none]
+#[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(PartialEq)]
+pub struct TodoistItemMoveCommand {
+    pub id: String,
+    pub parent_id: Option<String>,
+    pub section_id: Option<String>,
+    pub project_id: Option<String>,
+}
+
 #[derive(Serialize, Clone, Deserialize, Debug)]
 #[derive(PartialEq)]
 pub struct TodoistItemReorder {
@@ -89,7 +105,7 @@ pub struct TodoistItemReorderCommand {
 pub struct TodoistUpdateItem {
     pub id: String,
     pub content: Option<String>,
-    pub collapsed: bool,
+    pub is_collapsed: bool,
     pub priority: usize,
     pub due: Option<TodoistDue>,
 }
@@ -118,7 +134,7 @@ pub fn task_to_todoist(id: String, task: &Task) -> TodoistUpdateItem {
     TodoistUpdateItem {
         id,
         content: Some(task.title.clone()),
-        collapsed: !task.opened,
+        is_collapsed: !task.opened,
         priority: priority_to_todoist(task.priority),
         due: task.due_date.map(|date| TodoistDue { date }),
     }

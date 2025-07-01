@@ -1,32 +1,31 @@
 use std::{
     cmp::Ordering,
     collections::HashMap,
+    panic,
     sync::{Arc, Mutex},
     usize,
 };
 
-use chrono::Local;
+use chrono::{Local, Months, NaiveDate};
 use itertools::Itertools;
 use serde_json::Value;
 use tokio::{join, sync::mpsc::Sender};
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::{
     data::{
-        self,
         data_store::DataTaskStore,
         todoist::{
             todoist_command::TodoistCommand,
-            todoist_response::{
-                SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
-            },
+            todoist_response::{SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync},
         },
     },
     task::{CompletedTask, Task},
-    utils::task_position::cursor_to_task,
 };
 
 use super::todoist_data_store::TodoistDataStore;
+
+pub const API_GATEWAY: &str = "https://api.todoist.com/api/v1/sync";
 
 pub async fn get_initial_tasks<T: Into<String>>(
     todoist_auth: T,
@@ -37,6 +36,7 @@ pub async fn get_initial_tasks<T: Into<String>>(
     HashMap<String, CompletedTask>,
     HashMap<String, Vec<String>>,
     String,
+    Option<String>,
 ) {
     let token = todoist_auth.into();
     let client = reqwest::Client::new();
@@ -44,20 +44,36 @@ pub async fn get_initial_tasks<T: Into<String>>(
     params.insert("sync_token", "*");
     params.insert("resource_types", "[\"all\"]");
     let sync = client
-        .post("https://api.todoist.com/sync/v9/sync")
+        .post(API_GATEWAY)
         .header("Authorization", format!("Bearer {}", &token))
         .form(&params);
 
     let completed_items = client
-        .post("https://api.todoist.com/sync/v9/completed/get_all")
+        .get("https://api.todoist.com/api/v1/tasks/completed/by_completion_date")
         .header("Authorization", format!("Bearer {}", &token))
-        .form(&params);
+        .query(&[
+            (
+                "since",
+                Local::now()
+                    .date_naive()
+                    .checked_sub_months(Months::new(3))
+                    .unwrap()
+                    .to_string(),
+            ),
+            ("until", Local::now().date_naive().to_string()),
+        ]);
 
     let (Ok(completed_items), Ok(sync)) = join!(completed_items.send(), sync.send()) else {
         panic!("A connection error occured");
     };
 
-    let sync: TodoistSync = sync.json().await.unwrap();
+    let s = sync.text().await.unwrap();
+    let sync: TodoistSync = match serde_json::from_str(&s) {
+        Ok(s) => s,
+        Err(e) => {
+            panic!("Could not deserialise: {:?} \n because {:?}", s, e);
+        }
+    };
     let completed_items: TodoistGetAllCompletedItemResponse = completed_items.json().await.unwrap();
 
     let mut subtasks: HashMap<String, Vec<(usize, String)>> = HashMap::new();
@@ -98,7 +114,7 @@ pub async fn get_initial_tasks<T: Into<String>>(
     let completed_tasks: HashMap<String, CompletedTask> = completed_items
         .items
         .into_iter()
-        .map(|f| (f.task_id.clone().expect("awf"), f.into()))
+        .map(|f| (f.id.clone(), f.into()))
         .collect();
 
     let completed_root: Vec<String> = completed_tasks.keys().cloned().collect_vec();
@@ -110,6 +126,9 @@ pub async fn get_initial_tasks<T: Into<String>>(
         completed_tasks,
         subtasks,
         sync.sync_token,
+        sync.projects
+            .and_then(|f| f.into_iter().find_or_first(|f| f.name == "Inbox"))
+            .map(|f| f.id),
     )
 }
 
@@ -207,7 +226,7 @@ pub async fn sync<T: Into<String>>(
 
     let token = todoist_auth.into();
 
-    let (root_tasks, tasks, completed_root, completed_tasks, subtasks, sync_token) =
+    let (root_tasks, tasks, completed_root, completed_tasks, subtasks, sync_token, inbox_project) =
         get_initial_tasks(&token).await;
 
     let (send, mut recv) = tokio::sync::mpsc::channel::<TodoistCommand>(100);
@@ -275,7 +294,7 @@ pub async fn sync<T: Into<String>>(
                     params.insert("sync_token", previous_token);
                     params.insert("resource_types", "[\"all\"]".to_string());
                     let sync = client
-                        .post("https://api.todoist.com/sync/v9/sync")
+                        .post(API_GATEWAY)
                         .header("Authorization", format!("Bearer {}", &token))
                         .form(&params)
                         .send()
@@ -302,8 +321,9 @@ pub async fn sync<T: Into<String>>(
                     }
                 } else {
                     params.insert("commands", serde_json::to_string(&commands).unwrap());
+                    tracing::debug!("Sending command: {:?}", params);
                     let sync = client
-                        .post("https://api.todoist.com/sync/v9/sync")
+                        .post(API_GATEWAY)
                         .header("Authorization", format!("Bearer {}", token))
                         .form(&params);
 
@@ -340,7 +360,7 @@ pub async fn sync<T: Into<String>>(
                             params.insert("sync_token", previous_token);
                             params.insert("resource_types", "[\"all\"]".to_string());
                             let sync = client
-                                .post("https://api.todoist.com/sync/v9/sync")
+                                .post(API_GATEWAY)
                                 .header("Authorization", format!("Bearer {}", &token))
                                 .form(&params)
                                 .send()
@@ -384,5 +404,6 @@ pub async fn sync<T: Into<String>>(
         task_count: 0,
         currently_syncing: mutex,
         command_sender: send,
+        inbox_project,
     }
 }

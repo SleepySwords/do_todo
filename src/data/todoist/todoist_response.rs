@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use super::todoist_task::{TodoistCompletedItem, TodoistItem};
+use super::{todoist_project::TodoistProject, todoist_task::{TodoistCompletedItem, TodoistItem}};
 
 #[derive(Deserialize, Debug)]
 pub struct TodoistResponse {
@@ -28,6 +28,7 @@ pub struct TodoistError {
 #[derive(serde::Deserialize, Debug)]
 pub struct TodoistSync {
     pub items: Option<Vec<TodoistItem>>,
+    pub projects: Option<Vec<TodoistProject>>,
     pub sync_token: String,
 }
 

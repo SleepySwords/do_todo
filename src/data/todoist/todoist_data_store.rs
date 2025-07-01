@@ -11,12 +11,13 @@ use tokio::{sync::mpsc::Sender, task};
 use crate::{
     data::data_store::{DataTaskStore, TaskID, TaskIDRef},
     task::{CompletedTask, FindParentResult, Priority, Tag, Task},
+    utils::task_position::cursor_to_task,
 };
 
 use super::todoist_command::{
     task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
-    TodoistItemDeleteCommand, TodoistItemReorder, TodoistItemReorderCommand,
-    TodoistItemUncompleteCommand, TodoistSendCommand,
+    TodoistItemDeleteCommand, TodoistItemMoveCommand, TodoistItemReorder,
+    TodoistItemReorderCommand, TodoistItemUncompleteCommand, TodoistSendCommand,
 };
 
 // FIXME: we can seperate this into the state and the sender. This seperates them and we can use an
@@ -32,6 +33,7 @@ pub struct TodoistDataStore {
 
     pub currently_syncing: Arc<Mutex<bool>>,
     pub command_sender: Sender<TodoistCommand>,
+    pub inbox_project: Option<String>,
 }
 
 impl TodoistDataStore {
@@ -218,8 +220,8 @@ impl DataTaskStore for TodoistDataStore {
             &mut self.root
         };
         subtasks.retain(|f| f != id);
-        let mutable_subtasks = if let Some(p) = parent {
-            self.subtasks.entry(p).or_default()
+        let mutable_subtasks = if let Some(p) = &parent {
+            self.subtasks.entry(p.to_string()).or_default()
         } else if global.is_some() {
             &mut self.root
         } else {
@@ -228,15 +230,39 @@ impl DataTaskStore for TodoistDataStore {
 
         mutable_subtasks.insert(order, id.to_string());
 
-        let items = mutable_subtasks
-            .iter()
-            .enumerate()
-            .map(|(order, id)| TodoistItemReorder {
-                id: id.to_string(),
-                child_order: order,
-            })
-            .collect_vec();
+        let mut items = Vec::new();
+        for i in 0..self.find_tasks_draw_size() {
+            let task_id = cursor_to_task(self, i).unwrap();
+            items.push(TodoistItemReorder {
+                id: task_id,
+                child_order: i,
+            });
+        }
 
+        if let Some(parent_id) = parent {
+            self.send_command(TodoistSendCommand::Move {
+                uuid: uuid::Uuid::new_v4().to_string(),
+                args: TodoistItemMoveCommand {
+                    id: id.to_string(),
+                    parent_id: Some(parent_id.clone()),
+                    section_id: None,
+                    project_id: None,
+                },
+            });
+        } else {
+            if let Some(inbox) = &self.inbox_project {
+                self.send_command(TodoistSendCommand::Move {
+                    uuid: uuid::Uuid::new_v4().to_string(),
+                    args: TodoistItemMoveCommand {
+                        id: id.to_string(),
+                        parent_id: None,
+                        section_id: None,
+                        project_id: Some(inbox.to_string()),
+                    },
+                });
+                tracing::debug!("Sent move to the inbox: {}", inbox);
+            }
+        }
         self.send_command(TodoistSendCommand::Reorder {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemReorderCommand { items },

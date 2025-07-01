@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate};
+use chrono::DateTime;
 
 use crate::task::{CompletedTask, Priority, Task};
 
@@ -11,7 +11,7 @@ pub struct TodoistItem {
     pub parent_id: Option<String>,
     pub child_order: usize,
     description: String,
-    collapsed: bool,
+    is_collapsed: bool,
     priority: usize,
     due: Option<TodoistDue>,
     pub completed_at: Option<String>
@@ -25,7 +25,7 @@ impl From<TodoistItem> for Task {
             priority: todoist_to_priority(value.priority),
             tags: Vec::new(),
             due_date: value.due.map(|d| d.date),
-            opened: !value.collapsed,
+            opened: !value.is_collapsed,
         }
     }
 }
