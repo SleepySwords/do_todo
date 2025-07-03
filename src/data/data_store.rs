@@ -12,9 +12,12 @@ pub type TaskID = String;
 pub type TaskIDRef<'a> = &'a str;
 
 #[enum_dispatch]
+// We are basically almost always passing this value by reference
+// so the size is not a huge concern.
+#[allow(clippy::large_enum_variant)]
 pub enum DataTaskStoreKind {
-    Json(JsonDataStore),
     Todoist(TodoistDataStore),
+    Json(JsonDataStore),
 }
 
 /// Handles how tasks are stored
