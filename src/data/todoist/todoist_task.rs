@@ -4,7 +4,7 @@ use crate::task::{CompletedTask, Priority, Task};
 
 use super::todoist_command::TodoistDue;
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct TodoistItem {
     pub id: String,
     pub content: String,

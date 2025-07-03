@@ -208,12 +208,12 @@ impl DataTaskStore for TodoistDataStore {
         order: usize,
         global: Option<()>,
     ) {
-        let hash_map = &mut self.subtasks;
-        let subtasks = if let Some((_, subtasks)) = hash_map
-            .iter_mut()
-            .find(|(_, subtasks)| subtasks.contains(&id.to_string()))
+        let previous_parent = self.find_parent(id);
+        let subtasks = if let Some(FindParentResult {
+            parent_id: Some(p), ..
+        }) = &previous_parent
         {
-            subtasks
+            self.subtasks.entry(p.to_string()).or_default()
         } else {
             &mut self.root
         };
@@ -248,17 +248,20 @@ impl DataTaskStore for TodoistDataStore {
                 },
             });
         } else if let Some(inbox) = &self.inbox_project {
-            self.send_command(TodoistSendCommand::Move {
-                uuid: uuid::Uuid::new_v4().to_string(),
-                args: TodoistItemMoveCommand {
-                    id: id.to_string(),
-                    parent_id: None,
-                    section_id: None,
-                    project_id: Some(inbox.to_string()),
-                },
-            });
-            tracing::debug!("Sent move to the inbox: {}", inbox);
+            if global.is_some() {
+                self.send_command(TodoistSendCommand::Move {
+                    uuid: uuid::Uuid::new_v4().to_string(),
+                    args: TodoistItemMoveCommand {
+                        id: id.to_string(),
+                        parent_id: None,
+                        section_id: None,
+                        project_id: Some(inbox.to_string()),
+                    },
+                });
+                tracing::debug!("Sent move to the inbox: {}", inbox);
+            }
         }
+
         self.send_command(TodoistSendCommand::Reorder {
             uuid: uuid::Uuid::new_v4().to_string(),
             args: TodoistItemReorderCommand { items },

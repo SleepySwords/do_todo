@@ -23,6 +23,7 @@ use crate::{
         },
     },
     task::{CompletedTask, Task},
+    utils::task_position::{cursor_to_task, task_to_cursor},
 };
 
 use super::todoist_data_store::TodoistDataStore;
@@ -158,7 +159,8 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
         // The way child order is done is as a cursor like thing.
         // Must sort by the child order and then append each to the subtasks.
         items.sort_by_key(|f| f.child_order);
-        let is_move = items.first().map(|f| f.child_order).is_some_and(|f| f == 0);
+        let mut curr_child_order = 0;
+        let copy = items.clone();
         for item in items.into_iter() {
             if item.completed_at.is_some() {
                 continue;
@@ -175,28 +177,19 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
                 continue;
             }
 
-            // Either we are inserting at the very start or this is a move
-            // which in that case every item is sent
-            if is_move && item.child_order == 0 {
-                data_store.root.clear();
+            if item.child_order == curr_child_order { 
+                curr_child_order += 1;
             }
 
-            if let Some(task) = data_store.tasks.get_mut(item.id.as_str()) {
+            if let Some(_) = data_store.tasks.get_mut(item.id.as_str()) {
                 let parent_id = item.parent_id.clone();
-                if task.opened && is_move {
-                    if let Some(subtasks) = data_store.subtasks.get_mut(&item.id) {
-                        subtasks.clear();
-                    }
-                }
 
                 tracing::debug!(
                     "Not equal {:?} {:?}",
                     parent_id,
                     data_store.find_parent(&item.id).and_then(|f| f.parent_id)
                 );
-                if is_move
-                    || parent_id != data_store.find_parent(&item.id).and_then(|f| f.parent_id)
-                {
+                if parent_id != data_store.find_parent(&item.id).and_then(|f| f.parent_id) {
                     data_store.append_internal(&item.id, parent_id, Some(()));
                 }
 
@@ -205,16 +198,32 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
             } else {
                 let parent_id = item.parent_id.clone();
                 let subtasks = if let Some(parent_id) = parent_id {
-                    data_store
-                        .subtasks
-                        .entry(parent_id)
-                        .or_default()
+                    data_store.subtasks.entry(parent_id).or_default()
                 } else {
                     &mut data_store.root
                 };
                 subtasks.push(item.id.clone());
 
                 data_store.tasks.insert(item.id.clone(), item.into());
+            }
+        }
+
+        if curr_child_order >= data_store.find_tasks_draw_size() {
+            // we assume they will send every task in the case of a move.
+            data_store.root.clear();
+            for item in copy.into_iter() {
+                if item.completed_at.is_some() || "" == item.content.as_str() {
+                    continue;
+                }
+                if let Some(task) = data_store.tasks.get_mut(item.id.as_str()) {
+                    let parent_id = item.parent_id.clone();
+                    if task.opened {
+                        if let Some(subtasks) = data_store.subtasks.get_mut(&item.id) {
+                            subtasks.clear();
+                        }
+                    }
+                    data_store.append_internal(&item.id, parent_id, Some(()));
+                }
             }
         }
     }
