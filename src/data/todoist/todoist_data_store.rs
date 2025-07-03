@@ -5,7 +5,6 @@ use std::{
 };
 
 use chrono::NaiveDateTime;
-use itertools::Itertools;
 use tokio::{sync::mpsc::Sender, task};
 
 use crate::{

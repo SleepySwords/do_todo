@@ -43,20 +43,20 @@ fn test_tag_creation() {
     tag_count += 1;
 
     assert_eq!(
-        get_task_from_pos(&*screen_manager.app.task_store, 0)
+        get_task_from_pos(&screen_manager.app.task_store, 0)
             .tags
             .len(),
         tag_count
     );
     assert_eq!(
-        get_task_from_pos(&*screen_manager.app.task_store, 0)
+        get_task_from_pos(&screen_manager.app.task_store, 0)
             .first_tag(&screen_manager.app)
             .unwrap()
             .name,
         TEST_TAG
     );
     assert_eq!(
-        get_task_from_pos(&*screen_manager.app.task_store, 0)
+        get_task_from_pos(&screen_manager.app.task_store, 0)
             .first_tag(&screen_manager.app)
             .unwrap()
             .colour,
@@ -67,7 +67,7 @@ fn test_tag_creation() {
     tag_count += 1;
 
     assert_eq!(
-        get_task_from_pos(&*screen_manager.app.task_store, 0)
+        get_task_from_pos(&screen_manager.app.task_store, 0)
             .tags
             .len(),
         tag_count
@@ -78,7 +78,7 @@ fn test_tag_creation() {
             .task_store
             .tags()
             .get(
-                get_task_from_pos(&*screen_manager.app.task_store, 0)
+                get_task_from_pos(&screen_manager.app.task_store, 0)
                     .tags
                     .last()
                     .unwrap()
@@ -93,7 +93,7 @@ fn test_tag_creation() {
             .task_store
             .tags()
             .get(
-                get_task_from_pos(&*screen_manager.app.task_store, 0)
+                get_task_from_pos(&screen_manager.app.task_store, 0)
                     .tags
                     .last()
                     .unwrap()
@@ -107,7 +107,7 @@ fn test_tag_creation() {
     tag_count += 1;
 
     assert_eq!(
-        get_task_from_pos(&*screen_manager.app.task_store, 0)
+        get_task_from_pos(&screen_manager.app.task_store, 0)
             .tags
             .len(),
         tag_count
@@ -118,7 +118,7 @@ fn test_tag_creation() {
             .task_store
             .tags()
             .get(
-                get_task_from_pos(&*screen_manager.app.task_store, 0)
+                get_task_from_pos(&screen_manager.app.task_store, 0)
                     .tags
                     .last()
                     .unwrap()
@@ -133,7 +133,7 @@ fn test_tag_creation() {
             .task_store
             .tags()
             .get(
-                get_task_from_pos(&*screen_manager.app.task_store, 0)
+                get_task_from_pos(&screen_manager.app.task_store, 0)
                     .tags
                     .last()
                     .unwrap()
@@ -208,7 +208,7 @@ fn test_flip_tag() {
     input_code(KeyCode::Enter, &mut screen_manager);
 
     assert_eq!(
-        get_task_from_pos(&*screen_manager.app.task_store, 0)
+        get_task_from_pos(&screen_manager.app.task_store, 0)
             .tags
             .len(),
         1
@@ -218,7 +218,7 @@ fn test_flip_tag() {
     input_code(KeyCode::Enter, &mut screen_manager);
 
     assert_eq!(
-        get_task_from_pos(&*screen_manager.app.task_store, 0)
+        get_task_from_pos(&screen_manager.app.task_store, 0)
             .tags
             .len(),
         0

@@ -414,11 +414,13 @@ pub mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
-    use crate::data::data_store::DataTaskStore;
+    use crate::data::data_store::{DataTaskStore, DataTaskStoreKind};
     use crate::data::json_data_store::JsonDataStore;
     use crate::framework::screen_manager::ScreenManager;
     use crate::task::Task;
     use crate::{app::App, input};
+
+    use super::task_position::cursor_to_task;
 
     pub fn input_char(character: char, screen_manager: &mut ScreenManager) {
         let result = input::key_event(
@@ -443,13 +445,16 @@ pub mod test {
     pub fn setup(task_store: JsonDataStore) -> ScreenManager {
         ScreenManager {
             overlays: vec![],
-            app: App::new(crate::config::Config::default(), Box::new(task_store)),
+            app: App::new(
+                crate::config::Config::default(),
+                crate::data::data_store::DataTaskStoreKind::Json(task_store),
+            ),
         }
     }
 
-    pub fn get_task_from_pos(task_store: &dyn DataTaskStore, pos: usize) -> &Task {
+    pub fn get_task_from_pos(task_store: &DataTaskStoreKind, pos: usize) -> &Task {
         task_store
-            .task(&task_store.cursor_to_task(pos).unwrap())
+            .task(&cursor_to_task(task_store, pos).unwrap())
             .unwrap()
     }
 }

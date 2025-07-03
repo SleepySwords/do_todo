@@ -7,13 +7,16 @@ use crate::{
     data::{data_store::DataTaskStore, json_data_store::JsonDataStore},
     framework::screen_manager::ScreenManager,
     task::{Priority, Task},
-    utils::test::{get_task_from_pos, input_char, input_code, setup},
+    utils::{
+        task_position::cursor_to_task,
+        test::{get_task_from_pos, input_char, input_code, setup},
+    },
 };
 
 const TEST_TASK_NAME: &str = "yay it works, test letters => abcdefghijklmnopqrstuvwxyz1234567890";
 
 fn get_task(i: usize, screen_manager: &ScreenManager) -> Option<&Task> {
-    let task_id = screen_manager.app.task_store.cursor_to_task(i)?;
+    let task_id = cursor_to_task(&screen_manager.app.task_store, i)?;
     return screen_manager.app.task_store.task(&task_id);
 }
 
@@ -81,7 +84,7 @@ fn test_edit_delete_task() {
     input_code(KeyCode::Backspace, &mut main_app);
     input_code(KeyCode::Enter, &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).title,
+        get_task_from_pos(&main_app.app.task_store, 0).title,
         TEST_TASK_NAME[..TEST_TASK_NAME.len() - 2]
     )
 }
@@ -97,10 +100,7 @@ fn test_cancel_edit_task() {
     input_char('r', &mut main_app);
     input_char('q', &mut main_app);
     input_code(KeyCode::Esc, &mut main_app);
-    assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).title,
-        "meme"
-    )
+    assert_eq!(get_task_from_pos(&main_app.app.task_store, 0).title, "meme")
 }
 
 #[test]
@@ -135,60 +135,60 @@ fn test_priority() {
 
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::High
     );
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::Normal
     );
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::Low
     );
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::None
     );
 
     input_char('j', &mut main_app);
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::None
     );
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 1).priority,
+        get_task_from_pos(&main_app.app.task_store, 1).priority,
         Priority::High
     );
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::None
     );
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 1).priority,
+        get_task_from_pos(&main_app.app.task_store, 1).priority,
         Priority::Normal
     );
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::None
     );
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 1).priority,
+        get_task_from_pos(&main_app.app.task_store, 1).priority,
         Priority::Low
     );
     input_char('p', &mut main_app);
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 0).priority,
+        get_task_from_pos(&main_app.app.task_store, 0).priority,
         Priority::None
     );
     assert_eq!(
-        get_task_from_pos(&*main_app.app.task_store, 1).priority,
+        get_task_from_pos(&main_app.app.task_store, 1).priority,
         Priority::None
     );
 }

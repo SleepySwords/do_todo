@@ -3,7 +3,6 @@ use std::{
     collections::HashMap,
     panic,
     sync::{Arc, Mutex},
-    usize,
 };
 
 use chrono::{Local, Months};
@@ -23,7 +22,6 @@ use crate::{
         },
     },
     task::{CompletedTask, Task},
-    utils::task_position::{cursor_to_task, task_to_cursor},
 };
 
 use super::todoist_data_store::TodoistDataStore;
@@ -177,11 +175,11 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
                 continue;
             }
 
-            if item.child_order == curr_child_order { 
+            if item.child_order == curr_child_order {
                 curr_child_order += 1;
             }
 
-            if let Some(_) = data_store.tasks.get_mut(item.id.as_str()) {
+            if data_store.tasks.get_mut(item.id.as_str()).is_some() {
                 let parent_id = item.parent_id.clone();
 
                 tracing::debug!(

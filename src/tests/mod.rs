@@ -15,6 +15,8 @@ mod visual;
 
 #[cfg(test)]
 fn assert_task_eq(app: &App, task_names: Vec<&str>) {
+    use crate::data::data_store::DataTaskStore;
+
     assert_eq!(
         app.task_store
             .root_tasks()
