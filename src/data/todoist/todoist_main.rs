@@ -7,9 +7,7 @@ use std::{
 
 use chrono::{Local, Months};
 use itertools::Itertools;
-use serde_json::Value;
 use tokio::{join, sync::mpsc::Sender};
-use tracing::debug;
 
 use crate::{
     data::{
@@ -134,7 +132,6 @@ pub async fn get_initial_tasks<T: Into<String>>(
 pub type TaskSync = (TodoistSync, HashMap<String, String>);
 
 pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_mapping): TaskSync) {
-    // FIXME: it might be better to map the todoist sync actual ids to temp ids?
     for (temp_id, actual_id) in temp_id_mapping.iter() {
         if let Some(v) = data_store.tasks.remove(temp_id) {
             data_store.tasks.insert(actual_id.to_string(), v);
@@ -239,15 +236,14 @@ pub async fn sync<T: Into<String>>(
     let mut previous_token = sync_token;
 
     tokio::spawn(async move {
-        // FIXME: update the tasks here.
         let mut temp_id_mapping = HashMap::new();
-
         let mut buffer = Vec::with_capacity(100);
-
         let mut send_time = Local::now();
+        let mut buf_size = 0;
 
         while !recv.is_closed() {
             let size = recv.recv_many(&mut buffer, 100).await;
+            buf_size += size;
             if let Ok(mut currently_syncing) = curr_syncing.lock() {
                 *currently_syncing = true;
             }
@@ -268,7 +264,7 @@ pub async fn sync<T: Into<String>>(
                 .checked_add_signed(chrono::Duration::milliseconds(500))
                 .expect("Send time date is out of range");
 
-            for command in buffer.iter_mut().take(size) {
+            for command in buffer.iter_mut().take(buf_size) {
                 if let TodoistCommand::Send(command) = command {
                     command.update_id(&temp_id_mapping);
                 }
@@ -280,7 +276,7 @@ pub async fn sync<T: Into<String>>(
                 params.insert("sync_token", previous_token.clone());
                 params.insert("resource_types", "[\"all\"]".to_string());
 
-                let commands = buffer[..size]
+                let commands = buffer[..buf_size]
                     .iter()
                     .flat_map(|f| {
                         if let TodoistCommand::Send(command) = f {
@@ -291,97 +287,66 @@ pub async fn sync<T: Into<String>>(
                     })
                     .collect_vec();
 
-                let should_refresh = buffer[..size].contains(&TodoistCommand::Refresh);
-                debug!(should_refresh);
+                params.insert("commands", serde_json::to_string(&commands).unwrap());
+                tracing::debug!("Sending command: {:#?}", params);
+                let sync = client
+                    .post(API_GATEWAY)
+                    .header("Authorization", format!("Bearer {}", token))
+                    .form(&params);
 
-                if should_refresh {
-                    let sync = client
-                        .post(API_GATEWAY)
-                        .header("Authorization", format!("Bearer {}", &token))
-                        .form(&params)
-                        .send()
-                        .await
-                        .unwrap()
-                        .text()
-                        .await
-                        .unwrap();
+                let response = match sync.send().await {
+                    Ok(response) => response,
+                    Err(err) => {
+                        tracing::error!("Could not send the command because: {}", err);
 
-                    let json = serde_json::from_str::<TodoistSync>(&sync).unwrap();
-
-                    previous_token = json.sync_token;
-
-                    let _ = sync_send
-                        .send((
-                            serde_json::from_str::<TodoistSync>(&sync).unwrap(),
-                            temp_id_mapping.clone(),
-                        ))
-                        .await;
-                    if let Ok(sync_req) = &serde_json::from_str::<Value>(&sync)
-                        .and_then(|f| serde_json::to_string_pretty(&f))
-                    {
-                        tracing::info!("Got an sync request: {}", sync_req)
-                    }
-                } else {
-                    params.insert("commands", serde_json::to_string(&commands).unwrap());
-                    tracing::debug!("Sending command: {:?}", params);
-                    let sync = client
-                        .post(API_GATEWAY)
-                        .header("Authorization", format!("Bearer {}", token))
-                        .form(&params);
-
-                    let response = match sync.send().await {
-                        Ok(response) => response,
-                        Err(err) => {
-                            tracing::error!("Could not send the command because: {}", err);
-
-                            if let Ok(mut currently_syncing) = curr_syncing.lock() {
-                                *currently_syncing = false;
-                            }
-                            continue;
+                        if let Ok(mut currently_syncing) = curr_syncing.lock() {
+                            *currently_syncing = false;
                         }
-                    };
+                        continue;
+                    }
+                };
 
-                    let response = response.text().await.unwrap();
+                let response = response.text().await.unwrap();
 
-                    match serde_json::from_str::<TodoistSync>(&response) {
-                        Ok(todoist_response) => {
-                            temp_id_mapping.extend(
-                                todoist_response
-                                    .temp_id_mapping
-                                    .clone()
-                                    .unwrap()
-                                    .into_iter(),
-                            );
+                match serde_json::from_str::<TodoistSync>(&response) {
+                    Ok(todoist_response) => {
+                        temp_id_mapping.extend(
+                            todoist_response
+                                .temp_id_mapping
+                                .clone()
+                                .unwrap()
+                                .into_iter(),
+                        );
 
-                            if let Some(status) = &todoist_response.sync_status {
-                                for (sync_status_id, response) in status.iter() {
-                                    if let SyncStatus::Err(response) = response {
-                                        tracing::error!(
-                                            "Got an error(id = {}): {:?}, body: {:?}",
-                                            sync_status_id,
-                                            response,
-                                            serde_json::to_string(&commands).unwrap()
-                                        );
-                                    }
+                        if let Some(status) = &todoist_response.sync_status {
+                            for (sync_status_id, response) in status.iter() {
+                                if let SyncStatus::Err(response) = response {
+                                    tracing::error!(
+                                        "Got an error(id = {}): {:?}, body: {:?}",
+                                        sync_status_id,
+                                        response,
+                                        serde_json::to_string(&commands).unwrap()
+                                    );
                                 }
                             }
+                        }
 
-                            // only when we have sent all the commands get the sync request.
-                            if recv.is_empty() {
-                                previous_token = todoist_response.sync_token.clone();
-                                buffer.clear();
-                                tracing::info!(
-                                    "Updated using the sync request: {:?}",
-                                    todoist_response
-                                );
-                                let _ = sync_send
-                                    .send((todoist_response, temp_id_mapping.clone()))
-                                    .await;
-                            }
+                        // only when we have sent all the commands get the sync request.
+                        if recv.is_empty() {
+                            previous_token = todoist_response.sync_token.clone();
+                            buffer.clear();
+                            buf_size = 0;
+                            tracing::info!(
+                                "Updated using the sync request: {:#?}",
+                                todoist_response
+                            );
+                            let _ = sync_send
+                                .send((todoist_response, temp_id_mapping.clone()))
+                                .await;
                         }
-                        Err(e) => {
-                            tracing::error!("{}", e.to_string() + "\n " + &response);
-                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("{}", e.to_string() + "\n " + &response);
                     }
                 }
             }
