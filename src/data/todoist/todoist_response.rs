@@ -8,13 +8,6 @@ use super::{
 };
 
 #[derive(Deserialize, Debug)]
-pub struct TodoistResponse {
-    pub temp_id_mapping: HashMap<String, String>,
-    pub sync_status: HashMap<String, SyncStatus>,
-    pub sync_token: String,
-}
-
-#[derive(Deserialize, Debug)]
 #[serde(untagged)]
 pub enum SyncStatus {
     #[allow(dead_code)]
@@ -33,6 +26,8 @@ pub struct TodoistSync {
     pub items: Option<Vec<TodoistItem>>,
     pub projects: Option<Vec<TodoistProject>>,
     pub sync_token: String,
+    pub temp_id_mapping: Option<HashMap<String, String>>,
+    pub sync_status: Option<HashMap<String, SyncStatus>>,
 }
 
 #[derive(serde::Deserialize, Debug)]

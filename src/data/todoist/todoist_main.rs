@@ -16,9 +16,7 @@ use crate::{
         data_store::DataTaskStore,
         todoist::{
             todoist_command::TodoistCommand,
-            todoist_response::{
-                SyncStatus, TodoistGetAllCompletedItemResponse, TodoistResponse, TodoistSync,
-            },
+            todoist_response::{SyncStatus, TodoistGetAllCompletedItemResponse, TodoistSync},
         },
     },
     task::{CompletedTask, Task},
@@ -182,11 +180,6 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
             if data_store.tasks.get_mut(item.id.as_str()).is_some() {
                 let parent_id = item.parent_id.clone();
 
-                tracing::debug!(
-                    "Not equal {:?} {:?}",
-                    parent_id,
-                    data_store.find_parent(&item.id).and_then(|f| f.parent_id)
-                );
                 if parent_id != data_store.find_parent(&item.id).and_then(|f| f.parent_id) {
                     data_store.append_internal(&item.id, parent_id, Some(()));
                 }
@@ -200,6 +193,7 @@ pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_map
                 } else {
                     &mut data_store.root
                 };
+
                 subtasks.push(item.id.clone());
 
                 data_store.tasks.insert(item.id.clone(), item.into());
@@ -283,6 +277,8 @@ pub async fn sync<T: Into<String>>(
             if !buffer.is_empty() {
                 let client = reqwest::Client::new();
                 let mut params = HashMap::new();
+                params.insert("sync_token", previous_token.clone());
+                params.insert("resource_types", "[\"all\"]".to_string());
 
                 let commands = buffer[..size]
                     .iter()
@@ -299,9 +295,6 @@ pub async fn sync<T: Into<String>>(
                 debug!(should_refresh);
 
                 if should_refresh {
-                    let mut params = HashMap::new();
-                    params.insert("sync_token", previous_token);
-                    params.insert("resource_types", "[\"all\"]".to_string());
                     let sync = client
                         .post(API_GATEWAY)
                         .header("Authorization", format!("Bearer {}", &token))
@@ -350,43 +343,41 @@ pub async fn sync<T: Into<String>>(
 
                     let response = response.text().await.unwrap();
 
-                    match serde_json::from_str::<TodoistResponse>(&response) {
+                    match serde_json::from_str::<TodoistSync>(&response) {
                         Ok(todoist_response) => {
-                            temp_id_mapping.extend(todoist_response.temp_id_mapping.into_iter());
+                            temp_id_mapping.extend(
+                                todoist_response
+                                    .temp_id_mapping
+                                    .clone()
+                                    .unwrap()
+                                    .into_iter(),
+                            );
 
-                            for (sync_status_id, response) in todoist_response.sync_status {
-                                if let SyncStatus::Err(response) = response {
-                                    tracing::error!(
-                                        "Got an error(id = {}): {:?}, body: {:?}",
-                                        sync_status_id,
-                                        response,
-                                        serde_json::to_string(&commands).unwrap()
-                                    );
+                            if let Some(status) = &todoist_response.sync_status {
+                                for (sync_status_id, response) in status.iter() {
+                                    if let SyncStatus::Err(response) = response {
+                                        tracing::error!(
+                                            "Got an error(id = {}): {:?}, body: {:?}",
+                                            sync_status_id,
+                                            response,
+                                            serde_json::to_string(&commands).unwrap()
+                                        );
+                                    }
                                 }
                             }
 
-                            let mut params = HashMap::new();
-                            params.insert("sync_token", previous_token);
-                            params.insert("resource_types", "[\"all\"]".to_string());
-                            let sync = client
-                                .post(API_GATEWAY)
-                                .header("Authorization", format!("Bearer {}", &token))
-                                .form(&params)
-                                .send()
-                                .await
-                                .unwrap()
-                                .text()
-                                .await
-                                .unwrap();
-
-                            previous_token = todoist_response.sync_token;
-                            let _ = sync_send
-                                .send((
-                                    serde_json::from_str::<TodoistSync>(&sync).unwrap(),
-                                    temp_id_mapping.clone(),
-                                ))
-                                .await;
-                            tracing::info!("Got an sync request: {:?}", sync)
+                            // only when we have sent all the commands get the sync request.
+                            if recv.is_empty() {
+                                previous_token = todoist_response.sync_token.clone();
+                                buffer.clear();
+                                tracing::info!(
+                                    "Updated using the sync request: {:?}",
+                                    todoist_response
+                                );
+                                let _ = sync_send
+                                    .send((todoist_response, temp_id_mapping.clone()))
+                                    .await;
+                            }
                         }
                         Err(e) => {
                             tracing::error!("{}", e.to_string() + "\n " + &response);
@@ -398,8 +389,6 @@ pub async fn sync<T: Into<String>>(
             if let Ok(mut currently_syncing) = curr_syncing.lock() {
                 *currently_syncing = false;
             }
-
-            buffer.clear();
         }
     });
 

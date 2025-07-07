@@ -9,7 +9,7 @@ use tracing_subscriber::{
 use tui::{
     layout::Rect,
     style::{Color, Style},
-    text::Text,
+    text::Line,
     widgets::{Block, Borders, Clear, List, ListState},
 };
 
@@ -66,10 +66,10 @@ impl Component for Logger {
 
             let rows = logs
                 .iter()
-                .map(|msg| {
-                    utils::wrap::wrap_text(msg.as_str(), border_block.inner(self.draw_area).width)
+                .flat_map(|msg| {
+                    utils::wrap::wrap_text(msg.as_str(), border_block.inner(self.draw_area).width).lines
                 })
-                .collect::<Vec<Text>>();
+                .collect::<Vec<Line>>();
 
             // Add multiline support.
             let mut list_state = ListState::default();
