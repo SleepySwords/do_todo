@@ -1,3 +1,4 @@
+use crate::data::data_store::DataTaskStore;
 use itertools::Itertools;
 use tui::{
     layout::Rect,
@@ -8,11 +9,11 @@ use tui::{
 
 use crate::{
     app::{App, Mode},
+    data::data_store::TaskIDRef,
     framework::{
         component::{Component, Drawer},
         event::PostEvent,
     },
-    task::Task,
     utils::{self, handle_mouse_movement_app},
 };
 
@@ -25,6 +26,7 @@ pub struct TaskList {
 #[derive(Default)]
 pub struct TaskListContext {
     pub selected_index: usize,
+    pub auto_sort: bool,
 }
 
 impl TaskList {
@@ -40,11 +42,15 @@ impl TaskList {
 
     fn draw_task<'a>(
         app: &'a App,
-        task: &'a Task,
+        task_id: TaskIDRef,
         nested_level: usize,
         task_index: &mut usize,
     ) -> Vec<Line<'a>> {
         let config = &app.config;
+
+        let Some(task) = app.task_store.task(task_id) else {
+            return vec![];
+        };
 
         let mut spans = Vec::new();
 
@@ -59,7 +65,7 @@ impl TaskList {
             style.fg(if Self::is_task_selected(app, task_index) {
                 config.selected_task_colour
             } else {
-                Color::White
+                config.default_task_colour
             }),
         );
         spans.push(progress);
@@ -67,13 +73,9 @@ impl TaskList {
         let padding = config.nested_padding.repeat(nested_level);
         spans.push(Span::styled(padding, Style::default().fg(Color::DarkGray)));
 
-        if task.sub_tasks.is_empty() {
-            let priority = Span::styled(
-                task.priority.short_hand(),
-                style.fg(task.priority.colour(config)),
-            );
-            spans.push(priority);
-        } else {
+        let subtasks = app.task_store.subtasks(task_id);
+
+        if subtasks.is_some_and(|x| !x.is_empty()) {
             let sub_tasks = Span::styled(
                 if task.opened {
                     &config.open_subtask
@@ -83,6 +85,12 @@ impl TaskList {
                 style.fg(task.priority.colour(config)),
             );
             spans.push(sub_tasks);
+        } else {
+            let priority = Span::styled(
+                task.priority.short_hand(config),
+                style.fg(task.priority.colour(config)),
+            );
+            spans.push(priority);
         }
 
         let content = Span::styled(
@@ -90,7 +98,7 @@ impl TaskList {
             style.fg(if Self::is_task_selected(app, task_index) {
                 config.selected_task_colour
             } else {
-                Color::White
+                config.default_task_colour
             }),
         );
         spans.push(content);
@@ -112,19 +120,20 @@ impl TaskList {
         *task_index += 1;
 
         if task.opened {
-            let mut drawn_tasks = task
-                .sub_tasks
-                .iter()
-                .flat_map(|sub_task| {
-                    let drawn_task = Self::draw_task(app, sub_task, nested_level + 1, task_index);
-                    drawn_task
-                })
-                .collect_vec();
-            (drawn_tasks).insert(0, Line::from(spans));
-            drawn_tasks
-        } else {
-            vec![Line::from(spans)]
+            if let Some(subtasks) = subtasks {
+                let mut drawn_tasks = subtasks
+                    .iter()
+                    .flat_map(|sub_task| {
+                        let drawn_task =
+                            Self::draw_task(app, sub_task, nested_level + 1, task_index);
+                        drawn_task
+                    })
+                    .collect_vec();
+                (drawn_tasks).insert(0, Line::from(spans));
+                return drawn_tasks;
+            }
         }
+        vec![Line::from(spans)]
     }
 }
 
@@ -133,7 +142,7 @@ impl Component for TaskList {
         let mut current_index = 0;
         let tasks: Vec<ListItem> = app
             .task_store
-            .tasks
+            .root_tasks()
             .iter()
             .flat_map(|task| Self::draw_task(app, task, 0, &mut current_index))
             .map(ListItem::from)

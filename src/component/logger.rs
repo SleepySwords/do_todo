@@ -1,9 +1,16 @@
+use std::sync::{Arc, Mutex};
+
 use crossterm::event::KeyCode;
+use tracing::{Level, Subscriber};
+use tracing_subscriber::{
+    fmt::{format::Pretty, FormatFields},
+    Layer,
+};
 use tui::{
     layout::Rect,
     style::{Color, Style},
-    text::Span,
-    widgets::{Block, Borders, Clear, List, ListItem, ListState},
+    text::Line,
+    widgets::{Block, Borders, Clear, List, ListState},
 };
 
 use crate::{
@@ -11,38 +18,64 @@ use crate::{
         component::{Component, Drawer},
         event::PostEvent,
     },
-    utils,
+    utils::{self},
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Logger {
     opened: bool,
     draw_area: Rect,
+    logs: Arc<Mutex<Vec<String>>>,
+}
+
+impl<S: Subscriber> Layer<S> for Logger {
+    fn enabled(
+        &self,
+        metadata: &tracing::Metadata<'_>,
+        _: tracing_subscriber::layer::Context<'_, S>,
+    ) -> bool {
+        metadata.level() <= &Level::DEBUG
+    }
+
+    fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
+        let mut log_msg = String::new();
+        let _ = std::fmt::write(&mut log_msg, format_args!("{}: ", event.metadata().level()));
+
+        let writer = tracing_subscriber::fmt::format::Writer::new(&mut log_msg);
+
+        let pretty = Pretty::default();
+        let _ = pretty.format_fields(writer, event);
+
+        let mut logs = self.logs.lock().unwrap();
+        logs.push(log_msg);
+    }
 }
 
 impl Component for Logger {
     fn draw(&self, app: &crate::app::App, drawer: &mut Drawer) {
         if self.opened {
             let style = Style::default().fg(Color::Red);
-            let text = app
-                .logs
+
+            let logs = self.logs.lock().unwrap();
+
+            let border_block = Block::default()
+                .borders(Borders::ALL)
+                .border_type(app.config.border_type)
+                .title("Logger")
+                .border_style(style);
+
+            let rows = logs
                 .iter()
-                .map(|(msg, time)| format!("{}: {}", time.format("%H:%M:%S%.3f"), msg))
-                .map(|msg| ListItem::new(Span::styled(msg, style)))
-                .collect::<Vec<ListItem>>();
+                .flat_map(|msg| {
+                    utils::wrap::wrap_text(msg.as_str(), border_block.inner(self.draw_area).width).lines
+                })
+                .collect::<Vec<Line>>();
+
             // Add multiline support.
-            let list = List::new(text);
-            let list = list.block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(app.config.border_type)
-                    .title("Logger")
-                    .border_style(style),
-            );
             let mut list_state = ListState::default();
-            if !app.logs.is_empty() {
-                list_state.select(Some(app.logs.len() - 1));
-            }
+            list_state.select_last();
+            let list = List::new(rows);
+            let list = list.block(border_block);
             drawer.draw_widget(Clear, self.draw_area);
             drawer.draw_stateful_widget(list, &mut list_state, self.draw_area);
         }
@@ -56,9 +89,9 @@ impl Component for Logger {
         let key_code = key_event.code;
         if self.opened {
             self.opened = false;
-            return PostEvent::noop(true);
+            return PostEvent::noop(false);
         }
-        if key_code == KeyCode::Char('p') {
+        if key_code == KeyCode::Char('-') {
             self.opened = true;
             return PostEvent::noop(false);
         }

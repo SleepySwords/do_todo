@@ -1,19 +1,27 @@
+use data::{
+    data_store::DataTaskStoreKind,
+    todoist::todoist_main::{handle_sync, TaskSync},
+};
+use tracing_subscriber::{fmt::Layer, prelude::__tracing_subscriber_SubscriberExt};
+
 mod actions;
 mod app;
 mod component;
 mod config;
+mod data;
 mod data_io;
 mod error;
 mod framework;
 mod input;
 mod screens;
+mod storage;
 mod task;
 mod tests;
 mod utils;
 
 use component::{logger::Logger, message_box::MessageBox, overlay::Overlay};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
+    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -23,6 +31,9 @@ use framework::{
     event::PostEvent,
     screen_manager::ScreenManager,
 };
+use futures::{FutureExt, TryStreamExt};
+use tokio::{sync::mpsc::Receiver, time::Instant};
+use tracing_subscriber::Registry;
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Layout},
@@ -38,8 +49,15 @@ use std::{
 
 use crate::{app::App, screens::main_screen::MainScreen};
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let (theme, tasks) = data_io::get_data();
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    #[cfg(debug_assertions)]
+    let is_debug = true;
+
+    #[cfg(not(debug_assertions))]
+    let is_debug = false;
+
+    let (config, tasks, rx) = data_io::get_data(is_debug).await;
 
     enable_raw_mode()?;
 
@@ -48,13 +66,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let app = App::new(theme, tasks);
+    let app = App::new(config, tasks);
     let mut screen_manager = ScreenManager {
         app,
         overlays: vec![],
     };
 
-    let result = start_app(&mut screen_manager, &mut terminal);
+    let result = start_app(&mut screen_manager, &mut terminal, rx).await;
 
     // Shutting down application
 
@@ -68,28 +86,42 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     let app = screen_manager.app;
-    data_io::save_data(&app.config, &app.task_store);
+    data_io::save_config(&app.config, app.task_store);
 
     if let Err(err) = result {
         eprintln!("{:?}", err);
-        return Err(Box::new(err));
+        Err(Box::new(err))?;
     }
 
     Ok(())
 }
 
-pub fn start_app(
+pub async fn start_app(
     screen_manager: &mut ScreenManager,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    mut rx: Receiver<TaskSync>,
 ) -> io::Result<()> {
     let mut main_screen = MainScreen::new();
 
-    let var_name = Logger::default();
-    let mut logger = var_name;
+    let mut logger = Logger::default();
+
+    let logfile = tracing_appender::rolling::hourly(
+        dirs::data_dir().unwrap().join("dotodo").to_str().unwrap(),
+        "logs",
+    );
+    let logfile_layer = Layer::default().with_writer(logfile);
+
+    let subscriber = Registry::default().with(logger.clone()).with(logfile_layer);
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
+
+    tracing::info!("Todoist Logger is active");
+
+    let mut interval = tokio::time::interval_at(Instant::now(), Duration::from_millis(100));
+    let mut event_stream = EventStream::new();
 
     while !screen_manager.app.should_shutdown() {
         terminal.draw(|f| {
-            let draw_size = f.size();
+            let draw_size = f.area();
 
             let mut drawer = Drawer::new(f);
 
@@ -118,52 +150,66 @@ pub fn start_app(
             logger.draw(&screen_manager.app, &mut drawer);
         })?;
 
-        // This function blocks
-        if event::poll(Duration::from_millis(50))? {
-            match event::read()? {
-                Event::Key(key_event) => {
-                    if key_event.code == KeyCode::Char('c')
-                        && key_event.modifiers.contains(KeyModifiers::CONTROL)
-                    {
-                        return Ok(());
-                    }
-                    if !screen_manager.app.config.debug
-                        || logger
-                            .key_event(&mut screen_manager.app, key_event)
-                            .propegate_further
-                    {
-                        let result = input::key_event(screen_manager, key_event);
-                        match result {
-                            Ok(post_event) => screen_manager.handle_post_event(post_event),
-                            Err(AppError::InvalidState(msg)) => {
-                                let prev_mode = screen_manager.app.mode;
-                                screen_manager.push_layer(MessageBox::new(
-                                    "An error occured".to_string(),
-                                    move |app| {
-                                        app.mode = prev_mode;
-                                        PostEvent::noop(false)
-                                    },
-                                    msg,
-                                    Color::Red,
-                                    0,
-                                ));
+        let tick = interval.tick();
+        let crossterm = &mut event_stream.try_next().fuse();
+
+        tokio::select! {
+            _ = tick => {
+                screen_manager.app.tick += 1;
+            }
+            Some(sync) = rx.recv() => {
+                if let DataTaskStoreKind::Todoist(todoist) = &mut screen_manager.app.task_store {
+                    handle_sync(todoist, sync);
+                }
+            }
+            Ok(Some(event)) = crossterm => {
+                match event {
+                    Event::Key(key_event) => {
+                        if key_event.code == KeyCode::Char('c')
+                            && key_event.modifiers.contains(KeyModifiers::CONTROL)
+                        {
+                            return Ok(());
+                        }
+                        if !screen_manager.app.config.debug
+                            || logger
+                                .key_event(&mut screen_manager.app, key_event)
+                                .propegate_further
+                        {
+                            let result = input::key_event(screen_manager, key_event);
+                            match result {
+                                Ok(post_event) => screen_manager.handle_post_event(post_event),
+                                Err(AppError::InvalidState(msg)) => {
+                                    let prev_mode = screen_manager.app.mode;
+                                    screen_manager.push_layer(MessageBox::new(
+                                        "An error occured".to_string(),
+                                        move |app| {
+                                            app.mode = prev_mode;
+                                            PostEvent::noop(false)
+                                        },
+                                        msg,
+                                        Color::Red,
+                                        0,
+                                    ));
+                                }
+                                _ => {}
                             }
-                            _ => {}
                         }
                     }
-                }
-                Event::Mouse(mouse_event) => {
-                    let post_event = Overlay::mouse_event(screen_manager, mouse_event);
-                    let propegate = post_event.propegate_further;
-                    screen_manager.handle_post_event(post_event);
-                    if propegate {
-                        main_screen.mouse_event(&mut screen_manager.app, mouse_event);
+                    Event::Mouse(mouse_event) => {
+                        let post_event = Overlay::mouse_event(screen_manager, mouse_event);
+                        let propegate = post_event.propegate_further;
+                        screen_manager.handle_post_event(post_event);
+                        if propegate {
+                            main_screen.mouse_event(&mut screen_manager.app, mouse_event);
+                        }
+                    }
+                    Event::Resize(x, y) => {
+                        tracing::debug!("{} {}", x, y);
+                    }
+                    _ => {
+                        println!("oakfe");
                     }
                 }
-                Event::Resize(x, y) => {
-                    screen_manager.app.println(format!("{} {}", x, y));
-                }
-                _ => {}
             }
         }
     }

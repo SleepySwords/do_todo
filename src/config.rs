@@ -10,6 +10,12 @@ use tui::{
 use crate::framework::key::Key;
 
 #[derive(Deserialize, Serialize)]
+pub enum DataSource {
+    Json,
+    Todoist(String),
+}
+
+#[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
     #[serde(with = "color_parser")]
@@ -24,6 +30,11 @@ pub struct Config {
     pub normal_priority_colour: Color,
     #[serde(with = "color_parser")]
     pub low_priority_colour: Color,
+    #[serde(with = "color_parser")]
+    pub none_priority_colour: Color,
+
+    #[serde(with = "color_parser")]
+    pub default_task_colour: Color,
 
     pub use_fuzzy: bool,
     pub vim_mode: bool,
@@ -45,6 +56,7 @@ pub struct Config {
     pub flip_progress_key: Key,
     pub change_priority_key: Key,
     pub restore_key: Key,
+    pub refresh_key: Key,
 
     pub tasks_menu_key: Key,
     pub completed_tasks_menu_key: Key,
@@ -67,6 +79,13 @@ pub struct Config {
     pub closed_subtask: String,
     pub open_subtask: String,
 
+    pub high_priority_display: String,
+    pub normal_priority_display: String,
+    pub low_priority_display: String,
+    pub none_priority_display: String,
+
+    pub data_source: DataSource,
+
     pub debug: bool,
 }
 
@@ -79,6 +98,8 @@ impl Default for Config {
             high_priority_colour: Color::Red,
             normal_priority_colour: Color::LightYellow,
             low_priority_colour: Color::Green,
+            none_priority_colour: Color::default(),
+            default_task_colour: Color::default(),
             use_fuzzy: true,
             vim_mode: false,
             up_keys: [
@@ -105,6 +126,7 @@ impl Default for Config {
             add_subtask_key: Key::new(KeyCode::Char('A'), KeyModifiers::NONE),
             change_priority_key: Key::new(KeyCode::Char('p'), KeyModifiers::NONE),
             restore_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
+            refresh_key: Key::new(KeyCode::Char('r'), KeyModifiers::NONE),
 
             tasks_menu_key: Key::new(KeyCode::Char('1'), KeyModifiers::NONE),
             completed_tasks_menu_key: Key::new(KeyCode::Char('2'), KeyModifiers::NONE),
@@ -124,7 +146,14 @@ impl Default for Config {
             nested_padding: String::from(" │  "),
             closed_subtask: String::from(" ▸  "),
             open_subtask: String::from(" ▾  "),
+
+            high_priority_display: String::from("!!! "),
+            normal_priority_display: String::from("!!  "),
+            low_priority_display: String::from("!   "),
+            none_priority_display: String::from("    "),
+
             debug: false,
+            data_source: DataSource::Json,
         }
     }
 }

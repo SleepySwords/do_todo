@@ -1,7 +1,6 @@
 use std::{
     fs,
-    io::Write,
-    io::{stdin, stdout},
+    io::{stdin, stdout, Write},
     path::PathBuf,
     process::exit,
 };
@@ -10,7 +9,19 @@ use std::{
 // - Create a custom error type and return it from functions to handle it
 // outside of them
 
-use crate::{config::Config, error::AppError, task::TaskStore};
+use tokio::sync::mpsc::Receiver;
+
+use crate::{
+    config::{Config, DataSource},
+    data::{
+        data_store::{DataTaskStore, DataTaskStoreKind},
+        json_data_store::JsonDataStore,
+        todoist::todoist_main::{sync, TaskSync},
+    },
+    error::AppError,
+    storage::json::{legacy::legacy_task::LegacyTaskStore, version::JSONVersion},
+    utils,
+};
 
 const DIR: &str = "dotodo";
 
@@ -81,27 +92,51 @@ where
     Default::default()
 }
 
-pub fn get_data() -> (Config, TaskStore) {
-    let config_local_dir = dirs::config_local_dir();
-    let data_local_dir = dirs::data_local_dir();
+// FIXME: make the receiver optional
+pub async fn get_data(is_debug: bool) -> (Config, DataTaskStoreKind, Receiver<TaskSync>) {
+    let (data_local_dir, config_local_dir) = if is_debug {
+        (
+            Some(std::env::current_dir().unwrap()),
+            Some(std::env::current_dir().unwrap()),
+        )
+    } else {
+        (dirs::data_local_dir(), dirs::config_local_dir())
+    };
 
-    let theme = load_from_file(
+    let config = load_from_file(
         config_local_dir,
         CONFIG_FILE,
         serde_yaml::from_str::<Config>,
         "config",
     );
+    let (send, recv) = tokio::sync::mpsc::channel::<TaskSync>(100);
 
-    let task_store = load_from_file(
-        data_local_dir,
-        DATA_FILE,
-        // NOTE: This doesn't work:
-        // serde_json::from_str::<TaskStore>,
-        |x| serde_json::from_str::<TaskStore>(x),
-        "task data",
-    );
+    // let tasks = sync();
+    let task_store: DataTaskStoreKind = match &config.data_source {
+        DataSource::Json => {
+            DataTaskStoreKind::Json(load_from_file(
+                data_local_dir,
+                DATA_FILE,
+                // NOTE: This doesn't work:
+                // serde_json::from_str::<TaskStore>,
+                |x| {
+                    serde_json::from_str::<JSONVersion>(x)
+                        .map(Into::<JsonDataStore>::into) // NOTE: we might do something similar as below
+                        // if/when we introduce integers as ids again
+                        // This is because for some reason, serde tags
+                        // don't like int strings as keys
+                        // See: https://github.com/serde-rs/serde/issues/2672
+                        .or_else(|_| serde_json::from_str::<LegacyTaskStore>(x).map(|x| x.into()))
+                },
+                "task data",
+            ))
+        }
+        DataSource::Todoist(todoist_auth) => {
+            DataTaskStoreKind::Todoist(sync(todoist_auth, send).await)
+        }
+    };
 
-    (theme, task_store)
+    (config, task_store, recv)
 }
 
 fn save_to_file<T, F, E>(local_dir: Option<PathBuf>, file_name: &str, ser_f: F, kind: &str)
@@ -140,18 +175,32 @@ where
     }
 }
 
-pub fn save_data(config: &Config, task_store: &TaskStore) {
-    save_to_file(
-        dirs::data_local_dir(),
-        DATA_FILE,
-        || serde_json::to_string_pretty(task_store),
-        "data",
-    );
+pub fn save_config(config: &Config, task_store: DataTaskStoreKind) {
+    task_store.save();
 
     save_to_file(
-        dirs::config_local_dir(),
+        if utils::IS_DEBUG {
+            Some(std::env::current_dir().unwrap())
+        } else {
+            dirs::config_local_dir()
+        },
         CONFIG_FILE,
         || serde_yaml::to_string(config),
         "config",
+    );
+}
+
+pub fn save_task_json(task_store: &JsonDataStore, is_debug: bool) {
+    let json = JSONVersion::V1(task_store.clone());
+
+    save_to_file(
+        if is_debug {
+            Some(std::env::current_dir().unwrap())
+        } else {
+            dirs::data_local_dir()
+        },
+        DATA_FILE,
+        || serde_json::to_string_pretty(&json),
+        "data",
     );
 }

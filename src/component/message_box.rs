@@ -139,8 +139,9 @@ impl MessageBoxBuilder {
         self
     }
 
-    pub fn message(mut self, message: String) -> Self {
+    pub fn message<T: Into<String>>(mut self, message: T) -> Self {
         self.message = message
+            .into()
             .split('\n')
             .map(|f| f.to_string())
             .collect::<Vec<String>>();
@@ -152,9 +153,9 @@ impl MessageBoxBuilder {
         self
     }
 
-    pub fn on_close<T: 'static>(mut self, callback: T) -> Self
+    pub fn on_close<T>(mut self, callback: T) -> Self
     where
-        T: Fn(&mut App) -> PostEvent,
+        T: Fn(&mut App) -> PostEvent + 'static,
     {
         self.on_close = Some(Box::new(callback));
         self

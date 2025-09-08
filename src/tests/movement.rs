@@ -1,32 +1,16 @@
-use std::collections::BTreeMap;
-
 use crate::{
-    app::App,
-    config::Config,
-    framework::screen_manager::ScreenManager,
-    task::{Task, TaskStore},
+    data::{data_store::DataTaskStore, json_data_store::JsonDataStore},
+    task::Task,
     tests::assert_task_eq,
-    utils::test::input_char,
+    utils::test::{input_char, setup},
 };
 
 #[test]
 fn test_rollover() {
-    let app = App::new(
-        Config::default(),
-        TaskStore {
-            tasks: vec![
-                Task::from_string(String::from("meme")),
-                Task::from_string(String::from("based")),
-            ],
-            completed_tasks: vec![],
-            tags: BTreeMap::new(),
-            auto_sort: false,
-        },
-    );
-    let mut screen_manager = ScreenManager {
-        app,
-        overlays: vec![],
-    };
+    let mut json_data_store = JsonDataStore::default();
+    json_data_store.add_task(Task::from_string("meme"), None);
+    json_data_store.add_task(Task::from_string("oof"), None);
+    let mut screen_manager = setup(json_data_store);
 
     input_char('j', &mut screen_manager);
     let current_index = screen_manager.app.task_list.selected_index;
@@ -47,22 +31,10 @@ fn test_rollover() {
 
 #[test]
 fn test_shifting_tasks() {
-    let app = App::new(
-        Config::default(),
-        TaskStore {
-            tasks: vec![
-                Task::from_string(String::from("meme")),
-                Task::from_string(String::from("based")),
-            ],
-            completed_tasks: vec![],
-            tags: BTreeMap::new(),
-            auto_sort: false,
-        },
-    );
-    let mut screen_manager = ScreenManager {
-        app,
-        overlays: vec![],
-    };
+    let mut json_data_store = JsonDataStore::default();
+    json_data_store.add_task(Task::from_string("meme"), None);
+    json_data_store.add_task(Task::from_string("based"), None);
+    let mut screen_manager = setup(json_data_store);
 
     input_char('J', &mut screen_manager);
     assert_eq!(screen_manager.app.task_list.selected_index, 1);

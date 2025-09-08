@@ -63,7 +63,7 @@ impl Drawer<'_, '_> {
         self.frame.render_stateful_widget(widget, draw_area, state);
     }
 
-    pub fn set_cursor(&mut self, x: u16, y: u16) {
-        self.frame.set_cursor(x, y);
+    pub fn set_cursor_position(&mut self, x: u16, y: u16) {
+        self.frame.set_cursor_position((x, y));
     }
 }

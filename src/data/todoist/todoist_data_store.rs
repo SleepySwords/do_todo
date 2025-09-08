@@ -1,0 +1,354 @@
+use std::{
+    cmp,
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
+
+use chrono::NaiveDateTime;
+use tokio::{sync::mpsc::Sender, task};
+
+use crate::{
+    data::data_store::{DataTaskStore, TaskID, TaskIDRef},
+    task::{CompletedTask, FindParentResult, Priority, Tag, Task},
+    utils::task_position::cursor_to_task,
+};
+
+use super::todoist_command::{
+    task_to_todoist, TodoistCommand, TodoistItemAddCommand, TodoistItemCompleteCommand,
+    TodoistItemDeleteCommand, TodoistItemMoveCommand, TodoistItemReorder,
+    TodoistItemReorderCommand, TodoistItemUncompleteCommand, TodoistSendCommand,
+};
+
+// FIXME: we can seperate this into the state and the sender. This seperates them and we can use an
+// arc mutex without changing too much of the existing code
+pub struct TodoistDataStore {
+    pub tasks: HashMap<TaskID, Task>,
+    pub completed_tasks: HashMap<TaskID, CompletedTask>,
+    pub subtasks: HashMap<TaskID, Vec<TaskID>>,
+    pub root: Vec<TaskID>,
+    pub completed_root: Vec<TaskID>,
+    pub tags: HashMap<String, Tag>,
+    pub task_count: usize,
+
+    pub currently_syncing: Arc<Mutex<bool>>,
+    pub command_sender: Sender<TodoistCommand>,
+    pub inbox_project: Option<String>,
+
+    pub temporary_mappings: HashMap<TaskID, TaskID>,
+}
+
+impl TodoistDataStore {
+    pub fn send_command(&self, command: TodoistSendCommand) {
+        self.command(TodoistCommand::Send(command));
+    }
+
+    pub fn command(&self, command: TodoistCommand) {
+        let sender = self.command_sender.clone();
+        task::block_in_place(move || {
+            sender.blocking_send(command).unwrap();
+        });
+    }
+
+    pub fn append_internal(&mut self, id: TaskIDRef, parent: Option<TaskID>, global: Option<()>) {
+        let hash_map = &mut self.subtasks;
+        let subtasks = if let Some((_, subtasks)) = hash_map
+            .iter_mut()
+            .find(|(_, subtasks)| subtasks.contains(&id.to_string()))
+        {
+            subtasks
+        } else {
+            &mut self.root
+        };
+        subtasks.retain(|f| f != id);
+        let mutable_subtasks = if let Some(p) = parent {
+            self.subtasks.entry(p).or_default()
+        } else if global.is_some() {
+            &mut self.root
+        } else {
+            subtasks
+        };
+
+        mutable_subtasks.push(id.to_string());
+    }
+}
+
+impl DataTaskStore for TodoistDataStore {
+    fn modify_task<F, T: FnOnce(&mut Task) -> F>(
+        &mut self,
+        id: TaskIDRef,
+        closure: T,
+    ) -> Option<F> {
+        self.tasks.get_mut(id).map(closure)
+        // Some(closure(self.todoist_state.lock().ok()?.tasks.get_mut(id)?))
+    }
+
+    fn update_task(&mut self, id: TaskIDRef) {
+        self.send_command(TodoistSendCommand::Update {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: task_to_todoist(
+                id.to_string(),
+                self.task(id).expect("Updating a task that has no ID."),
+            ),
+        });
+    }
+
+    fn task(&self, id: TaskIDRef) -> Option<&Task> {
+        return self.tasks.get(id).or_else(|| {
+            self.temporary_mappings
+                .get(id)
+                .and_then(|f| self.tasks.get(f))
+        });
+    }
+
+    fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask> {
+        return self.completed_tasks.get_mut(id);
+    }
+
+    fn completed_task(&self, id: TaskIDRef) -> Option<&CompletedTask> {
+        return self.completed_tasks.get(id);
+    }
+
+    fn delete_task(&mut self, id: TaskIDRef) -> Option<Task> {
+        self.root.retain(|f| f != id);
+        self.subtasks
+            .values_mut()
+            .for_each(|val| val.retain(|f| f != id));
+
+        self.send_command(TodoistSendCommand::Delete {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemDeleteCommand { id: id.to_string() },
+        });
+
+        self.tasks.remove(id)
+    }
+
+    fn find_parent(&self, id: TaskIDRef) -> Option<FindParentResult> {
+        let parent = self
+            .subtasks
+            .iter()
+            .find(|(_, subs)| subs.contains(&id.to_string()))
+            .map(|p| p.0);
+        let local_index = if let Some(p) = parent {
+            self.subtasks.get(p).unwrap().iter().position(|t| t == id)
+        } else {
+            self.root.iter().position(|t| t == id)
+        };
+        Some(FindParentResult {
+            task_local_offset: local_index?,
+            parent_id: parent.cloned(),
+        })
+    }
+
+    fn subtasks_mut(&mut self, id: Option<TaskIDRef>) -> Option<&mut Vec<TaskID>> {
+        if let Some(id) = id {
+            return self.subtasks.get_mut(id);
+        } else {
+            Some(&mut self.root)
+        }
+    }
+
+    fn subtasks(&self, id: TaskIDRef) -> Option<&Vec<TaskID>> {
+        return self.subtasks.get(id);
+    }
+
+    fn root_tasks(&self) -> &Vec<TaskID> {
+        &self.root
+    }
+
+    fn completed_root_tasks(&self) -> &Vec<TaskID> {
+        &self.completed_root
+    }
+
+    fn delete_tag(&mut self, tag_id: TaskIDRef) {
+        self.tags.remove(tag_id);
+        for task in &mut self.tasks.values_mut() {
+            task.tags.retain(|f| f != tag_id);
+        }
+        for completed_task in &mut self.completed_tasks.values_mut() {
+            completed_task.task.tags.retain(|f| f != tag_id);
+        }
+    }
+
+    fn sort(&mut self) {
+        self.root
+            .sort_by_key(|f| cmp::Reverse(self.tasks[f].priority));
+        for subtasks in self.subtasks.values_mut() {
+            subtasks.sort_by_key(|f| {
+                cmp::Reverse(self.tasks.get(f).map_or(Priority::None, |k| k.priority))
+            });
+        }
+    }
+
+    fn add_task(&mut self, task: Task, parent: Option<TaskIDRef>) {
+        let parents = if let Some(parent_id) = parent {
+            // FIXME: consider writing ugly version that avoids a clone.
+            self.subtasks.entry(parent_id.to_string()).or_default()
+        } else {
+            &mut self.root
+        };
+        let key = uuid::Uuid::new_v4().to_string();
+        self.task_count += 1;
+        self.tasks.insert(key.clone(), task.clone());
+        parents.push(key.clone());
+
+        self.send_command(TodoistSendCommand::Add {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            temp_id: key,
+            args: TodoistItemAddCommand {
+                content: task.title.to_string(),
+                parent_id: parent.map(|f| f.to_string()),
+            },
+        });
+    }
+
+    fn refresh(&mut self) {
+        self.command(TodoistCommand::Refresh)
+    }
+
+    fn save(&self) {
+        // data_io::save_task_json(self);
+    }
+
+    fn move_task(
+        &mut self,
+        id: TaskIDRef,
+        parent: Option<TaskID>,
+        order: usize,
+        global: Option<()>,
+    ) {
+        let previous_parent = self.find_parent(id);
+        let subtasks = if let Some(FindParentResult {
+            parent_id: Some(p), ..
+        }) = &previous_parent
+        {
+            self.subtasks.entry(p.to_string()).or_default()
+        } else {
+            &mut self.root
+        };
+        subtasks.retain(|f| f != id);
+        let mutable_subtasks = if let Some(p) = &parent {
+            self.subtasks.entry(p.to_string()).or_default()
+        } else if global.is_some() {
+            &mut self.root
+        } else {
+            subtasks
+        };
+
+        mutable_subtasks.insert(order, id.to_string());
+
+        let mut items = Vec::new();
+        for i in 0..self.find_tasks_draw_size() {
+            let task_id = cursor_to_task(self, i).unwrap();
+            items.push(TodoistItemReorder {
+                id: task_id,
+                child_order: i,
+            });
+        }
+
+        if let Some(parent_id) = parent {
+            self.send_command(TodoistSendCommand::Move {
+                uuid: uuid::Uuid::new_v4().to_string(),
+                args: TodoistItemMoveCommand {
+                    id: id.to_string(),
+                    parent_id: Some(parent_id.clone()),
+                    section_id: None,
+                    project_id: None,
+                },
+            });
+        } else if let Some(inbox) = &self.inbox_project {
+            if global.is_some() {
+                self.send_command(TodoistSendCommand::Move {
+                    uuid: uuid::Uuid::new_v4().to_string(),
+                    args: TodoistItemMoveCommand {
+                        id: id.to_string(),
+                        parent_id: None,
+                        section_id: None,
+                        project_id: Some(inbox.to_string()),
+                    },
+                });
+                tracing::debug!("Sent move to the inbox: {}", inbox);
+            }
+        }
+
+        self.send_command(TodoistSendCommand::Reorder {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemReorderCommand { items },
+        });
+    }
+
+    fn find_task_draw_size(&self, task_id: TaskIDRef) -> usize {
+        if let Some(task) = self.task(task_id) {
+            return if !task.opened {
+                0
+            } else {
+                self.subtasks(task_id)
+                    .map_or(0, |f| f.iter().map(|k| self.find_task_draw_size(k)).sum())
+            } + 1;
+        }
+        0
+    }
+
+    fn find_tasks_draw_size(&self) -> usize {
+        self.root_tasks()
+            .iter()
+            .map(|t| self.find_task_draw_size(t))
+            .sum()
+    }
+
+    fn complete_task(&mut self, id: TaskIDRef, time_completed: NaiveDateTime) {
+        self.root.retain(|f| f != id);
+        self.subtasks
+            .values_mut()
+            .for_each(|subtasks| subtasks.retain(|f| f != id));
+        if let Some(task) = self.tasks.remove(id) {
+            self.completed_tasks.insert(
+                id.to_string(),
+                CompletedTask::from_task(task, time_completed),
+            );
+            self.completed_root.push(id.to_string());
+        }
+
+        self.send_command(TodoistSendCommand::Complete {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemCompleteCommand {
+                id: id.to_string(),
+                date_completed: None,
+            },
+        });
+    }
+
+    fn restore(&mut self, id: TaskIDRef) {
+        self.completed_root.retain(|f| f != id);
+        if let Some(task) = self.completed_tasks.remove(id) {
+            self.tasks.insert(id.to_string(), task.task);
+            if let Some(parent_id) = self.find_parent(id).and_then(|f| f.parent_id) {
+                let subtasks = self
+                    .subtasks
+                    .get_mut(&parent_id)
+                    .expect("Find parent guarentees this exist.");
+                //FIXME: is there a move funciton?
+                subtasks.retain(|f| f != id);
+                subtasks.push(id.to_string());
+            } else {
+                self.root.push(id.to_string());
+            }
+        }
+
+        self.send_command(TodoistSendCommand::Uncomplete {
+            uuid: uuid::Uuid::new_v4().to_string(),
+            args: TodoistItemUncompleteCommand { id: id.to_string() },
+        });
+    }
+
+    fn tags(&self) -> &HashMap<String, Tag> {
+        &self.tags
+    }
+
+    fn tags_mut(&mut self) -> &mut HashMap<String, Tag> {
+        &mut self.tags
+    }
+
+    fn is_syncing(&self) -> bool {
+        self.currently_syncing.lock().map_or(false, |f| *f)
+    }
+}

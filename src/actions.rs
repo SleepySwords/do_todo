@@ -1,3 +1,8 @@
+use crate::{
+    data::data_store::DataTaskStore,
+    utils::task_position::{cursor_to_task, task_to_cursor},
+};
+
 use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
 use itertools::Itertools;
@@ -17,7 +22,7 @@ use crate::{
     error::AppError,
     framework::event::PostEvent,
     input,
-    task::{CompletedTask, FindParentResult, Task, TaskStore},
+    task::{FindParentResult, Task},
     utils::{self, str_to_colour},
 };
 
@@ -27,7 +32,8 @@ impl App {
         let add_input_dialog = InputBoxBuilder::default()
             .title("Add a task")
             .on_submit(move |app, word| {
-                app.task_store.add_task(Task::from_string(word.trim()));
+                app.task_store
+                    .add_task(Task::from_string(word.trim()), None);
                 if app.mode == Mode::CurrentTasks {
                     app.task_list.selected_index = app.task_store.find_tasks_draw_size() - 1;
                 }
@@ -54,7 +60,7 @@ impl App {
     }
 
     pub fn enable_auto_sort(&mut self) -> Result<PostEvent, AppError> {
-        self.task_store.auto_sort = !self.task_store.auto_sort;
+        self.task_list.auto_sort = !self.task_list.auto_sort;
         self.task_store.sort();
         Ok(PostEvent::noop(false))
     }
@@ -125,17 +131,19 @@ impl App {
     }
 
     pub fn create_delete_selected_task_menu(&mut self) -> Result<PostEvent, AppError> {
-        if self.task_store.tasks.is_empty() {
+        if self.task_store.root_tasks().is_empty() {
             return Ok(PostEvent::noop(false));
         }
         let delete_dialog = DialogBoxBuilder::default()
             .title("Delete selected task")
             .add_option("Delete", move |app| {
                 let selected_index = &mut app.task_list.selected_index;
-                app.task_store.delete_task(*selected_index);
+                if let Some(task_to_delete) = cursor_to_task(&app.task_store, *selected_index) {
+                    app.task_store.delete_task(&task_to_delete);
+                }
 
                 if *selected_index == app.task_store.find_tasks_draw_size()
-                    && !app.task_store.tasks.is_empty()
+                    && !app.task_store.root_tasks().is_empty()
                 {
                     *selected_index -= 1;
                 }
@@ -147,22 +155,20 @@ impl App {
     }
 
     pub fn complete_selected_task(&mut self) -> Result<PostEvent, AppError> {
-        if self.task_store.tasks.is_empty() {
+        if self.task_store.root_tasks().is_empty() {
             return Ok(PostEvent::noop(true));
         }
         let selected_index = &mut self.task_list.selected_index;
         let local = Local::now();
         let time_completed = local.naive_local();
-        let Some(task) = self.task_store.delete_task(*selected_index) else {
-            return Ok(PostEvent::noop(true));
-        };
-        self.task_store
-            .completed_tasks
-            .push(CompletedTask::from_task(task, time_completed));
-        if *selected_index == self.task_store.find_tasks_draw_size()
-            && !self.task_store.tasks.is_empty()
-        {
-            *selected_index -= 1;
+        if let Some(completed_task) = cursor_to_task(&self.task_store, *selected_index) {
+            self.task_store
+                .complete_task(&completed_task, time_completed);
+            if *selected_index == self.task_store.find_tasks_draw_size()
+                && !self.task_store.root_tasks().is_empty()
+            {
+                *selected_index -= 1;
+            }
         }
         Ok(PostEvent::noop(false))
     }
@@ -171,42 +177,49 @@ impl App {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
         let selected_index = self.task_list.selected_index;
+        let Some(task_id) = cursor_to_task(&self.task_store, selected_index) else {
+            // FIXME: should probs error?
+            return Ok(PostEvent::noop(true));
+        };
 
-        if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
+        if !self.task_store.root_tasks().is_empty() && self.mode == Mode::CurrentTasks {
             // Loops through the tags and adds them to the menu.
-            for (i, tag) in self.task_store.tags.iter() {
-                let moved: usize = *i;
+            for (i, tag) in self.task_store.tags().iter() {
+                let moved = i.to_string();
+                let moved_name = task_id.clone();
                 tag_options.push(DialogAction::new(
                     tag.name.to_owned().fg(tag.colour),
                     move |app| {
-                        if let Some(task) = app.task_store.task_mut(selected_index) {
+                        app.task_store.modify_task(&moved_name, |task: &mut Task| {
                             task.flip_tag(moved);
-                        };
+                        });
                         PostEvent::noop(false)
                     },
                 ));
             }
         }
 
+        let new_task = task_id.clone();
         tag_options.push(DialogAction::new(String::from("New tag"), move |app| {
             let tag_menu = InputBoxBuilder::default()
                 .title("Tag name")
                 .on_submit(move |app, tag_name| {
+                    let new_task = new_task.clone();
                     app.create_select_tag_colour("".to_string(), move |app, tag_colour| {
                         let colour = str_to_colour(&tag_colour)?;
 
-                        let tag_id = app.task_store.tags.keys().last().map_or(0, |id| *id + 1);
-                        app.task_store.tags.insert(
-                            tag_id,
+                        let tag_id = app.task_store.tags().keys().len().to_string();
+                        app.task_store.tags_mut().insert(
+                            tag_id.clone(),
                             crate::task::Tag {
                                 name: tag_name.clone(),
                                 colour,
                             },
                         );
                         if app.task_store.find_tasks_draw_size() > selected_index {
-                            if let Some(task) = app.task_store.task_mut(selected_index) {
+                            app.task_store.modify_task(&new_task, |task: &mut Task| {
                                 task.flip_tag(tag_id);
-                            }
+                            });
                         }
                         Ok(PostEvent::noop(false))
                     })
@@ -216,13 +229,14 @@ impl App {
             PostEvent::push_layer(tag_menu)
         }));
 
-        if !self.task_store.tasks.is_empty() && self.mode == Mode::CurrentTasks {
+        let new_task = task_id.clone();
+        if !self.task_store.root_tasks().is_empty() && self.mode == Mode::CurrentTasks {
             tag_options.push(DialogAction::new(
                 String::from("Clear all tags"),
                 move |app| {
-                    if let Some(task) = app.task_store.task_mut(selected_index) {
+                    app.task_store.modify_task(&new_task, |task: &mut Task| {
                         task.tags.clear();
-                    };
+                    });
                     PostEvent::noop(false)
                 },
             ));
@@ -245,8 +259,8 @@ impl App {
     pub fn create_edit_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
-        for (i, tag) in self.task_store.tags.iter() {
-            let tag_id: usize = *i;
+        for (i, tag) in self.task_store.tags().iter() {
+            let tag_id = i.to_string();
             let tag_name = tag.name.clone();
             let tag_colour = tag.colour;
             tag_options.push(DialogAction::new(
@@ -257,12 +271,13 @@ impl App {
                         .fill(&tag_name)
                         .use_vim(&_app.config, VimMode::Normal)
                         .on_submit(move |app, tag_name| {
+                            let tag_id = tag_id.to_string();
                             app.create_select_tag_colour(
                                 tag_colour.to_string(),
                                 move |app, tag_colour| {
                                     let colour = utils::str_to_colour(&tag_colour)?;
-                                    app.task_store.tags.insert(
-                                        tag_id,
+                                    app.task_store.tags_mut().insert(
+                                        tag_id.to_string(),
                                         crate::task::Tag {
                                             name: tag_name.clone(),
                                             colour,
@@ -281,13 +296,9 @@ impl App {
         self.create_dialog_or_fuzzy("Edit a tag", tag_options)
     }
 
-    fn create_select_tag_colour<T: 'static>(
-        &mut self,
-        default_string: String,
-        callback: T,
-    ) -> PostEvent
+    fn create_select_tag_colour<T>(&mut self, default_string: String, callback: T) -> PostEvent
     where
-        T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone,
+        T: Fn(&mut App, String) -> Result<PostEvent, AppError> + Clone + 'static,
     {
         let tag_colour = InputBoxBuilder::default()
             .fill(&default_string.clone())
@@ -326,8 +337,8 @@ impl App {
     pub fn create_delete_tag_menu(&mut self) -> PostEvent {
         let mut tag_options: Vec<DialogAction> = Vec::new();
 
-        for (i, tag) in self.task_store.tags.iter() {
-            let tag_id: usize = *i;
+        for (i, tag) in self.task_store.tags().iter() {
+            let tag_id = i.to_string();
             let tag_name = tag.name.clone();
             tag_options.push(DialogAction::new(
                 tag.name.to_owned().fg(tag.colour),
@@ -338,7 +349,7 @@ impl App {
                             tag_name
                         ))
                         .add_option("Delete", move |app| {
-                            app.task_store.delete_tag(tag_id);
+                            app.task_store.delete_tag(&tag_id);
                             PostEvent::noop(false)
                         })
                         .add_option("Cancel", move |_| PostEvent::noop(false))
@@ -353,122 +364,144 @@ impl App {
     }
 
     pub fn cycle_priority(&mut self) -> Result<PostEvent, AppError> {
-        if self.task_store.tasks.is_empty() {
+        if self.task_store.root_tasks().is_empty() {
             return Ok(PostEvent::noop(true));
         }
 
-        let old_task = {
-            let Some(task) = self.task_store.task_mut(self.task_list.selected_index) else {
-                return Ok(PostEvent::noop(true));
-            };
-            task.priority = task.priority.next_priority();
-
-            task.clone()
+        let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
+            return Ok(PostEvent::noop(true));
         };
 
-        if self.task_store.auto_sort {
-            self.task_store.sort();
-        }
+        self.task_store.modify_task(&task_id, |task| {
+            task.priority = task.priority.next_priority();
+        });
 
-        self.task_list.selected_index =
-            self.task_store.task_position(&old_task).ok_or_else(|| {
-                AppError::InvalidState("Cannot find the selected tasks index.".to_string())
-            })?;
+        if self.task_list.auto_sort {
+            self.task_store.sort();
+            let Some(new_pos) = task_to_cursor(&self.task_store, &task_id) else {
+                return Ok(PostEvent::noop(false));
+            };
+            self.task_list.selected_index = new_pos;
+        }
+        self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
 
     pub fn create_add_subtask_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
-        let Some(task) = self.task_store.task_mut(index) else {
+        let Some(task_id) = cursor_to_task(&self.task_store, index) else {
+            // FIXME: panic!
+            return Ok(PostEvent::noop(true));
+        };
+        let Some(task) = self.task_store.task(&task_id) else {
             return Ok(PostEvent::noop(false));
         };
         let add_input_dialog = InputBoxBuilder::default()
             .title(format!("Add a subtask to {}", task.title))
             .use_vim(&self.config, VimMode::Insert)
             .on_submit(move |app, word| {
-                if let Some(task) = app.task_store.task_mut(index) {
-                    task.sub_tasks.push(Task::from_string(word.trim()));
+                app.task_store
+                    .add_task(Task::from_string(word.trim()), Some(&task_id));
+                app.task_store.modify_task(&task_id, |task| {
                     task.opened = true;
-                    app.task_list.selected_index += task.sub_tasks.len();
-                }
+                });
+                app.task_store.update_task(&task_id);
+                app.task_list.selected_index +=
+                    app.task_store.subtasks(&task_id).map_or(0, |f| f.len());
                 PostEvent::noop(false)
-            })
-            .build();
-        Ok(PostEvent::push_layer(add_input_dialog))
+            });
+        Ok(PostEvent::push_layer(add_input_dialog.build()))
     }
 
     pub fn move_selected_task_down(&mut self) -> Result<PostEvent, AppError> {
-        let autosort = self.task_store.auto_sort;
+        let autosort = self.task_list.auto_sort;
+
+        let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
+            todo!()
+        };
 
         let Some(FindParentResult {
-            tasks: parent_tasks,
-            parent_index,
+            parent_id: parent_index,
             task_local_offset: local_index,
-        }) = self.task_store.find_parent(self.task_list.selected_index)
+        }) = self.task_store.find_parent(&task_id)
         else {
             return Ok(PostEvent::noop(true));
         };
 
-        let new_index = (local_index + 1) % parent_tasks.len();
-
-        let Some(parent_subtasks) = self.task_store.subtasks(parent_index) else {
-            return Ok(PostEvent::noop(true));
+        let parent_subtasks = if let Some(parent) = &parent_index {
+            self.task_store.subtasks(parent).unwrap()
+        } else {
+            self.task_store.root_tasks()
         };
+
+        let new_index = (local_index + 1) % parent_subtasks.len();
 
         let task = &parent_subtasks[local_index];
         let task_above = &parent_subtasks[new_index];
 
-        if task.priority == task_above.priority || !autosort {
-            let task = parent_subtasks.remove(local_index);
-
-            parent_subtasks.insert(new_index, task);
-
-            self.task_list.selected_index =
-                TaskStore::local_index_to_global(new_index, parent_subtasks, parent_index);
+        if self.task_store.task(task).unwrap().priority
+            == self.task_store.task(task_above).unwrap().priority
+            || !autosort
+        {
+            self.task_store.move_task(&task_id, None, new_index, None);
+            self.task_list.selected_index = task_to_cursor(&self.task_store, &task_id).unwrap();
         }
+
         Ok(PostEvent::noop(false))
     }
 
     pub fn move_selected_task_up(&mut self) -> Result<PostEvent, AppError> {
-        let auto_sort = self.task_store.auto_sort;
+        let autosort = self.task_list.auto_sort;
+
+        let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
+            return Err(AppError::invalid_state("Could not find task to move."));
+        };
 
         let Some(FindParentResult {
-            tasks: parent_subtasks,
-            parent_index,
+            parent_id,
             task_local_offset: local_index,
-        }) = self.task_store.find_parent(self.task_list.selected_index)
+        }) = self.task_store.find_parent(&task_id)
         else {
             return Ok(PostEvent::noop(true));
         };
 
-        if parent_subtasks.is_empty() {
-            return Ok(PostEvent::noop(true));
-        }
+        let parent_subtasks = if let Some(parent) = &parent_id {
+            self.task_store
+                .subtasks(parent)
+                .ok_or_else(|| AppError::invalid_state("Subtasks are not found in parent"))?
+        } else {
+            self.task_store.root_tasks()
+        };
 
         let new_index =
             (local_index as isize - 1).rem_euclid(parent_subtasks.len() as isize) as usize;
 
-        let Some(mut_parent_subtasks) = self.task_store.subtasks(parent_index) else {
-            return Ok(PostEvent::noop(true));
-        };
+        let task = self
+            .task_store
+            .task(&parent_subtasks[local_index])
+            .ok_or_else(|| AppError::invalid_state("Subtasks are not found in parent"))?;
+        let task_above = self
+            .task_store
+            .task(&parent_subtasks[new_index])
+            .ok_or_else(|| AppError::invalid_state("Subtasks are not found in parent"))?;
 
-        let task = &mut_parent_subtasks[local_index];
-        let task_above = &mut_parent_subtasks[new_index];
-
-        if task.priority == task_above.priority || !auto_sort {
-            let task = mut_parent_subtasks.remove(local_index);
-
-            mut_parent_subtasks.insert(new_index, task);
-
-            self.task_list.selected_index =
-                TaskStore::local_index_to_global(new_index, mut_parent_subtasks, parent_index);
+        if task.priority == task_above.priority || !autosort {
+            self.task_store.move_task(&task_id, None, new_index, None);
+            self.task_list.selected_index = task_to_cursor(&self.task_store, &task_id)
+                .ok_or_else(|| AppError::invalid_state("Did not find global position of task"))?;
         }
+
         Ok(PostEvent::noop(false))
     }
 
     pub fn create_edit_selected_task_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
-        let Some(task) = self.task_store.task(index) else {
+
+        let Some(task_id) = cursor_to_task(&self.task_store, index) else {
+            // FIXME: panic!
+            return Ok(PostEvent::noop(true));
+        };
+        let Some(task) = self.task_store.task(&task_id) else {
             return Ok(PostEvent::noop(true));
         };
         let edit_box = InputBoxBuilder::default()
@@ -476,10 +509,10 @@ impl App {
             .use_vim(&self.config, VimMode::Normal)
             .fill(task.title.as_str())
             .on_submit(move |app, word| {
-                let Some(task) = app.task_store.task_mut(index) else {
-                    return PostEvent::noop(false);
-                };
-                task.title = word.trim().to_string();
+                app.task_store.modify_task(&task_id, move |task| {
+                    task.title = word.trim().to_string();
+                });
+                app.task_store.update_task(&task_id);
                 PostEvent::noop(false)
             })
             .use_vim(&self.config, VimMode::Normal)
@@ -488,40 +521,63 @@ impl App {
     }
 
     pub fn flip_selected_progress(&mut self) -> Result<PostEvent, AppError> {
-        if self.task_store.tasks.is_empty() {
+        if self.task_store.root_tasks().is_empty() {
             return Ok(PostEvent::noop(true));
         }
-        let Some(task) = self.task_store.task_mut(self.task_list.selected_index) else {
+        let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
+            // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        task.progress = !task.progress;
+        self.task_store.modify_task(&task_id, |task| {
+            task.progress = !task.progress;
+        });
+        self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
 
     pub fn flip_subtasks(&mut self) -> Result<PostEvent, AppError> {
-        let selected_index = &mut self.task_list.selected_index;
-        if self.task_store.tasks.is_empty() {
+        let _selected_index = &mut self.task_list.selected_index;
+        if self.task_store.root_tasks().is_empty() {
             return Ok(PostEvent::noop(true));
         }
-        let Some(task) = self.task_store.task_mut(*selected_index) else {
+        let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
+            // FIXME: panic!
             return Ok(PostEvent::noop(true));
         };
-        task.opened = !task.opened;
+        self.task_store.modify_task(&task_id, |task| {
+            task.opened = !task.opened;
+        });
+        self.task_store.update_task(&task_id);
         Ok(PostEvent::noop(false))
     }
 
     pub fn move_subtask_level_up(&mut self) -> Result<PostEvent, AppError> {
         let selected_index = &mut self.task_list.selected_index;
+
+        let Some(task_id) = cursor_to_task(&self.task_store, *selected_index) else {
+            // FIXME: panic!
+            return Ok(PostEvent::noop(true));
+        };
+
+        // FIXME: this should also probs return subtasks?
         let Some(FindParentResult {
-            tasks: parent_tasks,
-            parent_index,
+            parent_id,
             task_local_offset: local_index,
-        }) = self.task_store.find_parent(*selected_index)
+        }) = self.task_store.find_parent(&task_id)
         else {
             return Ok(PostEvent::noop(true));
         };
 
-        if parent_tasks.is_empty() {
+        // FIXME: should be refactored into a singular subtasks thing.
+        let subtasks = if let Some(parent_id) = parent_id {
+            self.task_store
+                .subtasks(&parent_id)
+                .ok_or_else(|| AppError::invalid_state("Parent does not have subtasks"))?
+        } else {
+            self.task_store.root_tasks()
+        };
+
+        if subtasks.is_empty() {
             return Ok(PostEvent::noop(true));
         }
 
@@ -530,33 +586,37 @@ impl App {
         }
 
         let prev_local_index = local_index - 1;
-        let prev_global_index =
-            TaskStore::local_index_to_global(prev_local_index, parent_tasks, parent_index);
+        let prev_task_id = subtasks[prev_local_index].to_string();
+        let order = self
+            .task_store
+            .subtasks(&prev_task_id)
+            .map_or(0, |sub| sub.len());
 
-        let Some(task) = self.task_store.delete_task(*selected_index) else {
-            return Ok(PostEvent::noop(true));
-        };
+        self.task_store
+            .move_task(&task_id, Some(prev_task_id.to_string()), order, None);
 
-        let Some(prev_task) = self.task_store.task_mut(prev_global_index) else {
-            return Ok(PostEvent::noop(true));
-        };
+        let result = self.task_store.modify_task(&prev_task_id, |prev_task| {
+            if !prev_task.opened {
+                prev_task.opened = true;
+                // Have to remove the task when adding
+                true
+            } else {
+                false
+            }
+        });
 
-        if !prev_task.opened {
-            prev_task.opened = true;
-            // Have to remove the task when adding
-            *selected_index += prev_task.find_task_draw_size() - 1;
+        if let Some(f) = result {
+            if f {
+                *selected_index += self.task_store.find_task_draw_size(&prev_task_id)
+                    - self.task_store.find_task_draw_size(&task_id)
+                    - 1;
+            }
         }
-        prev_task.sub_tasks.push(task);
+        self.task_store.update_task(&prev_task_id);
 
-        // FIXME: refactor this to ideally not clone
-        if self.task_store.auto_sort {
-            let Some(task) = self.task_store.task(*selected_index).cloned() else {
-                return Err(AppError::InvalidState(
-                    "There is no task selected.".to_string(),
-                ));
-            };
+        if self.task_list.auto_sort {
             self.task_store.sort();
-            if let Some(task_pos) = self.task_store.task_position(&task) {
+            if let Some(task_pos) = task_to_cursor(&self.task_store, &task_id) {
                 *selected_index = task_pos;
             }
         }
@@ -565,58 +625,45 @@ impl App {
 
     pub fn move_subtask_level_down(&mut self) -> Result<PostEvent, AppError> {
         let selected_index = &mut self.task_list.selected_index;
-        let Some(FindParentResult { parent_index, .. }) =
-            self.task_store.find_parent(*selected_index)
-        else {
+        let Some(task_id) = cursor_to_task(&self.task_store, *selected_index) else {
+            return Err(AppError::invalid_state("Task does not exist"));
+        };
+        let Some(FindParentResult { parent_id, .. }) = self.task_store.find_parent(&task_id) else {
             return Ok(PostEvent::noop(true));
         };
 
-        let Some(parent_index) = parent_index else {
+        let Some(parent_id) = parent_id else {
             return Ok(PostEvent::noop(true));
         };
 
-        let Some(task) = self.task_store.delete_task(*selected_index) else {
-            return Ok(PostEvent::noop(true));
-        };
+        // let Some(task) = self.task_store.delete_task(*selected_index) else {
+        //     return Ok(PostEvent::noop(true));
+        // };
 
         let Some(FindParentResult {
-            tasks: grandparent_subtasks,
-            parent_index: grandparent_index,
+            parent_id: grand_parent_id,
+            task_local_offset: parent_local_index,
             ..
-        }) = self.task_store.find_parent(parent_index)
+        }) = self.task_store.find_parent(&parent_id)
         else {
             return Ok(PostEvent::noop(true));
         };
 
-        let parent_local_index = grandparent_subtasks
-            .iter()
-            .position(|t| {
-                t == self
-                    .task_store
-                    .task(parent_index)
-                    .expect("This is definately a task")
-            })
-            .ok_or_else(|| {
-                AppError::InvalidState("Cannot find the parent tasks index.".to_string())
-            })?;
+        if let Some(grand_parent_id) = grand_parent_id {
+            self.task_store.move_task(
+                &task_id,
+                Some(grand_parent_id),
+                parent_local_index + 1,
+                None,
+            );
+        } else {
+            self.task_store
+                .move_task(&task_id, None, parent_local_index + 1, Some(()));
+        }
 
-        let Some(grandparent_subtasks) = self.task_store.subtasks(grandparent_index) else {
-            return Ok(PostEvent::noop(true));
-        };
-
-        let new_index = parent_local_index + 1;
-        grandparent_subtasks.insert(new_index, task);
-        *selected_index =
-            TaskStore::local_index_to_global(new_index, grandparent_subtasks, grandparent_index);
-        // FIXME: refactor this to ideally not clone
-        if self.task_store.auto_sort {
-            let Some(task) = self.task_store.task(*selected_index).cloned() else {
-                return Err(AppError::InvalidState(
-                    "Invalid selected index for this task.".to_string(),
-                ));
-            };
+        if self.task_list.auto_sort {
             self.task_store.sort();
-            if let Some(task_pos) = self.task_store.task_position(&task) {
+            if let Some(task_pos) = task_to_cursor(&self.task_store, &task_id) {
                 *selected_index = task_pos;
             }
         }
@@ -624,37 +671,42 @@ impl App {
     }
 
     pub fn create_due_date_dialog(&mut self) -> Result<PostEvent, AppError> {
-        let index = self.task_list.selected_index;
+        let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
+            // FIXME: panic!
+            return Ok(PostEvent::noop(true));
+        };
         let date_dialog = InputBoxBuilder::default()
             .title("Add date or specify \"none\" to remove".to_string())
             .on_submit(move |app, date_str| {
                 if date_str.to_lowercase() == "none" {
-                    if let Some(task) = app.task_store.task_mut(index) {
+                    app.task_store.modify_task(&task_id, |task| {
                         task.due_date = None;
-                    }
+                    });
+                    app.task_store.update_task(&task_id);
                     return PostEvent::noop(false);
                 }
                 let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y")
                     .or_else(|_| NaiveDate::parse_from_str(&date_str, "%d/%m/%Y"))
                     .or_else(|_| NaiveDate::parse_from_str(&date_str, "%Y-%m-%d"));
 
-                if let Some(task) = app.task_store.task_mut(index) {
-                    match date {
-                        Ok(due) => {
+                match date {
+                    Ok(due) => {
+                        app.task_store.modify_task(&task_id, |task| {
                             task.due_date = Some(due);
-                        }
-                        Err(err) => {
-                            let error_message = MessageBoxBuilder::default()
-                                .title("An error occured")
-                                .message(format!("Could not parse the date: {}", err))
-                                .colour(Color::Red)
-                                .on_close(|app| {
-                                    app.create_due_date_dialog()
-                                        .expect("Should always be ok...")
-                                })
-                                .build();
-                            return PostEvent::push_layer(error_message);
-                        }
+                        });
+                        app.task_store.update_task(&task_id);
+                    }
+                    Err(err) => {
+                        let error_message = MessageBoxBuilder::default()
+                            .title("An error occured")
+                            .message(format!("Could not parse the date: {}", err))
+                            .colour(Color::Red)
+                            .on_close(|app| {
+                                app.create_due_date_dialog()
+                                    .expect("Should always be ok...")
+                            })
+                            .build();
+                        return PostEvent::push_layer(error_message);
                     }
                 }
                 PostEvent::noop(false)
@@ -662,5 +714,10 @@ impl App {
             .use_vim(&self.config, VimMode::Insert)
             .build();
         Ok(PostEvent::push_layer(date_dialog))
+    }
+
+    pub fn refresh(&mut self) -> Result<PostEvent, AppError> {
+        self.task_store.refresh();
+        Ok(PostEvent::noop(false))
     }
 }

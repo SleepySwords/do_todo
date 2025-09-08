@@ -1,3 +1,7 @@
+use crate::{
+    data::data_store::DataTaskStore,
+    utils::task_position::{cursor_to_completed_task, cursor_to_task},
+};
 use chrono::Local;
 use tui::{
     layout::{Constraint, Rect},
@@ -34,7 +38,10 @@ impl Viewer {
     fn draw_task_viewer(&self, app: &App, block: Block, drawer: &mut Drawer) {
         let theme = &app.config;
         let index = app.task_list.selected_index;
-        let Some(task) = app.task_store.task(index) else {
+        let Some(task_id) = cursor_to_task(&app.task_store, index) else {
+            return;
+        };
+        let Some(task) = app.task_store.task(&task_id) else {
             return;
         };
 
@@ -91,7 +98,14 @@ impl Viewer {
         draw_area: Rect,
         drawer: &mut Drawer,
     ) {
-        let completed_task = &app.task_store.completed_tasks[app.completed_list.selected_index];
+        let Some(task_id) =
+            cursor_to_completed_task(&app.task_store, app.completed_list.selected_index)
+        else {
+            return;
+        };
+        let Some(completed_task) = &app.task_store.completed_task(&task_id) else {
+            return;
+        };
         let completed_time = completed_task
             .time_completed
             .format("%d/%m/%y %-I:%M:%S %p")
@@ -180,21 +194,21 @@ impl Component for Viewer {
 
         match app.mode {
             Mode::CurrentTasks => {
-                if !app.task_store.tasks.is_empty() {
+                if !app.task_store.root_tasks().is_empty() {
                     self.draw_task_viewer(app, block, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
             }
             Mode::CompletedTasks => {
-                if !app.task_store.completed_tasks.is_empty() {
+                if !app.task_store.completed_root_tasks().is_empty() {
                     self.draw_completed_task_viewer(app, block, draw_area, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);
                 }
             }
             Mode::Overlay => {
-                if !app.task_store.tasks.is_empty() {
+                if !app.task_store.root_tasks().is_empty() {
                     self.draw_task_viewer(app, block, drawer)
                 } else {
                     drawer.draw_widget(block, draw_area);

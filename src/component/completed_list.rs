@@ -1,3 +1,4 @@
+use crate::{data::data_store::DataTaskStore, utils::task_position::cursor_to_completed_task};
 use tui::{
     layout::Rect,
     style::{Color, Style},
@@ -11,7 +12,6 @@ use crate::{
         component::{Component, Drawer},
         event::PostEvent,
     },
-    task::Task,
     utils,
 };
 
@@ -34,22 +34,19 @@ impl CompletedList {
     }
 
     pub fn restore_task(app: &mut App) {
-        if app.task_store.completed_tasks.is_empty() {
+        if app.task_store.completed_root_tasks().is_empty() {
             return;
         }
 
-        let current_selected_task = app
-            .task_store
-            .completed_tasks
-            .remove(app.completed_list.selected_index);
-
-        app.task_store
-            .add_task(Task::from_completed_task(current_selected_task));
-
-        if app.completed_list.selected_index == app.task_store.completed_tasks.len()
-            && !app.task_store.completed_tasks.is_empty()
+        if let Some(completed_task) =
+            cursor_to_completed_task(&app.task_store, app.completed_list.selected_index)
         {
-            app.completed_list.selected_index -= 1;
+            app.task_store.restore(&completed_task);
+            if app.completed_list.selected_index >= app.task_store.completed_root_tasks().len()
+                && !app.task_store.completed_root_tasks().is_empty()
+            {
+                app.completed_list.selected_index -= 1;
+            }
         }
     }
 }
@@ -62,18 +59,22 @@ impl Component for CompletedList {
 
         let completed_tasks: Vec<ListItem> = app
             .task_store
-            .completed_tasks
+            .completed_root_tasks()
             .iter()
             .enumerate()
-            .map(|(i, task)| {
+            .map(|(i, task_id)| {
+                let Some(task) = app.task_store.completed_task(task_id) else {
+                    // FIXME: Error gracefyly
+                    panic!("ok");
+                };
                 let colour = if let Mode::CompletedTasks = app.mode {
                     if selected_index == i {
                         theme.selected_task_colour
                     } else {
-                        Color::White
+                        theme.default_task_colour
                     }
                 } else {
-                    Color::White
+                    theme.default_task_colour
                 };
                 let content = Line::from(Span::styled(
                     format!(
@@ -96,7 +97,7 @@ impl Component for CompletedList {
             .style(Style::default().fg(Color::White));
 
         let mut completed_state = ListState::default();
-        if !app.task_store.completed_tasks.is_empty() {
+        if !app.task_store.completed_root_tasks().is_empty() {
             completed_state.select(Some(selected_index));
         }
 
@@ -112,7 +113,7 @@ impl Component for CompletedList {
             app,
             self.area,
             COMPONENT_TYPE,
-            app.task_store.completed_tasks.len(),
+            app.task_store.completed_root_tasks().len(),
             mouse_event,
         )
     }

@@ -1,39 +1,41 @@
-use chrono::{Local, NaiveTime};
-
 use crate::{
     component::{
-        completed_list::CompletedListContext, status_line::StatusLine, task_list::TaskListContext,
+        completed_list::CompletedListContext, overlay::dialog::DialogBoxBuilder,
+        status_line::StatusLine, task_list::TaskListContext,
     },
     config::Config,
+    data::data_store::{DataTaskStore, DataTaskStoreKind},
     error::AppError,
     framework::event::PostEvent,
-    task::TaskStore,
 };
 
-#[derive(Default)]
 pub struct App {
     pub config: Config,
-    pub task_store: TaskStore,
+    pub task_store: DataTaskStoreKind,
 
     pub status_line: StatusLine,
 
     pub mode: Mode,
 
-    pub logs: Vec<(String, NaiveTime)>,
-
     pub task_list: TaskListContext,
     pub completed_list: CompletedListContext,
+
+    pub tick: usize,
 
     should_shutdown: bool,
 }
 
 impl App {
-    pub fn new(theme: Config, task_data: TaskStore) -> App {
+    pub fn new(theme: Config, task_data: DataTaskStoreKind) -> App {
         App {
             config: theme,
             task_store: task_data,
             status_line: StatusLine::new(String::from("Press x for help. Press q to exit.")),
-            ..Default::default()
+            mode: Mode::CurrentTasks,
+            task_list: TaskListContext::default(),
+            completed_list: CompletedListContext::default(),
+            tick: 0,
+            should_shutdown: false,
         }
     }
 
@@ -47,18 +49,27 @@ impl App {
         }
     }
 
+    // FIXME: why is this a result?
     pub fn shutdown(&mut self) -> Result<PostEvent, AppError> {
-        self.should_shutdown = true;
-        Ok(PostEvent::noop(false))
+        if self.task_store.is_syncing() {
+            Ok(PostEvent::push_layer(
+                DialogBoxBuilder::default()
+                    .title("Still currently syncing, do you still want to quit")
+                    .add_option("Yes", |app| {
+                        app.should_shutdown = true;
+                        PostEvent::noop(false)
+                    })
+                    .add_option("No", |_| PostEvent::noop(false))
+                    .build(),
+            ))
+        } else {
+            self.should_shutdown = true;
+            Ok(PostEvent::noop(false))
+        }
     }
 
     pub fn should_shutdown(&self) -> bool {
         self.should_shutdown
-    }
-
-    // Perhaps should use a static variable.
-    pub fn println(&mut self, line: String) {
-        self.logs.push((line, Local::now().time()));
     }
 }
 

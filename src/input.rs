@@ -1,3 +1,4 @@
+use crate::data::data_store::DataTaskStore;
 use crossterm::event::KeyEvent;
 
 use crate::{
@@ -84,6 +85,11 @@ fn task_list_help_entry(config: &Config) -> Vec<KeyBinding<'static>> {
             "Adds a date to the selected task",
             App::create_due_date_dialog,
         ),
+        KeyBinding::register_key(
+            config.refresh_key,
+            "Refresh data from data store",
+            App::refresh,
+        ),
     ]
 }
 
@@ -92,7 +98,7 @@ fn completed_list_input(app: &mut App, key_event: KeyEvent) -> Result<PostEvent,
         &app.config,
         key_event,
         &mut app.completed_list.selected_index,
-        app.task_store.completed_tasks.len(),
+        app.task_store.completed_root_tasks().len(),
     );
 
     if !result.propegate_further {

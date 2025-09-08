@@ -2,12 +2,12 @@ use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::Color;
 
-use std::usize;
-
 use crate::app::{App, Mode};
 use crate::config::Config;
 use crate::error::AppError;
 use crate::framework::event::PostEvent;
+
+pub const IS_DEBUG: bool = cfg!(debug_assertions);
 
 // Only available for percentages, ratios and length
 pub fn centre_rect(constraint_x: Constraint, constraint_y: Constraint, r: Rect) -> Rect {
@@ -62,34 +62,32 @@ pub fn handle_key_movement(
     index: &mut usize,
     max_items: usize,
 ) -> PostEvent {
-    match () {
-        _ if theme.move_top.is_pressed(key_event) => {
-            *index = 0;
-            PostEvent::noop(false)
-        }
-        _ if theme.move_bottom.is_pressed(key_event) => {
-            *index = max_items - 1;
-            PostEvent::noop(false)
-        }
-        _ if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) => {
-            if max_items == 0 {
-                return PostEvent::noop(true);
-            }
-            *index = (*index + 1).rem_euclid(max_items);
-            PostEvent::noop(false)
-        }
-        _ if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) => {
-            if max_items == 0 {
-                return PostEvent::noop(true);
-            }
-            match index.checked_sub(1) {
-                Some(val) => *index = val,
-                None => *index = max_items - 1,
-            }
-            PostEvent::noop(false)
-        }
-        _ => PostEvent::noop(true),
+    if theme.move_top.is_pressed(key_event) {
+        *index = 0;
+        return PostEvent::noop(false);
     }
+    if theme.move_bottom.is_pressed(key_event) {
+        *index = max_items - 1;
+        return PostEvent::noop(false);
+    }
+    if theme.down_keys.iter().any(|f| f.is_pressed(key_event)) {
+        if max_items == 0 {
+            return PostEvent::noop(true);
+        }
+        *index = (*index + 1).rem_euclid(max_items);
+        return PostEvent::noop(false);
+    }
+    if theme.up_keys.iter().any(|f| f.is_pressed(key_event)) {
+        if max_items == 0 {
+            return PostEvent::noop(true);
+        }
+        match index.checked_sub(1) {
+            Some(val) => *index = val,
+            None => *index = max_items - 1,
+        }
+        return PostEvent::noop(false);
+    }
+    PostEvent::noop(true)
 }
 
 pub fn handle_mouse_movement_app(
@@ -203,6 +201,82 @@ pub fn str_to_colour(colour: &str) -> Result<Color, AppError> {
     }
 }
 
+pub mod task_position {
+    use crate::data::data_store::{DataTaskStore, TaskID, TaskIDRef};
+
+    fn find_task_id<T: DataTaskStore>(
+        store: &T,
+        pos: &mut usize,
+        task_id: TaskIDRef,
+    ) -> Option<TaskID> {
+        if *pos == 0 {
+            return Some(task_id.to_string());
+        }
+        *pos -= 1;
+
+        let task = store.task(task_id)?;
+        if !task.opened {
+            return None;
+        }
+
+        store
+            .subtasks(task_id)?
+            .iter()
+            .find_map(|subtask_id| find_task_id(store, pos, subtask_id))
+    }
+
+    pub fn cursor_to_task<T: DataTaskStore>(store: &T, mut pos: usize) -> Option<TaskID> {
+        store
+            .root_tasks()
+            .iter()
+            .find_map(|root_task_id| find_task_id(store, &mut pos, root_task_id))
+    }
+
+    pub fn cursor_to_completed_task<T: DataTaskStore>(store: &T, mut pos: usize) -> Option<TaskID> {
+        store
+            .completed_root_tasks()
+            .iter()
+            .find_map(|root_task_id| find_task_id(store, &mut pos, root_task_id))
+    }
+
+    fn find_cursor_position<T: DataTaskStore>(
+        store: &T,
+        current_index: &mut usize,
+        to_find: TaskIDRef,
+        curr: TaskIDRef,
+    ) -> Option<()> {
+        if to_find == curr {
+            return Some(());
+        }
+        *current_index += 1;
+        let t = store.task(curr)?;
+        if !t.opened {
+            return None;
+        }
+        if let Some(subtasks) = store.subtasks(curr) {
+            for task in subtasks {
+                if task == to_find {
+                    return Some(());
+                }
+                if let Some(()) = find_cursor_position(store, current_index, to_find, task) {
+                    return Some(());
+                }
+            }
+        }
+        None
+    }
+
+    pub fn task_to_cursor<T: DataTaskStore>(store: &T, id: TaskIDRef) -> Option<usize> {
+        let mut current_index = 0;
+        for curr in store.root_tasks() {
+            if let Some(()) = find_cursor_position(store, &mut current_index, id, curr) {
+                return Some(current_index);
+            }
+        }
+        None
+    }
+}
+
 pub(crate) mod ui {
     use tui::{
         prelude::Constraint,
@@ -244,15 +318,15 @@ pub(crate) mod ui {
     }
 }
 
-mod wrap {
+pub mod wrap {
     use tui::text::{Line, Span, Text};
     use unicode_segmentation::UnicodeSegmentation;
 
     // FIX: This can be replaced when https://github.com/ratatui-org/ratatui/issues/293 is merged
-    pub fn wrap_text(line: Line, width: u16) -> Text {
+    pub fn wrap_text<'a, T: Into<Line<'a>>>(line: T, width: u16) -> Text<'a> {
         let mut text = Text::default();
         let mut queue = Vec::new();
-        for span in &line.spans {
+        for span in &line.into().spans {
             let mut content = String::new();
             let style = span.style;
             for grapheme in UnicodeSegmentation::graphemes(span.content.as_ref(), true) {
@@ -340,8 +414,13 @@ mod wrap {
 pub mod test {
     use crossterm::event::{KeyCode, KeyModifiers};
 
+    use crate::data::data_store::{DataTaskStore, DataTaskStoreKind};
+    use crate::data::json_data_store::JsonDataStore;
     use crate::framework::screen_manager::ScreenManager;
-    use crate::{app::App, input, task::TaskStore};
+    use crate::task::Task;
+    use crate::{app::App, input};
+
+    use super::task_position::cursor_to_task;
 
     pub fn input_char(character: char, screen_manager: &mut ScreenManager) {
         let result = input::key_event(
@@ -363,10 +442,19 @@ pub mod test {
         }
     }
 
-    pub fn setup(task_store: TaskStore) -> ScreenManager {
+    pub fn setup(task_store: JsonDataStore) -> ScreenManager {
         ScreenManager {
             overlays: vec![],
-            app: App::new(crate::config::Config::default(), task_store),
+            app: App::new(
+                crate::config::Config::default(),
+                crate::data::data_store::DataTaskStoreKind::Json(task_store),
+            ),
         }
+    }
+
+    pub fn get_task_from_pos(task_store: &DataTaskStoreKind, pos: usize) -> &Task {
+        task_store
+            .task(&cursor_to_task(task_store, pos).unwrap())
+            .unwrap()
     }
 }
