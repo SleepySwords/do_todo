@@ -33,6 +33,8 @@ pub struct TodoistDataStore {
     pub currently_syncing: Arc<Mutex<bool>>,
     pub command_sender: Sender<TodoistCommand>,
     pub inbox_project: Option<String>,
+
+    pub temporary_mappings: HashMap<TaskID, TaskID>,
 }
 
 impl TodoistDataStore {
@@ -83,12 +85,19 @@ impl DataTaskStore for TodoistDataStore {
     fn update_task(&mut self, id: TaskIDRef) {
         self.send_command(TodoistSendCommand::Update {
             uuid: uuid::Uuid::new_v4().to_string(),
-            args: task_to_todoist(id.to_string(), self.task(id).unwrap()),
+            args: task_to_todoist(
+                id.to_string(),
+                self.task(id).expect("Updating a task that has no ID."),
+            ),
         });
     }
 
     fn task(&self, id: TaskIDRef) -> Option<&Task> {
-        return self.tasks.get(id);
+        return self.tasks.get(id).or_else(|| {
+            self.temporary_mappings
+                .get(id)
+                .and_then(|f| self.tasks.get(f))
+        });
     }
 
     fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask> {
