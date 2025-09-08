@@ -172,14 +172,14 @@ impl Component for FuzzyBox<'_> {
         } else if utils::inside_rect((mouse_event.row, mouse_event.column), self.list_draw_area) {
             let ar = self.list_draw_area;
             let size = self.active.len();
-            return handle_mouse_movement(
+            handle_mouse_movement(
                 &mut self.index,
                 &mut app.mode,
                 ar,
                 Mode::Overlay,
                 size,
                 mouse_event,
-            );
+            )
         } else {
             if let MouseEventKind::Down(_) = mouse_event.kind {
                 return PostEvent::pop_layer(Some(AppEvent::Cancel));

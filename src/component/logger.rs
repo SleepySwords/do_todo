@@ -67,7 +67,8 @@ impl Component for Logger {
             let rows = logs
                 .iter()
                 .flat_map(|msg| {
-                    utils::wrap::wrap_text(msg.as_str(), border_block.inner(self.draw_area).width).lines
+                    utils::wrap::wrap_text(msg.as_str(), border_block.inner(self.draw_area).width)
+                        .lines
                 })
                 .collect::<Vec<Line>>();
 

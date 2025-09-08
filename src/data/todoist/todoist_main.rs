@@ -133,7 +133,9 @@ pub type TaskSync = (TodoistSync, HashMap<String, String>);
 
 pub fn handle_sync(data_store: &mut TodoistDataStore, (todoist_sync, temp_id_mapping): TaskSync) {
     for (temp_id, actual_id) in temp_id_mapping.iter() {
-        data_store.temporary_mappings.insert(temp_id.to_string(), actual_id.to_string());
+        data_store
+            .temporary_mappings
+            .insert(temp_id.to_string(), actual_id.to_string());
         if let Some(v) = data_store.tasks.remove(temp_id) {
             data_store.tasks.insert(actual_id.to_string(), v);
         }

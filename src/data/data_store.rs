@@ -92,6 +92,7 @@ pub trait DataTaskStore {
     /// * `parent` - If specified, where the task should be moved to
     /// * `order` - What place should the task be placed within the order.
     ///
+    /// FIXME: global task moving?
     fn move_task(
         &mut self,
         id: TaskIDRef,
@@ -99,7 +100,6 @@ pub trait DataTaskStore {
         order: usize,
         global: Option<()>,
     );
-    /// FIXME: global task moving?
 
     fn find_task_draw_size(&self, id: TaskIDRef) -> usize;
 

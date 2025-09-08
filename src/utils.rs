@@ -196,7 +196,7 @@ pub fn str_to_colour(colour: &str) -> Result<Color, AppError> {
             .parse::<Color>()
         {
             Ok(colour) => Ok(colour),
-            Err(_) => return Err(AppError::InvalidColour),
+            Err(_) => Err(AppError::InvalidColour),
         }
     }
 }

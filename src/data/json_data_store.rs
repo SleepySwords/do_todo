@@ -36,15 +36,15 @@ impl DataTaskStore for JsonDataStore {
     }
 
     fn task(&self, id: TaskIDRef) -> Option<&Task> {
-        return self.tasks.get(id);
+        self.tasks.get(id)
     }
 
     fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask> {
-        return self.completed_tasks.get_mut(id);
+        self.completed_tasks.get_mut(id)
     }
 
     fn completed_task(&self, id: TaskIDRef) -> Option<&CompletedTask> {
-        return self.completed_tasks.get(id);
+        self.completed_tasks.get(id)
     }
 
     fn delete_task(&mut self, id: TaskIDRef) -> Option<Task> {
@@ -77,14 +77,14 @@ impl DataTaskStore for JsonDataStore {
     // FIXME: might be able to wrap this in a &mut Vec<Task> perhaps?
     fn subtasks_mut(&mut self, id: Option<TaskIDRef>) -> Option<&mut Vec<TaskID>> {
         if let Some(id) = id {
-            return self.subtasks.get_mut(id);
+            self.subtasks.get_mut(id)
         } else {
             Some(&mut self.root)
         }
     }
 
     fn subtasks(&self, id: TaskIDRef) -> Option<&Vec<TaskID>> {
-        return self.subtasks.get(id);
+        self.subtasks.get(id)
     }
 
     fn root_tasks(&self) -> &Vec<TaskID> {

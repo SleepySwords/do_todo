@@ -52,7 +52,7 @@ impl Task {
     pub fn iter_tags<'a>(&'a self, app: &'a App) -> impl Iterator<Item = &'a Tag> + 'a {
         self.tags
             .iter()
-            .filter_map(|tag_index| return app.task_store.tags().get(tag_index))
+            .filter_map(|tag_index| app.task_store.tags().get(tag_index))
     }
 
     pub fn flip_tag(&mut self, tag: String) {

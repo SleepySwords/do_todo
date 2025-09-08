@@ -17,7 +17,7 @@ const TEST_TASK_NAME: &str = "yay it works, test letters => abcdefghijklmnopqrst
 
 fn get_task(i: usize, screen_manager: &ScreenManager) -> Option<&Task> {
     let task_id = cursor_to_task(&screen_manager.app.task_store, i)?;
-    return screen_manager.app.task_store.task(&task_id);
+    screen_manager.app.task_store.task(&task_id)
 }
 
 #[test]
