@@ -34,6 +34,7 @@ pub trait DataTaskStore {
     fn task(&self, id: TaskIDRef) -> Option<&Task>;
 
     /// Returns this mutable completed task with this id.
+    #[allow(dead_code)]
     fn completed_task_mut(&mut self, id: TaskIDRef) -> Option<&mut CompletedTask>;
 
     /// Returns the completed task with this id.
