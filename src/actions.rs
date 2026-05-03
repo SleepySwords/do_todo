@@ -3,7 +3,7 @@ use crate::{
     utils::task_position::{cursor_to_task, task_to_cursor},
 };
 
-use chrono::{Local, NaiveDate};
+use chrono::{Datelike, Local, NaiveDate};
 use crossterm::event::KeyEvent;
 use itertools::Itertools;
 use tui::style::{Color, Stylize};
@@ -108,7 +108,7 @@ impl App {
                         match result {
                             Ok(result) => result,
                             Err(AppError::InvalidState(msg)) => {
-                                let prev_mode = app.mode; // FIXME: why is this here???
+                                let prev_mode = app.mode;
                                 app.mode = Mode::Overlay;
                                 let message = MessageBoxBuilder::default()
                                     .title("An error occured")
@@ -178,8 +178,8 @@ impl App {
 
         let selected_index = self.task_list.selected_index;
         let Some(task_id) = cursor_to_task(&self.task_store, selected_index) else {
-            // FIXME: should probs error?
-            return Ok(PostEvent::noop(true));
+            // TODO: This should probably panic
+            return Err(AppError::invalid_state("Cannot get the current task."));
         };
 
         if !self.task_store.root_tasks().is_empty() && self.mode == Mode::CurrentTasks {
@@ -390,8 +390,7 @@ impl App {
     pub fn create_add_subtask_menu(&mut self) -> Result<PostEvent, AppError> {
         let index = self.task_list.selected_index;
         let Some(task_id) = cursor_to_task(&self.task_store, index) else {
-            // FIXME: panic!
-            return Ok(PostEvent::noop(true));
+            return Err(AppError::invalid_state("Cannot get the current task."));
         };
         let Some(task) = self.task_store.task(&task_id) else {
             return Ok(PostEvent::noop(false));
@@ -498,8 +497,7 @@ impl App {
         let index = self.task_list.selected_index;
 
         let Some(task_id) = cursor_to_task(&self.task_store, index) else {
-            // FIXME: panic!
-            return Ok(PostEvent::noop(true));
+            return Err(AppError::invalid_state("Cannot get the current task."));
         };
         let Some(task) = self.task_store.task(&task_id) else {
             return Ok(PostEvent::noop(true));
@@ -525,8 +523,7 @@ impl App {
             return Ok(PostEvent::noop(true));
         }
         let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
-            // FIXME: panic!
-            return Ok(PostEvent::noop(true));
+            return Err(AppError::invalid_state("Cannot get the current task."));
         };
         self.task_store.modify_task(&task_id, |task| {
             task.progress = !task.progress;
@@ -541,8 +538,7 @@ impl App {
             return Ok(PostEvent::noop(true));
         }
         let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
-            // FIXME: panic!
-            return Ok(PostEvent::noop(true));
+            return Err(AppError::invalid_state("Cannot get the current task."));
         };
         self.task_store.modify_task(&task_id, |task| {
             task.opened = !task.opened;
@@ -555,8 +551,7 @@ impl App {
         let selected_index = &mut self.task_list.selected_index;
 
         let Some(task_id) = cursor_to_task(&self.task_store, *selected_index) else {
-            // FIXME: panic!
-            return Ok(PostEvent::noop(true));
+            return Err(AppError::invalid_state("Cannot get the current task."));
         };
 
         // FIXME: this should also probs return subtasks?
@@ -672,8 +667,7 @@ impl App {
 
     pub fn create_due_date_dialog(&mut self) -> Result<PostEvent, AppError> {
         let Some(task_id) = cursor_to_task(&self.task_store, self.task_list.selected_index) else {
-            // FIXME: panic!
-            return Ok(PostEvent::noop(true));
+            return Err(AppError::invalid_state("Cannot get the current task."));
         };
         let date_dialog = InputBoxBuilder::default()
             .title("Add date or specify \"none\" to remove".to_string())
@@ -685,9 +679,32 @@ impl App {
                     app.task_store.update_task(&task_id);
                     return PostEvent::noop(false);
                 }
+                let today = Local::now().date_naive();
                 let date = NaiveDate::parse_from_str(&date_str, "%d/%m/%y")
                     .or_else(|_| NaiveDate::parse_from_str(&date_str, "%d/%m/%Y"))
-                    .or_else(|_| NaiveDate::parse_from_str(&date_str, "%Y-%m-%d"));
+                    .or_else(|_| NaiveDate::parse_from_str(&date_str, "%Y-%m-%d"))
+                    .or_else(|_| {
+                        let parts: Vec<&str> = date_str.split('/').collect();
+                        if parts.len() == 2 {
+                            if let (Ok(day), Ok(month)) =
+                                (parts[0].parse::<u32>(), parts[1].parse::<u32>())
+                            {
+                                return NaiveDate::from_ymd_opt(today.year(), month, day)
+                                    .ok_or_else(|| ());
+                            }
+                        }
+                        Err(())
+                    })
+                    .or_else(|_| {
+                        date_str
+                            .parse::<u32>()
+                            .map_err(|_| Err::<u32, ()>(()))
+                            .and_then(|day| {
+                                NaiveDate::from_ymd_opt(today.year(), today.month(), day)
+                                    .ok_or(Err(()))
+                            })
+                    })
+                    .or(Err("Invalid date format."));
 
                 match date {
                     Ok(due) => {
